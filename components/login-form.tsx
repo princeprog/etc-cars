@@ -21,16 +21,18 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
+      <Card className="border-white/70 bg-white/96 text-slate-900 shadow-2xl shadow-slate-900/15">
+        <CardHeader className="gap-2 text-center">
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            Welcome back
+          </CardTitle>
+          <CardDescription className="text-slate-600">
+            Sign in to access your dealership workspace.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
-            <FieldGroup>
+          <form className="space-y-1">
+            <FieldGroup className="gap-6">
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
@@ -38,27 +40,24 @@ export function LoginForm({
                   type="email"
                   placeholder="m@example.com"
                   required
+                  className="h-11 bg-white"
                 />
               </Field>
               <Field>
-                <div className="flex items-center">
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
-                <Input id="password" type="password" required />
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  className="h-11 bg-white"
+                />
               </Field>
-              <Field>
-                <Button type="submit">Login</Button>
-                <Button variant="outline" type="button">
-                  Login with Google
+              <Field className="gap-2">
+                <Button type="submit" className="h-11">
+                  Login
                 </Button>
-                <FieldDescription className="text-center">
-                  Don&apos;t have an account? <a href="#">Sign up</a>
+                <FieldDescription className="pt-1 text-center text-slate-500">
+                  Use your assigned email and password to continue.
                 </FieldDescription>
               </Field>
             </FieldGroup>

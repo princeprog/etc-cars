@@ -1,9 +1,16 @@
+import { LightThemeEnforcer } from "@/components/light-theme-enforcer"
 import { LoginForm } from "@/components/login-form"
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-slate-100 p-6 md:p-10">
+      <LightThemeEnforcer />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/login-background.png')" }}
+      />
+      <div className="relative z-10 w-full max-w-md">
         <LoginForm />
       </div>
     </div>

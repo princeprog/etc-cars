@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { AppProviders } from "@/components/providers/app-providers";
 
 const fontSans = Inter({subsets:['latin'],variable:'--font-sans'});
 
@@ -21,7 +21,7 @@ export default function RootLayout({
       <body
         className="antialiased"
       >
-        <ThemeProvider>{children}</ThemeProvider>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

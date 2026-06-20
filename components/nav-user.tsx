@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -20,6 +21,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { useLogoutMutation } from "@/hooks/mutations/auth/use-logout-mutation"
+import { toast } from "sonner"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
 
 export function NavUser({
@@ -32,6 +35,20 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter()
+  const logoutMutation = useLogoutMutation()
+
+  async function handleLogout() {
+    await logoutMutation.mutateAsync(undefined, {
+      onSuccess: () => {
+        toast.success("Logged out")
+        router.replace("/login")
+      },
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : "Logout failed")
+      },
+    })
+  }
 
   return (
     <SidebarMenu>
@@ -94,7 +111,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} disabled={logoutMutation.isPending}>
               <LogOutIcon
               />
               Log out

@@ -1,5 +1,5 @@
-import { Demo } from "@/components/demo"
+import { redirect } from "next/navigation"
 
 export default function Page() {
-  return <Demo />
+  redirect("/dashboard")
 }

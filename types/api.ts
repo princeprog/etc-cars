@@ -18,3 +18,15 @@ export class AppApiError extends Error {
 export function isAppApiError(error: unknown): error is AppApiError {
   return error instanceof AppApiError
 }
+
+export function getApiErrorMessage(error: unknown, fallback = "Request failed") {
+  if (isAppApiError(error)) {
+    return error.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return fallback
+}

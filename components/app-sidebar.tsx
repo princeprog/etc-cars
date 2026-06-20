@@ -3,9 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 
-import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
 import { NavUser } from "@/components/nav-user"
 import {
   Sidebar,
@@ -16,7 +14,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+import {
+  BellRingIcon,
+  CarFrontIcon,
+  CommandIcon,
+  HandCoinsIcon,
+  LayoutDashboardIcon,
+  ScanSearchIcon,
+  ShoppingBagIcon,
+} from "lucide-react"
 
 const data = {
   navMain: [
@@ -29,143 +35,42 @@ const data = {
       ),
     },
     {
-      title: "Lifecycle",
-      url: "#",
+      title: "Vehicles",
+      url: "/vehicles",
       icon: (
-        <ListIcon
+        <CarFrontIcon
         />
       ),
     },
     {
-      title: "Analytics",
-      url: "#",
+      title: "Seller Leads",
+      url: "/seller-leads",
       icon: (
-        <ChartBarIcon
+        <ScanSearchIcon
         />
       ),
     },
     {
-      title: "Projects",
-      url: "#",
+      title: "Buyer Leads",
+      url: "/buyer-leads",
       icon: (
-        <FolderIcon
+        <ShoppingBagIcon
         />
       ),
     },
     {
-      title: "Team",
-      url: "#",
+      title: "Follow-Ups",
+      url: "/follow-ups",
       icon: (
-        <UsersIcon
-        />
-      ),
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: (
-        <CameraIcon
-        />
-      ),
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: (
-        <FileTextIcon
-        />
-      ),
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: (
-        <Settings2Icon
+        <BellRingIcon
         />
       ),
     },
     {
-      title: "Get Help",
-      url: "#",
+      title: "Sales",
+      url: "/sales",
       icon: (
-        <CircleHelpIcon
-        />
-      ),
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: (
-        <SearchIcon
-        />
-      ),
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: (
-        <DatabaseIcon
-        />
-      ),
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: (
-        <FileChartColumnIcon
-        />
-      ),
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: (
-        <FileIcon
+        <HandCoinsIcon
         />
       ),
     },
@@ -201,8 +106,6 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

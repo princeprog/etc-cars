@@ -1,0 +1,65 @@
+export const BUYER_LEAD_STATUSES = [
+  "New Inquiry",
+  "Contacted",
+  "Interested",
+  "Negotiating",
+  "Reserved",
+  "Won",
+  "Lost",
+] as const
+
+export type BuyerLeadStatus = (typeof BUYER_LEAD_STATUSES)[number]
+
+export interface BuyerLeadVehicleSummary {
+  id: string
+  stockNumber: string
+  brand: string
+  model: string
+  year: number
+  status: string
+}
+
+export interface BuyerLead {
+  id: string
+  buyerName: string
+  contactNumber: string
+  email: string | null
+  facebookName: string | null
+  inquirySource: string | null
+  desiredBudget: string | null
+  notes: string | null
+  status: BuyerLeadStatus
+  assigneeUserId: string | null
+  latestActivityAt: string | null
+  closingNote: string | null
+  createdAt: string
+  updatedAt: string
+  vehicles: BuyerLeadVehicleSummary[]
+}
+
+export interface CreateBuyerLeadPayload {
+  buyerName: string
+  contactNumber: string
+  email?: string | null
+  facebookName?: string | null
+  inquirySource?: string | null
+  desiredBudget?: string | null
+  notes?: string | null
+  status?: BuyerLeadStatus
+  assigneeUserId?: string | null
+  closingNote?: string | null
+}
+
+export type UpdateBuyerLeadPayload = Partial<CreateBuyerLeadPayload>
+
+export interface LinkBuyerLeadVehiclePayload {
+  vehicleId: string
+}
+
+export interface BuyerLeadResponse {
+  buyerLead: BuyerLead
+}
+
+export interface BuyerLeadsResponse {
+  buyerLeads: BuyerLead[]
+}

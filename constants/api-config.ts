@@ -16,6 +16,31 @@ export const API_ENDPOINTS = {
   dashboard: {
     root: "/dashboard",
   },
+  sellerLeads: {
+    root: "/seller-leads",
+    byId: (id: string) => `/seller-leads/${id}`,
+    convert: (id: string) => `/seller-leads/${id}/convert`,
+  },
+  buyerLeads: {
+    root: "/buyer-leads",
+    byId: (id: string) => `/buyer-leads/${id}`,
+    vehicleLinks: (id: string) => `/buyer-leads/${id}/vehicle-links`,
+    vehicleLinkByVehicleId: (id: string, vehicleId: string) =>
+      `/buyer-leads/${id}/vehicle-links/${vehicleId}`,
+  },
+  vehicles: {
+    root: "/vehicles",
+    byId: (id: string) => `/vehicles/${id}`,
+  },
+  followUps: {
+    root: "/follow-ups",
+    byId: (id: string) => `/follow-ups/${id}`,
+    complete: (id: string) => `/follow-ups/${id}/complete`,
+  },
+  sales: {
+    root: "/sales",
+    byId: (id: string) => `/sales/${id}`,
+  },
 } as const
 
 export function buildApiUrl(path: string) {

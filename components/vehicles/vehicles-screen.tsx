@@ -1,162 +1,309 @@
 "use client"
 
 import * as React from "react"
-import { toast } from "sonner"
+import { EyeIcon, EyeOffIcon, SearchIcon, Settings2Icon } from "lucide-react"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
-import { SubmitButton } from "@/components/operations/submit-button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitle, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { useCreateVehicleMutation } from "@/hooks/mutations/vehicles/use-create-vehicle-mutation"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
-import { VEHICLE_STATUSES, type VehicleStatus } from "@/types/vehicles"
+import type { Vehicle } from "@/types/vehicles"
+import { VehicleCreateDialog } from "./vehicle-create-dialog"
+import { VehicleDetailDialog } from "./vehicle-detail-dialog"
+import { VehicleEditDialog } from "./vehicle-edit-dialog"
+import {
+  filterVehicles,
+  getVehicleStatusCounts,
+  VEHICLE_FILTERS,
+  type VehicleFilterValue,
+} from "./vehicles.helpers"
+import {
+  DEFAULT_VISIBLE_VEHICLE_COLUMNS,
+  VEHICLE_COLUMN_MANAGER_OPTIONS,
+  type VisibleVehicleColumns,
+  VehiclesTable,
+} from "./vehicles-table"
 
-function parsePhotoLines(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((fileUrl, index) => ({ fileUrl, sortOrder: index }))
+const VEHICLE_COLUMNS_STORAGE_KEY = "etc-cars:vehicles:visible-columns"
+
+function getStoredVisibleColumns(): VisibleVehicleColumns {
+  if (typeof window === "undefined") {
+    return DEFAULT_VISIBLE_VEHICLE_COLUMNS
+  }
+
+  try {
+    const rawValue = window.localStorage.getItem(VEHICLE_COLUMNS_STORAGE_KEY)
+
+    if (!rawValue) {
+      return DEFAULT_VISIBLE_VEHICLE_COLUMNS
+    }
+
+    const parsedValue = JSON.parse(rawValue) as Partial<VisibleVehicleColumns>
+
+    return {
+      stockNumber: parsedValue.stockNumber ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.stockNumber,
+      year: parsedValue.year ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.year,
+      status: parsedValue.status ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.status,
+      targetPrice: parsedValue.targetPrice ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.targetPrice,
+      minimumPrice: parsedValue.minimumPrice ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.minimumPrice,
+      mileage: parsedValue.mileage ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.mileage,
+      photos: parsedValue.photos ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.photos,
+      updated: parsedValue.updated ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.updated,
+    }
+  } catch {
+    return DEFAULT_VISIBLE_VEHICLE_COLUMNS
+  }
 }
 
 export function VehiclesScreen() {
   const vehiclesQuery = useVehiclesQuery()
-  const createMutation = useCreateVehicleMutation()
-  const [form, setForm] = React.useState({
-    stockNumber: "",
-    brand: "",
-    model: "",
-    year: "",
-    variant: "",
-    color: "",
-    transmission: "",
-    fuelType: "",
-    mileage: "",
-    purchasePrice: "",
-    targetSellingPrice: "",
-    minimumAcceptablePrice: "",
-    status: "Incoming" as VehicleStatus,
-    photoUrls: "",
-    remarks: "",
-  })
+  const [searchTerm, setSearchTerm] = React.useState("")
+  const [activeFilter, setActiveFilter] = React.useState<VehicleFilterValue>("all")
+  const [viewVehicle, setViewVehicle] = React.useState<Vehicle | null>(null)
+  const [editVehicle, setEditVehicle] = React.useState<Vehicle | null>(null)
+  const [visibleColumns, setVisibleColumns] = React.useState<VisibleVehicleColumns>(getStoredVisibleColumns)
+  const [columnSearchTerm, setColumnSearchTerm] = React.useState("")
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    await createMutation.mutateAsync(
-      {
-        stockNumber: form.stockNumber,
-        brand: form.brand,
-        model: form.model,
-        year: Number(form.year),
-        variant: form.variant || null,
-        color: form.color || null,
-        transmission: form.transmission || null,
-        fuelType: form.fuelType || null,
-        mileage: form.mileage ? Number(form.mileage) : null,
-        purchasePrice: form.purchasePrice || null,
-        targetSellingPrice: form.targetSellingPrice || null,
-        minimumAcceptablePrice: form.minimumAcceptablePrice || null,
-        status: form.status,
-        photos: parsePhotoLines(form.photoUrls),
-        remarks: form.remarks || null,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Vehicle created")
-          setForm({
-            stockNumber: "",
-            brand: "",
-            model: "",
-            year: "",
-            variant: "",
-            color: "",
-            transmission: "",
-            fuelType: "",
-            mileage: "",
-            purchasePrice: "",
-            targetSellingPrice: "",
-            minimumAcceptablePrice: "",
-            status: "Incoming",
-            photoUrls: "",
-            remarks: "",
-          })
-        },
-      },
-    )
+  const vehicles = vehiclesQuery.data?.vehicles ?? []
+  const counts = getVehicleStatusCounts(vehicles)
+  const filteredVehicles = filterVehicles(vehicles, searchTerm, activeFilter)
+  const filteredColumnOptions = VEHICLE_COLUMN_MANAGER_OPTIONS.filter((column) =>
+    column.label.toLowerCase().includes(columnSearchTerm.trim().toLowerCase()),
+  )
+
+  function toggleColumn(column: keyof VisibleVehicleColumns, checked: boolean) {
+    setVisibleColumns((current) => ({
+      ...current,
+      [column]: checked,
+    }))
   }
+
+  function restoreColumns() {
+    setVisibleColumns(DEFAULT_VISIBLE_VEHICLE_COLUMNS)
+    setColumnSearchTerm("")
+  }
+
+  React.useEffect(() => {
+    window.localStorage.setItem(
+      VEHICLE_COLUMNS_STORAGE_KEY,
+      JSON.stringify(visibleColumns),
+    )
+  }, [visibleColumns])
 
   return (
     <AuthenticatedAppShell title="Vehicles">
-      <div className="grid flex-1 gap-6 p-4 md:p-6 xl:grid-cols-[420px_1fr]">
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>Create Vehicle</CardTitle>
-            <CardDescription>Enter direct inventory and include photo URLs when preparing Available stock.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <FieldGroup className="gap-4">
-                <ApiErrorAlert title="Unable to create vehicle" message={getApiErrorMessage(createMutation.error, "")} />
-                <Field><FieldLabel htmlFor="stockNumber">Stock number</FieldLabel><Input id="stockNumber" value={form.stockNumber} onChange={(e) => setForm((v) => ({ ...v, stockNumber: e.target.value }))} required /></Field>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field><FieldLabel htmlFor="brand">Brand</FieldLabel><Input id="brand" value={form.brand} onChange={(e) => setForm((v) => ({ ...v, brand: e.target.value }))} required /></Field>
-                  <Field><FieldLabel htmlFor="model">Model</FieldLabel><Input id="model" value={form.model} onChange={(e) => setForm((v) => ({ ...v, model: e.target.value }))} required /></Field>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field><FieldLabel htmlFor="year">Year</FieldLabel><Input id="year" type="number" value={form.year} onChange={(e) => setForm((v) => ({ ...v, year: e.target.value }))} required /></Field>
-                  <Field><FieldLabel htmlFor="status">Status</FieldLabel><Select value={form.status} onValueChange={(value) => setForm((v) => ({ ...v, status: value as VehicleStatus }))}><SelectTrigger id="status"><SelectValue /></SelectTrigger><SelectContent>{VEHICLE_STATUSES.filter((status) => status !== "Sold").map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></Field>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field><FieldLabel htmlFor="purchasePrice">Purchase price</FieldLabel><Input id="purchasePrice" value={form.purchasePrice} onChange={(e) => setForm((v) => ({ ...v, purchasePrice: e.target.value }))} /></Field>
-                  <Field><FieldLabel htmlFor="targetSellingPrice">Target selling price</FieldLabel><Input id="targetSellingPrice" value={form.targetSellingPrice} onChange={(e) => setForm((v) => ({ ...v, targetSellingPrice: e.target.value }))} /></Field>
-                </div>
-                <Field><FieldLabel htmlFor="minimumAcceptablePrice">Minimum acceptable price</FieldLabel><Input id="minimumAcceptablePrice" value={form.minimumAcceptablePrice} onChange={(e) => setForm((v) => ({ ...v, minimumAcceptablePrice: e.target.value }))} /></Field>
-                <Field><FieldLabel htmlFor="photoUrls">Photo URLs</FieldLabel><Textarea id="photoUrls" value={form.photoUrls} onChange={(e) => setForm((v) => ({ ...v, photoUrls: e.target.value }))} rows={3} placeholder="One URL per line" /></Field>
-                <Field><FieldLabel htmlFor="remarks">Remarks</FieldLabel><Textarea id="remarks" value={form.remarks} onChange={(e) => setForm((v) => ({ ...v, remarks: e.target.value }))} rows={3} /></Field>
-                <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Creating vehicle" className="w-full">Create vehicle</SubmitButton>
-              </FieldGroup>
-            </form>
-          </CardContent>
-        </Card>
+      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-semibold tracking-tight">Vehicles</h2>
+              <p className="text-sm text-muted-foreground">
+                Manage inventory, review operational readiness, and update vehicle details from one table-first workspace.
+              </p>
+            </div>
+            <VehicleCreateDialog />
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Inventory</CardTitle>
-            <CardDescription>Live inventory records created through the current ETC API workflow.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {vehiclesQuery.isPending ? (
-              <ModuleLoadingState label="Loading vehicles" />
-            ) : vehiclesQuery.data?.vehicles.length ? (
-              vehiclesQuery.data.vehicles.map((vehicle) => (
-                <div key={vehicle.id} className="rounded-lg border p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <p className="font-medium">{vehicle.stockNumber} • {vehicle.brand} {vehicle.model}</p>
-                      <p className="text-sm text-muted-foreground">{vehicle.year}{vehicle.variant ? ` • ${vehicle.variant}` : ""}</p>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            {VEHICLE_FILTERS.map((filter) => {
+              const count =
+                filter.value === "all" ? counts.all : counts[filter.value]
+
+              return (
+                <div
+                  key={filter.value}
+                  className={[
+                    "rounded-xl border border-border/70 bg-card px-4 py-3 text-left shadow-xs",
+                  ].join(" ")}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium tracking-normal text-muted-foreground">
+                        {filter.label}
+                      </p>
+                      <p className="text-2xl font-semibold leading-none text-foreground">
+                        {count}
+                      </p>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-md bg-muted px-2 py-1">{vehicle.status}</span>
-                      {vehicle.targetSellingPrice ? <span className="rounded-md bg-muted px-2 py-1">Target {vehicle.targetSellingPrice}</span> : null}
+                    <span
+                      className={[
+                        "mt-0.5 inline-flex h-2.5 w-2.5 rounded-full",
+                        "bg-border",
+                      ].join(" ")}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
+              <div className="relative max-w-sm flex-1">
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder="Search stock no., make, model, or variant"
+                  className="pl-9"
+                />
+              </div>
+              <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as VehicleFilterValue)}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {VEHICLE_FILTERS.map((filter) => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("")
+                  setActiveFilter("all")
+                }}
+              >
+                Reset
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 self-end md:self-auto">
+              <p className="text-sm text-muted-foreground">
+                Showing {filteredVehicles.length} of {vehicles.length} vehicles
+              </p>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon-sm" aria-label="Configure vehicle table columns">
+                    <Settings2Icon />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-[320px] gap-3 rounded-2xl p-0">
+                  <PopoverHeader className="flex-row items-center justify-between gap-3 border-b px-4 py-4">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <PopoverTitle className="text-base">Manage Columns</PopoverTitle>
+                        <span className="inline-flex min-w-7 items-center justify-center rounded-full border border-border/70 px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                          {VEHICLE_COLUMN_MANAGER_OPTIONS.length}
+                        </span>
+                      </div>
+                      <PopoverDescription className="text-xs">
+                        Control which fields stay visible in the vehicles table.
+                      </PopoverDescription>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-auto px-0 text-sm font-medium text-primary hover:bg-transparent hover:text-primary/80"
+                      onClick={restoreColumns}
+                    >
+                      Restore
+                    </Button>
+                  </PopoverHeader>
+                  <div className="px-4 pt-1 pb-4">
+                    <div className="relative mb-3">
+                      <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        value={columnSearchTerm}
+                        onChange={(event) => setColumnSearchTerm(event.target.value)}
+                        placeholder="Search columns"
+                        className="h-10 rounded-xl pl-9"
+                      />
+                    </div>
+                    <div className="max-h-[360px] overflow-y-auto rounded-xl border border-border/70 bg-background">
+                      {filteredColumnOptions.length ? (
+                        filteredColumnOptions.map((column, index) => {
+                          const isVisible = column.alwaysVisible
+                            ? true
+                            : visibleColumns[column.key]
+
+                          return (
+                            <button
+                              key={column.id}
+                              type="button"
+                              disabled={column.alwaysVisible}
+                              onClick={() => {
+                                if (!column.alwaysVisible) {
+                                  toggleColumn(column.key, !visibleColumns[column.key])
+                                }
+                              }}
+                              className={[
+                                "flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm",
+                                index !== filteredColumnOptions.length - 1 ? "border-b border-border/70" : "",
+                                column.alwaysVisible
+                                  ? "cursor-default bg-background"
+                                  : "transition hover:bg-muted/30",
+                              ].join(" ")}
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate font-medium text-foreground">{column.label}</p>
+                              </div>
+                              <span className="shrink-0 text-muted-foreground">
+                                {isVisible ? (
+                                  <EyeIcon className="size-4" />
+                                ) : (
+                                  <EyeOffIcon className="size-4" />
+                                )}
+                              </span>
+                            </button>
+                          )
+                        })
+                      ) : (
+                        <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                          No columns match that search.
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <p className="mt-3 text-sm text-muted-foreground">
-                    Photos: {vehicle.photos.length} • Purchase: {vehicle.purchasePrice ?? "N/A"} • Minimum: {vehicle.minimumAcceptablePrice ?? "N/A"}
-                  </p>
-                </div>
-              ))
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+        </section>
+
+        <Card className="overflow-hidden border-border/70 py-0 shadow-xs">
+          <CardContent className="p-0">
+            {vehiclesQuery.isPending ? (
+              <div className="p-6">
+                <ModuleLoadingState label="Loading vehicles" />
+              </div>
+            ) : vehiclesQuery.error ? (
+              <div className="p-6">
+                <ApiErrorAlert title="Unable to load vehicles" message={getApiErrorMessage(vehiclesQuery.error, "")} />
+              </div>
+            ) : filteredVehicles.length ? (
+              <VehiclesTable
+                vehicles={filteredVehicles}
+                visibleColumns={visibleColumns}
+                onView={setViewVehicle}
+                onEdit={setEditVehicle}
+              />
             ) : (
-              <EmptyState title="No vehicles yet" description="Create the first inventory record to start matching and sales workflows." />
+              <div className="p-6">
+                <EmptyState
+                  title={vehicles.length ? "No vehicles match this view" : "No vehicles yet"}
+                  description={
+                    vehicles.length
+                      ? "Try another status filter or broaden your search."
+                      : "Create the first inventory record to populate the table."
+                  }
+                />
+              </div>
             )}
           </CardContent>
         </Card>
+
+        <VehicleDetailDialog open={Boolean(viewVehicle)} onOpenChange={(open) => !open && setViewVehicle(null)} vehicle={viewVehicle} />
+        <VehicleEditDialog open={Boolean(editVehicle)} onOpenChange={(open) => !open && setEditVehicle(null)} vehicle={editVehicle} />
       </div>
     </AuthenticatedAppShell>
   )

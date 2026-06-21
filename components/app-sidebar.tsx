@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
@@ -17,7 +18,6 @@ import {
 import {
   BellRingIcon,
   CarFrontIcon,
-  CommandIcon,
   HandCoinsIcon,
   LayoutDashboardIcon,
   ScanSearchIcon,
@@ -97,7 +97,24 @@ export function AppSidebar({
               className="data-[slot=sidebar-menu-button]:p-1.5!"
             >
               <Link href="/dashboard">
-                <CommandIcon className="size-5!" />
+                <div className="relative size-7 shrink-0 overflow-hidden rounded-md">
+                  <Image
+                    src="/etc_light_logo.png"
+                    alt="ETC Cars"
+                    fill
+                    className="object-contain dark:hidden"
+                    sizes="28px"
+                    priority
+                  />
+                  <Image
+                    src="/etc_dark_logo.png"
+                    alt="ETC Cars"
+                    fill
+                    className="hidden object-contain dark:block"
+                    sizes="28px"
+                    priority
+                  />
+                </div>
                 <span className="text-base font-semibold">ETC Cars</span>
               </Link>
             </SidebarMenuButton>

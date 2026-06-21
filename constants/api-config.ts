@@ -32,6 +32,9 @@ export const API_ENDPOINTS = {
     root: "/vehicles",
     byId: (id: string) => `/vehicles/${id}`,
   },
+  uploads: {
+    vehiclePhoto: "/uploads/vehicle-photos",
+  },
   followUps: {
     root: "/follow-ups",
     byId: (id: string) => `/follow-ups/${id}`,
@@ -45,4 +48,12 @@ export const API_ENDPOINTS = {
 
 export function buildApiUrl(path: string) {
   return new URL(path, API_BASE_URL).toString()
+}
+
+export function resolveApiAssetUrl(pathOrUrl: string) {
+  if (/^https?:\/\//i.test(pathOrUrl)) {
+    return pathOrUrl
+  }
+
+  return buildApiUrl(pathOrUrl)
 }

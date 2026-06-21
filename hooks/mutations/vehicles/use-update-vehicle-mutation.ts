@@ -13,9 +13,10 @@ export function useUpdateVehicleMutation() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateVehiclePayload }) =>
       updateVehicle(id, payload),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: vehiclesQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: vehiclesQueryKeys.detail(variables.id) }),
         queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.summary }),
       ])
     },

@@ -24,7 +24,7 @@ export type VehicleFormValues = {
   targetSellingPrice: string
   minimumAcceptablePrice: string
   status: VehicleStatus
-  photoUrls: string
+  photos: { fileUrl: string; sortOrder?: number }[]
   remarks: string
 }
 
@@ -43,7 +43,7 @@ export function getEmptyVehicleFormValues(): VehicleFormValues {
     targetSellingPrice: "",
     minimumAcceptablePrice: "",
     status: "Incoming",
-    photoUrls: "",
+    photos: [],
     remarks: "",
   }
 }
@@ -63,17 +63,9 @@ export function getVehicleFormValues(vehicle: Vehicle): VehicleFormValues {
     targetSellingPrice: vehicle.targetSellingPrice ?? "",
     minimumAcceptablePrice: vehicle.minimumAcceptablePrice ?? "",
     status: vehicle.status,
-    photoUrls: vehicle.photos.map((photo) => photo.fileUrl).join("\n"),
+    photos: vehicle.photos,
     remarks: vehicle.remarks ?? "",
   }
-}
-
-export function parsePhotoLines(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((fileUrl, index) => ({ fileUrl, sortOrder: index }))
 }
 
 export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehiclePayload {
@@ -91,7 +83,10 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     targetSellingPrice: values.targetSellingPrice || null,
     minimumAcceptablePrice: values.minimumAcceptablePrice || null,
     status: values.status,
-    photos: parsePhotoLines(values.photoUrls),
+    photos: values.photos.map((photo, index) => ({
+      fileUrl: photo.fileUrl,
+      sortOrder: index,
+    })),
     remarks: values.remarks || null,
   }
 }

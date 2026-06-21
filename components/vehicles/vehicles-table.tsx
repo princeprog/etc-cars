@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { format, formatDistanceToNow } from "date-fns"
 import {
   EyeIcon,
@@ -10,6 +11,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
+import { resolveApiAssetUrl } from "@/constants/api-config"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -265,13 +267,31 @@ export function VehiclesTable({
               </TableCell>
             ) : null}
             <TableCell className="px-4 py-3">
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">
-                  {vehicle.brand} {vehicle.model}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {vehicle.variant || "No variant"}
-                </p>
+              <div className="flex items-center gap-3">
+                <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border border-border/70 bg-muted/30">
+                  {vehicle.photos[0] ? (
+                    <Image
+                      src={resolveApiAssetUrl(vehicle.photos[0].fileUrl)}
+                      alt={`${vehicle.brand} ${vehicle.model}`}
+                      fill
+                      unoptimized
+                      sizes="44px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[10px] font-medium text-muted-foreground">
+                      N/A
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="font-medium text-foreground">
+                    {vehicle.brand} {vehicle.model}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {vehicle.variant || "No variant"}
+                  </p>
+                </div>
               </div>
             </TableCell>
             {visibleColumns.year ? (

@@ -11,9 +11,14 @@ import { Spinner } from "@/components/ui/spinner"
 
 export function AuthenticatedAppShell({
   title,
+  breadcrumbs,
   children,
 }: Readonly<{
   title: string
+  breadcrumbs?: Array<{
+    label: string
+    href?: string
+  }>
   children: ReactNode
 }>) {
   const authQuery = useAuthenticatedUserQuery()
@@ -43,7 +48,7 @@ export function AuthenticatedAppShell({
               }}
             />
             <SidebarInset>
-              <SiteHeader title={title} />
+              <SiteHeader title={title} breadcrumbs={breadcrumbs} />
               <div className="flex flex-1 flex-col">{children}</div>
             </SidebarInset>
           </>

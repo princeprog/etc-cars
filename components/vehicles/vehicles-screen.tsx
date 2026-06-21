@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { EyeIcon, EyeOffIcon, SearchIcon, Settings2Icon } from "lucide-react"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
@@ -15,9 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { Vehicle } from "@/types/vehicles"
-import { VehicleCreateDialog } from "./vehicle-create-dialog"
 import { VehicleDetailDialog } from "./vehicle-detail-dialog"
-import { VehicleEditDialog } from "./vehicle-edit-dialog"
 import {
   filterVehicles,
   getVehicleStatusCounts,
@@ -63,11 +63,11 @@ function getStoredVisibleColumns(): VisibleVehicleColumns {
 }
 
 export function VehiclesScreen() {
+  const router = useRouter()
   const vehiclesQuery = useVehiclesQuery()
   const [searchTerm, setSearchTerm] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<VehicleFilterValue>("all")
   const [viewVehicle, setViewVehicle] = React.useState<Vehicle | null>(null)
-  const [editVehicle, setEditVehicle] = React.useState<Vehicle | null>(null)
   const [visibleColumns, setVisibleColumns] = React.useState<VisibleVehicleColumns>(getStoredVisibleColumns)
   const [columnSearchTerm, setColumnSearchTerm] = React.useState("")
 
@@ -108,7 +108,9 @@ export function VehiclesScreen() {
                 Manage inventory, review operational readiness, and update vehicle details from one table-first workspace.
               </p>
             </div>
-            <VehicleCreateDialog />
+            <Button asChild>
+              <Link href="/vehicles/new">Add Vehicle</Link>
+            </Button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -285,7 +287,7 @@ export function VehiclesScreen() {
                 vehicles={filteredVehicles}
                 visibleColumns={visibleColumns}
                 onView={setViewVehicle}
-                onEdit={setEditVehicle}
+                onEdit={(vehicle) => router.push(`/vehicles/${vehicle.id}/edit`)}
               />
             ) : (
               <div className="p-6">
@@ -303,7 +305,6 @@ export function VehiclesScreen() {
         </Card>
 
         <VehicleDetailDialog open={Boolean(viewVehicle)} onOpenChange={(open) => !open && setViewVehicle(null)} vehicle={viewVehicle} />
-        <VehicleEditDialog open={Boolean(editVehicle)} onOpenChange={(open) => !open && setEditVehicle(null)} vehicle={editVehicle} />
       </div>
     </AuthenticatedAppShell>
   )

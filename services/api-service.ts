@@ -50,8 +50,9 @@ export async function apiRequest<TResponse, TBody = undefined>(
   } = options
 
   const requestHeaders = new Headers(headers)
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData
 
-  if (body !== undefined && !requestHeaders.has("Content-Type")) {
+  if (body !== undefined && !isFormData && !requestHeaders.has("Content-Type")) {
     requestHeaders.set("Content-Type", "application/json")
   }
 
@@ -60,7 +61,12 @@ export async function apiRequest<TResponse, TBody = undefined>(
       method,
       credentials: "include",
       headers: requestHeaders,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : isFormData
+            ? (body as FormData)
+            : JSON.stringify(body),
     })
 
   let response = await executeRequest()

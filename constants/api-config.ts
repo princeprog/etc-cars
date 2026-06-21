@@ -8,10 +8,13 @@ export const API_BASE_URL = apiBaseUrl
 
 export const API_ENDPOINTS = {
   auth: {
+    changePassword: "/auth/change-password",
     login: "/auth/login",
     logout: "/auth/logout",
     me: "/auth/me",
     refresh: "/auth/refresh",
+    users: "/auth/users",
+    userStatus: (id: string) => `/auth/users/${id}/status`,
   },
   dashboard: {
     root: "/dashboard",

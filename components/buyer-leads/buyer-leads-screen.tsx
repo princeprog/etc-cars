@@ -321,7 +321,7 @@ function BuyerLeadForm({
 export function BuyerLeadsScreen() {
   const authQuery = useAuthenticatedUserQuery()
   const buyerLeadsQuery = useBuyerLeadsQuery()
-  const vehiclesQuery = useVehiclesQuery()
+  const vehiclesQuery = useVehiclesQuery({ status: "Available" })
   const createMutation = useCreateBuyerLeadMutation()
   const updateMutation = useUpdateBuyerLeadMutation()
   const linkMutation = useLinkBuyerLeadVehicleMutation()
@@ -338,7 +338,7 @@ export function BuyerLeadsScreen() {
   const currentUserId = authQuery.data?.user.id
   const leads = buyerLeadsQuery.data?.buyerLeads ?? []
   const filteredLeads = filterBuyerLeads(leads, searchTerm, activeFilter)
-  const availableVehicles = vehiclesQuery.data?.vehicles.filter((vehicle) => vehicle.status !== "Sold") ?? []
+  const availableVehicles = vehiclesQuery.data?.vehicles ?? []
   const createPreview = getBuyerLeadPreviewLabel(createForm)
 
   async function handleStatusChange(lead: BuyerLead, nextStatus: BuyerLeadStatus) {

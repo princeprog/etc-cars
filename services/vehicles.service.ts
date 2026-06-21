@@ -7,8 +7,23 @@ import type {
   VehiclesResponse,
 } from "@/types/vehicles"
 
-export function getVehicles() {
-  return apiRequest<VehiclesResponse>(API_ENDPOINTS.vehicles.root)
+export type GetVehiclesFilters = {
+  status?: string
+}
+
+export function getVehicles(filters?: GetVehiclesFilters) {
+  const searchParams = new URLSearchParams()
+
+  if (filters?.status) {
+    searchParams.set("status", filters.status)
+  }
+
+  const queryString = searchParams.toString()
+  const endpoint = queryString
+    ? `${API_ENDPOINTS.vehicles.root}?${queryString}`
+    : API_ENDPOINTS.vehicles.root
+
+  return apiRequest<VehiclesResponse>(endpoint)
 }
 
 export function getVehicle(id: string) {

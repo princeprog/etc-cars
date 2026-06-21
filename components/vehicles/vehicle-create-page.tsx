@@ -88,7 +88,6 @@ function getConversionDefaults(searchParams: VehicleCreatePageSearchParams): {
 
 function buildConvertPayload(values: VehicleFormValues) {
   return {
-    stockNumber: values.stockNumber,
     year: values.year ? Number(values.year) : undefined,
     variant: values.variant || null,
     mileage: values.mileage ? Number(values.mileage) : null,
@@ -121,6 +120,7 @@ function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreat
   const eligibleForAvailable = hasTargetPrice && hasMinimumPrice && hasPhoto
   const previewPhoto = values.photos[0]
   const brandModelLabel = [values.brand || "Brand", values.model || "Model"].join(" ")
+  const stockNumberPreview = "Generated automatically"
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -187,7 +187,7 @@ function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreat
                       "",
                     )}
                   />
-                  <VehicleForm values={values} onChange={setValues} />
+                  <VehicleForm values={values} onChange={setValues} showStockNumberField={false} />
                 </div>
                 <div className="flex flex-col gap-3 border-t bg-muted/20 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">
@@ -280,7 +280,7 @@ function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreat
 
                   <div className="grid min-w-0 grid-cols-[104px_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
                     <span className="text-muted-foreground">Stock Number</span>
-                    <span className="truncate font-medium text-foreground">{values.stockNumber || "Not set"}</span>
+                    <span className="truncate font-medium text-foreground">{stockNumberPreview}</span>
                     <span className="text-muted-foreground">Brand / Model</span>
                     <span className="truncate font-medium text-foreground">{brandModelLabel}</span>
                     <span className="text-muted-foreground">Year</span>

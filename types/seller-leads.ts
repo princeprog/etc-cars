@@ -52,7 +52,6 @@ export interface CreateSellerLeadPayload {
 export type UpdateSellerLeadPayload = Partial<CreateSellerLeadPayload>
 
 export interface ConvertSellerLeadPayload {
-  stockNumber: string
   year?: number
   variant?: string | null
   mileage?: number | null

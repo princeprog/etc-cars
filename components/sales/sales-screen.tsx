@@ -52,11 +52,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { useLinkBuyerLeadVehicleMutation } from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation"
 import { useCreateSaleMutation } from "@/hooks/mutations/sales/use-create-sale-mutation"
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
 import { useSalesQuery } from "@/hooks/queries/sales/use-sales-query"
+import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
+import type { BuyerLead } from "@/types/buyer-leads"
 import type { SaleWithDetails } from "@/types/sales"
 
 type SalesFilterStatus = "all" | "finalized" | "commission_locked" | "needs_review"
@@ -192,17 +195,39 @@ function SalesForm({
   onChange,
   buyerLeadOptions,
   vehicleOptions,
+  selectedBuyerLead,
+  availableVehicles,
+  inlineLinkVehicleId,
+  onInlineLinkVehicleIdChange,
+  onLinkVehicle,
+  linkVehiclePending,
+  linkVehicleError,
   currentUserName,
 }: {
   values: SaleFormValues
   onChange: (values: SaleFormValues) => void
   buyerLeadOptions: { id: string; label: string }[]
   vehicleOptions: { id: string; label: string }[]
+  selectedBuyerLead?: BuyerLead
+  availableVehicles: { id: string; label: string }[]
+  inlineLinkVehicleId: string
+  onInlineLinkVehicleIdChange: (value: string) => void
+  onLinkVehicle: () => void
+  linkVehiclePending: boolean
+  linkVehicleError?: unknown
   currentUserName?: string
 }) {
   function updateField<K extends keyof SaleFormValues>(key: K, value: SaleFormValues[K]) {
+    if (key === "buyerLeadId") {
+      onChange({ ...values, buyerLeadId: value as string, vehicleId: "" })
+      return
+    }
+
     onChange({ ...values, [key]: value })
   }
+
+  const hasSelectedBuyerLead = Boolean(values.buyerLeadId)
+  const hasLinkedVehicles = Boolean(selectedBuyerLead?.vehicles.length)
 
   return (
     <FieldGroup className="gap-6">
@@ -232,8 +257,16 @@ function SalesForm({
           <Field>
             <FieldLabel htmlFor="saleVehicleId">Linked vehicle</FieldLabel>
             <Select value={values.vehicleId} onValueChange={(value) => updateField("vehicleId", value)}>
-              <SelectTrigger id="saleVehicleId">
-                <SelectValue placeholder="Select linked vehicle" />
+              <SelectTrigger id="saleVehicleId" disabled={!hasSelectedBuyerLead || !hasLinkedVehicles}>
+                <SelectValue
+                  placeholder={
+                    !hasSelectedBuyerLead
+                      ? "Select buyer lead first"
+                      : hasLinkedVehicles
+                        ? "Select linked vehicle"
+                        : "Link a vehicle below first"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {vehicleOptions.map((vehicle) => (
@@ -245,6 +278,52 @@ function SalesForm({
             </Select>
           </Field>
         </div>
+
+        {hasSelectedBuyerLead && !hasLinkedVehicles ? (
+          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-4">
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold text-foreground">Link a vehicle to continue</h4>
+                <p className="text-sm text-muted-foreground">
+                  {selectedBuyerLead?.buyerName ?? "This buyer"} has no linked vehicle yet. Link one available unit here and continue finalizing the sale without leaving this screen.
+                </p>
+              </div>
+              <ApiErrorAlert
+                title="Unable to link vehicle"
+                message={getApiErrorMessage(linkVehicleError, "")}
+              />
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                <Select value={inlineLinkVehicleId} onValueChange={onInlineLinkVehicleIdChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an available vehicle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableVehicles.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <SubmitButton
+                  type="button"
+                  pending={linkVehiclePending}
+                  pendingLabel="Linking vehicle"
+                  disabled={!inlineLinkVehicleId || availableVehicles.length === 0}
+                  onClick={onLinkVehicle}
+                >
+                  Link Vehicle
+                </SubmitButton>
+              </div>
+              {!availableVehicles.length ? (
+                <p className="text-sm text-muted-foreground">
+                  No available vehicles can be linked right now.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="saleDate">Sale date</FieldLabel>
@@ -293,7 +372,9 @@ export function SalesScreen() {
   const authQuery = useAuthenticatedUserQuery()
   const buyerLeadsQuery = useBuyerLeadsQuery()
   const salesQuery = useSalesQuery()
+  const availableVehiclesQuery = useVehiclesQuery({ status: "Available" })
   const createMutation = useCreateSaleMutation()
+  const linkVehicleMutation = useLinkBuyerLeadVehicleMutation()
 
   const [createOpen, setCreateOpen] = React.useState(false)
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -301,6 +382,7 @@ export function SalesScreen() {
   const [agentFilter, setAgentFilter] = React.useState<SalesFilterAgent>("all")
   const [rangeFilter, setRangeFilter] = React.useState<SalesFilterRange>("all")
   const [form, setForm] = React.useState<SaleFormValues>(() => getEmptySaleFormValues())
+  const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("")
 
   const currentUserName = authQuery.data?.user.fullName ?? ""
   const buyerLeads = buyerLeadsQuery.data?.buyerLeads ?? []
@@ -325,6 +407,38 @@ export function SalesScreen() {
       label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
     })) ?? []
 
+  const inlineAvailableVehicleOptions =
+    availableVehiclesQuery.data?.vehicles
+      .filter((vehicle) => !selectedBuyerLead?.vehicles.some((linkedVehicle) => linkedVehicle.id === vehicle.id))
+      .map((vehicle) => ({
+        id: vehicle.id,
+        label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
+      })) ?? []
+
+  React.useEffect(() => {
+    setInlineLinkVehicleId("")
+  }, [form.buyerLeadId])
+
+  async function handleInlineLinkVehicle() {
+    if (!selectedBuyerLead || !inlineLinkVehicleId) {
+      return
+    }
+
+    await linkVehicleMutation.mutateAsync(
+      { id: selectedBuyerLead.id, vehicleId: inlineLinkVehicleId },
+      {
+        onSuccess: () => {
+          setForm((current) => ({
+            ...current,
+            vehicleId: inlineLinkVehicleId,
+          }))
+          setInlineLinkVehicleId("")
+          toast.success("Vehicle linked to buyer lead")
+        },
+      },
+    )
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -344,6 +458,7 @@ export function SalesScreen() {
           toast.success("Sale finalized")
           setCreateOpen(false)
           setForm(getEmptySaleFormValues())
+          setInlineLinkVehicleId("")
         },
       },
     )
@@ -484,7 +599,7 @@ export function SalesScreen() {
                 <ApiErrorAlert title="Unable to load sales" message={getApiErrorMessage(salesQuery.error, "")} />
               </div>
             ) : filteredSales.length ? (
-              <Table className="min-w-[1380px] border-collapse">
+              <Table className="w-full border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Sale</TableHead>
@@ -494,9 +609,7 @@ export function SalesScreen() {
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Final Amount</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Gross Profit</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Commission</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Agent</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Updated</TableHead>
                     <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -510,7 +623,7 @@ export function SalesScreen() {
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <p className="font-medium text-foreground">{sale.saleNumber}</p>
-                            <p className="text-sm text-muted-foreground">Finalized deal</p>
+                            <p className="text-xs text-muted-foreground">{sale.agentName ?? "Unassigned agent"}</p>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
@@ -544,7 +657,7 @@ export function SalesScreen() {
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <p className="font-medium text-foreground">{buyerLeads.find((lead) => lead.id === sale.buyerLeadId)?.buyerName ?? "Buyer not found"}</p>
-                            <p className="text-sm text-muted-foreground">{buyerLeads.find((lead) => lead.id === sale.buyerLeadId)?.contactNumber ?? "No contact available"}</p>
+                            <p className="text-xs text-muted-foreground">{buyerLeads.find((lead) => lead.id === sale.buyerLeadId)?.contactNumber ?? "No contact available"}</p>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
@@ -562,24 +675,13 @@ export function SalesScreen() {
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <p className="text-sm font-semibold text-foreground">{formatMoney(sale.commission.finalAmount)}</p>
-                            <p className="text-xs text-muted-foreground">Locked</p>
+                            <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(sale.updatedAt), { addSuffix: true })}</p>
                           </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top text-sm text-foreground">
-                          {sale.agentName ?? "Unassigned"}
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
                           <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getSaleStatusClassName(status)}`}>
                             {getSaleStatusLabel(status)}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                              {formatDistanceToNow(new Date(sale.updatedAt), { addSuffix: true })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{format(new Date(sale.updatedAt), "MMM d, yyyy")}</p>
-                          </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 text-right">
                           <DropdownMenu>
@@ -643,6 +745,13 @@ export function SalesScreen() {
                       onChange={setForm}
                       buyerLeadOptions={buyerLeadOptions}
                       vehicleOptions={vehicleOptions}
+                      selectedBuyerLead={selectedBuyerLead}
+                      availableVehicles={inlineAvailableVehicleOptions}
+                      inlineLinkVehicleId={inlineLinkVehicleId}
+                      onInlineLinkVehicleIdChange={setInlineLinkVehicleId}
+                      onLinkVehicle={handleInlineLinkVehicle}
+                      linkVehiclePending={linkVehicleMutation.isPending}
+                      linkVehicleError={linkVehicleMutation.error}
                       currentUserName={currentUserName}
                     />
                   </div>

@@ -11,7 +11,7 @@ export const VEHICLE_FILTERS = [
 export type VehicleFilterValue = (typeof VEHICLE_FILTERS)[number]["value"]
 
 export type VehicleFormValues = {
-  stockNumber: string
+  stockNumber?: string
   brand: string
   model: string
   year: string
@@ -30,7 +30,6 @@ export type VehicleFormValues = {
 
 export function getEmptyVehicleFormValues(): VehicleFormValues {
   return {
-    stockNumber: "",
     brand: "",
     model: "",
     year: "",
@@ -50,7 +49,6 @@ export function getEmptyVehicleFormValues(): VehicleFormValues {
 
 export function getVehicleFormValues(vehicle: Vehicle): VehicleFormValues {
   return {
-    stockNumber: vehicle.stockNumber,
     brand: vehicle.brand,
     model: vehicle.model,
     year: String(vehicle.year),
@@ -70,7 +68,6 @@ export function getVehicleFormValues(vehicle: Vehicle): VehicleFormValues {
 
 export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehiclePayload {
   return {
-    stockNumber: values.stockNumber,
     brand: values.brand,
     model: values.model,
     year: Number(values.year),

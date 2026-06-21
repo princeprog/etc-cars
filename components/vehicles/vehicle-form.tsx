@@ -37,10 +37,12 @@ export function VehicleForm({
   values,
   onChange,
   includeSoldStatus = false,
+  showStockNumberField = true,
 }: {
   values: VehicleFormValues
   onChange: (values: VehicleFormValues) => void
   includeSoldStatus?: boolean
+  showStockNumberField?: boolean
 }) {
   const availableStatuses = includeSoldStatus
     ? VEHICLE_STATUSES
@@ -86,17 +88,14 @@ export function VehicleForm({
             Capture the core inventory details used to identify the unit across intake, listing, and sales.
           </p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="stockNumber">Stock number</FieldLabel>
-            <Input
-              id="stockNumber"
-              value={values.stockNumber}
-              onChange={(e) => updateField("stockNumber", e.target.value)}
-              placeholder="ETC-2026-001"
-              required
-            />
-          </Field>
+        <div className={`grid gap-4 ${showStockNumberField ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
+          {showStockNumberField ? (
+            <Field>
+              <FieldLabel htmlFor="stockNumber">Stock number</FieldLabel>
+              <Input id="stockNumber" value={values.stockNumber ?? ""} readOnly disabled />
+              <FieldDescription>Generated automatically when the vehicle record is created.</FieldDescription>
+            </Field>
+          ) : null}
           <Field>
             <FieldLabel htmlFor="status">Inventory status</FieldLabel>
             <Select value={values.status} onValueChange={(value) => updateField("status", value as VehicleStatus)}>

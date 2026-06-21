@@ -39,7 +39,6 @@ export interface Vehicle {
 }
 
 export interface CreateVehiclePayload {
-  stockNumber: string
   brand: string
   model: string
   year: number

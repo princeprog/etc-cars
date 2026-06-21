@@ -217,6 +217,8 @@ function SalesForm({
   linkVehicleError?: unknown
   currentUserName?: string
 }) {
+  const inlineVehicleSelectTriggerRef = React.useRef<HTMLButtonElement | null>(null)
+
   function updateField<K extends keyof SaleFormValues>(key: K, value: SaleFormValues[K]) {
     if (key === "buyerLeadId") {
       onChange({ ...values, buyerLeadId: value as string, vehicleId: "" })
@@ -228,6 +230,18 @@ function SalesForm({
 
   const hasSelectedBuyerLead = Boolean(values.buyerLeadId)
   const hasLinkedVehicles = Boolean(selectedBuyerLead?.vehicles.length)
+
+  React.useEffect(() => {
+    if (!hasSelectedBuyerLead || hasLinkedVehicles) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      inlineVehicleSelectTriggerRef.current?.focus()
+    }, 120)
+
+    return () => window.clearTimeout(timer)
+  }, [hasLinkedVehicles, hasSelectedBuyerLead])
 
   return (
     <FieldGroup className="gap-6">
@@ -294,7 +308,7 @@ function SalesForm({
               />
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
                 <Select value={inlineLinkVehicleId} onValueChange={onInlineLinkVehicleIdChange}>
-                  <SelectTrigger>
+                  <SelectTrigger ref={inlineVehicleSelectTriggerRef}>
                     <SelectValue placeholder="Select an available vehicle" />
                   </SelectTrigger>
                   <SelectContent>
@@ -418,6 +432,35 @@ export function SalesScreen() {
   React.useEffect(() => {
     setInlineLinkVehicleId("")
   }, [form.buyerLeadId])
+
+  React.useEffect(() => {
+    if (!selectedBuyerLead) {
+      return
+    }
+
+    if (selectedBuyerLead.vehicles.length === 1) {
+      const onlyLinkedVehicleId = selectedBuyerLead.vehicles[0]?.id
+
+      if (onlyLinkedVehicleId && form.vehicleId !== onlyLinkedVehicleId) {
+        setForm((current) => ({
+          ...current,
+          vehicleId: onlyLinkedVehicleId,
+        }))
+      }
+
+      return
+    }
+
+    if (
+      form.vehicleId &&
+      !selectedBuyerLead.vehicles.some((vehicle) => vehicle.id === form.vehicleId)
+    ) {
+      setForm((current) => ({
+        ...current,
+        vehicleId: "",
+      }))
+    }
+  }, [form.vehicleId, selectedBuyerLead])
 
   async function handleInlineLinkVehicle() {
     if (!selectedBuyerLead || !inlineLinkVehicleId) {

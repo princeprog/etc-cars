@@ -22,6 +22,7 @@ export function AuthenticatedAppShell({
   children: ReactNode
 }>) {
   const authQuery = useAuthenticatedUserQuery()
+  const user = authQuery.data?.user
 
   return (
     <ProtectedRoute>
@@ -33,7 +34,7 @@ export function AuthenticatedAppShell({
           } as CSSProperties
         }
       >
-        {!authQuery.data?.user ? (
+        {!user ? (
           <div className="flex min-h-svh w-full items-center justify-center">
             <Spinner className="size-5" />
           </div>
@@ -42,9 +43,10 @@ export function AuthenticatedAppShell({
             <AppSidebar
               variant="inset"
               user={{
-                name: authQuery.data.user.fullName,
-                email: authQuery.data.user.email,
+                name: user.fullName,
+                email: user.email,
                 avatar: "/placeholder-user.jpg",
+                role: user.role,
               }}
             />
             <SidebarInset>

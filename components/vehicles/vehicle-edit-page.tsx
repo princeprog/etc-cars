@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator"
 import { useUpdateVehicleMutation } from "@/hooks/mutations/vehicles/use-update-vehicle-mutation"
 import { useVehicleQuery } from "@/hooks/queries/vehicles/use-vehicle-query"
 import { getApiErrorMessage } from "@/types/api"
+import type { Vehicle } from "@/types/vehicles"
 import { buildUpdateVehiclePayload, getVehicleFormValues, type VehicleFormValues } from "./vehicles.helpers"
 import { VehicleForm } from "./vehicle-form"
 
@@ -50,47 +51,8 @@ function ReadinessItem({
 }
 
 export function VehicleEditPage({ vehicleId }: { vehicleId: string }) {
-  const router = useRouter()
   const vehicleQuery = useVehicleQuery(vehicleId)
-  const updateMutation = useUpdateVehicleMutation()
   const vehicle = vehicleQuery.data?.vehicle
-  const [values, setValues] = React.useState<VehicleFormValues | null>(null)
-
-  React.useEffect(() => {
-    if (vehicle) {
-      setValues(getVehicleFormValues(vehicle))
-    }
-  }, [vehicle])
-
-  const hasTargetPrice = Boolean(values?.targetSellingPrice.trim())
-  const hasMinimumPrice = Boolean(values?.minimumAcceptablePrice.trim())
-  const hasPhoto = Boolean(values?.photos.length)
-  const eligibleForAvailable = hasTargetPrice && hasMinimumPrice && hasPhoto
-  const previewPhoto = values?.photos[0]
-  const brandModelLabel = values
-    ? [values.brand || "Brand", values.model || "Model"].join(" ")
-    : "Brand Model"
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    if (!values) {
-      return
-    }
-
-    await updateMutation.mutateAsync(
-      {
-        id: vehicleId,
-        payload: buildUpdateVehiclePayload(values),
-      },
-      {
-        onSuccess: () => {
-          toast.success("Vehicle updated")
-          router.push("/vehicles")
-        },
-      },
-    )
-  }
 
   return (
     <AuthenticatedAppShell
@@ -114,10 +76,51 @@ export function VehicleEditPage({ vehicleId }: { vehicleId: string }) {
           <ModuleLoadingState label="Loading vehicle" />
         ) : vehicleQuery.error ? (
           <ApiErrorAlert title="Unable to load vehicle" message={getApiErrorMessage(vehicleQuery.error, "")} />
-        ) : !vehicle || !values ? (
+        ) : !vehicle ? (
           <EmptyState title="Vehicle not found" description="The vehicle record could not be loaded for editing." />
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
+          <VehicleEditPageContent key={vehicle.id} vehicle={vehicle} />
+        )}
+      </div>
+    </AuthenticatedAppShell>
+  )
+}
+
+function VehicleEditPageContent({
+  vehicle,
+}: {
+  vehicle: Vehicle
+}) {
+  const router = useRouter()
+  const updateMutation = useUpdateVehicleMutation()
+  const [values, setValues] = React.useState<VehicleFormValues>(() => getVehicleFormValues(vehicle))
+
+  const hasTargetPrice = Boolean(values.targetSellingPrice.trim())
+  const hasMinimumPrice = Boolean(values.minimumAcceptablePrice.trim())
+  const hasPhoto = Boolean(values.photos.length)
+  const eligibleForAvailable = hasTargetPrice && hasMinimumPrice && hasPhoto
+  const previewPhoto = values.photos[0]
+  const brandModelLabel = [values.brand || "Brand", values.model || "Model"].join(" ")
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    await updateMutation.mutateAsync(
+      {
+        id: vehicle.id,
+        payload: buildUpdateVehiclePayload(values),
+      },
+      {
+          onSuccess: () => {
+            toast.success("Vehicle updated")
+            router.push("/vehicles")
+        },
+      },
+    )
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_360px]">
             <Card className="border-border/70 shadow-xs">
               <CardHeader className="border-b">
                 <CardTitle className="text-base">Vehicle Entry Form</CardTitle>
@@ -249,8 +252,5 @@ export function VehicleEditPage({ vehicleId }: { vehicleId: string }) {
               </Card>
             </div>
           </div>
-        )}
-      </div>
-    </AuthenticatedAppShell>
   )
 }

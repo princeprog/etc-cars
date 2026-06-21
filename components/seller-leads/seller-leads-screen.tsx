@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { format, formatDistanceToNow } from "date-fns"
 import {
   EyeIcon,
@@ -19,7 +20,7 @@ import { ModuleLoadingState } from "@/components/operations/module-loading-state
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -33,12 +34,23 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -49,7 +61,6 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useCreateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-create-seller-lead-mutation"
-import { useConvertSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-convert-seller-lead-mutation"
 import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation"
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query"
@@ -61,7 +72,6 @@ import {
   type SellerLeadStatus,
   type UpdateSellerLeadPayload,
 } from "@/types/seller-leads"
-import { VEHICLE_STATUSES, type VehicleStatus } from "@/types/vehicles"
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
 
 type SellerLeadFormValues = {
@@ -78,17 +88,6 @@ type SellerLeadFormValues = {
   region: string
   notes: string
   status: SellerLeadStatus
-}
-
-type ConvertSellerLeadFormValues = {
-  stockNumber: string
-  year: string
-  variant: string
-  purchasePrice: string
-  targetSellingPrice: string
-  minimumAcceptablePrice: string
-  status: VehicleStatus
-  photoUrls: string
 }
 
 function getEmptySellerLeadFormValues(): SellerLeadFormValues {
@@ -124,19 +123,6 @@ function getSellerLeadFormValues(lead: SellerLead): SellerLeadFormValues {
     region: lead.region ?? "",
     notes: lead.notes ?? "",
     status: lead.status,
-  }
-}
-
-function getEmptyConvertSellerLeadFormValues(lead?: SellerLead | null): ConvertSellerLeadFormValues {
-  return {
-    stockNumber: "",
-    year: lead?.vehicleYear ? String(lead.vehicleYear) : "",
-    variant: lead?.vehicleVariant ?? "",
-    purchasePrice: lead?.askingPrice ?? "",
-    targetSellingPrice: "",
-    minimumAcceptablePrice: "",
-    status: "Incoming",
-    photoUrls: "",
   }
 }
 
@@ -177,18 +163,41 @@ function parseUpdateSellerLeadPayload(values: SellerLeadFormValues): UpdateSelle
   }
 }
 
-function parsePhotoLines(value: string) {
-  return value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((fileUrl, index) => ({ fileUrl, sortOrder: index }))
-}
-
 function getSellerLeadVehicleLabel(lead: SellerLead) {
   return [lead.vehicleBrand, lead.vehicleModel, lead.vehicleYear ? String(lead.vehicleYear) : "", lead.vehicleVariant ?? ""]
     .filter(Boolean)
     .join(" • ")
+}
+
+function buildConvertVehicleHref(lead: SellerLead) {
+  const params = new URLSearchParams({
+    sellerLeadId: lead.id,
+    sellerName: lead.sellerName,
+    vehicleBrand: lead.vehicleBrand,
+    vehicleModel: lead.vehicleModel,
+  })
+
+  if (lead.vehicleYear) {
+    params.set("vehicleYear", String(lead.vehicleYear))
+  }
+
+  if (lead.vehicleVariant) {
+    params.set("vehicleVariant", lead.vehicleVariant)
+  }
+
+  if (lead.askingPrice) {
+    params.set("askingPrice", lead.askingPrice)
+  }
+
+  if (lead.region) {
+    params.set("region", lead.region)
+  }
+
+  if (lead.notes) {
+    params.set("notes", lead.notes)
+  }
+
+  return `/vehicles/new?${params.toString()}`
 }
 
 function filterSellerLeads(leads: SellerLead[], searchTerm: string, status: SellerLeadStatus | "all") {
@@ -212,6 +221,55 @@ function filterSellerLeads(leads: SellerLead[], searchTerm: string, status: Sell
   })
 }
 
+function getSellerLeadStatusBadgeVariant(status: SellerLeadStatus): "default" | "secondary" | "outline" | "destructive" {
+  switch (status) {
+    case "Purchased":
+      return "secondary"
+    case "Rejected":
+      return "destructive"
+    default:
+      return "outline"
+  }
+}
+
+function getSellerLeadStatusClassName(status: SellerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300"
+    case "Contacted":
+      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300"
+    case "Inspection Scheduled":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300"
+    case "Negotiating":
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+    case "Purchased":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+    case "Rejected":
+      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300"
+    default:
+      return ""
+  }
+}
+
+function getSellerLeadStatusTextClassName(status: SellerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "text-sky-700 dark:text-sky-300"
+    case "Contacted":
+      return "text-slate-700 dark:text-slate-300"
+    case "Inspection Scheduled":
+      return "text-indigo-700 dark:text-indigo-300"
+    case "Negotiating":
+      return "text-amber-700 dark:text-amber-300"
+    case "Purchased":
+      return "text-emerald-700 dark:text-emerald-300"
+    case "Rejected":
+      return "text-rose-700 dark:text-rose-300"
+    default:
+      return ""
+  }
+}
+
 function getAssigneeLabel(assigneeUserId: string | null, currentUserId?: string) {
   if (!assigneeUserId) {
     return "Unassigned"
@@ -222,6 +280,16 @@ function getAssigneeLabel(assigneeUserId: string | null, currentUserId?: string)
   }
 
   return "Assigned"
+}
+
+function getSellerLeadPreviewLabel(values: SellerLeadFormValues) {
+  const vehicle = [values.vehicleBrand, values.vehicleModel].filter(Boolean).join(" ")
+  const variant = [values.vehicleYear, values.vehicleVariant].filter(Boolean).join(" • ")
+
+  return {
+    vehicle: vehicle || "Vehicle not set",
+    variant: variant || "No year or variant yet",
+  }
 }
 
 function SellerLeadForm({
@@ -236,100 +304,151 @@ function SellerLeadForm({
   }
 
   return (
-    <FieldGroup className="gap-4">
-      <Field>
-        <FieldLabel htmlFor="sellerName">Seller name</FieldLabel>
-        <Input id="sellerName" value={values.sellerName} onChange={(e) => updateField("sellerName", e.target.value)} required />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="contactNumber">Contact number</FieldLabel>
-        <Input id="contactNumber" value={values.contactNumber} onChange={(e) => updateField("contactNumber", e.target.value)} required />
-      </Field>
-      <div className="grid gap-4 md:grid-cols-2">
+    <FieldGroup className="gap-6">
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-foreground">Seller Details</h3>
+          <p className="text-sm text-muted-foreground">
+            Capture the core contact information for the acquisition inquiry.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="sellerName">Seller name</FieldLabel>
+            <Input id="sellerName" value={values.sellerName} onChange={(e) => updateField("sellerName", e.target.value)} placeholder="Juan Dela Cruz" required />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="contactNumber">Contact number</FieldLabel>
+            <Input id="contactNumber" value={values.contactNumber} onChange={(e) => updateField("contactNumber", e.target.value)} placeholder="0917 123 4567" required />
+          </Field>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <Input id="email" type="email" value={values.email} onChange={(e) => updateField("email", e.target.value)} placeholder="seller@example.com" />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="facebookName">Facebook name</FieldLabel>
+            <Input id="facebookName" value={values.facebookName} onChange={(e) => updateField("facebookName", e.target.value)} placeholder="Juan Dela Cruz FB" />
+          </Field>
+        </div>
+      </section>
+
+      <Separator />
+
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-foreground">Vehicle Details</h3>
+          <p className="text-sm text-muted-foreground">
+            Record the vehicle being offered so the intake can move cleanly into inventory review.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="vehicleBrand">Vehicle brand</FieldLabel>
+            <Input id="vehicleBrand" value={values.vehicleBrand} onChange={(e) => updateField("vehicleBrand", e.target.value)} placeholder="Toyota" required />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="vehicleModel">Vehicle model</FieldLabel>
+            <Input id="vehicleModel" value={values.vehicleModel} onChange={(e) => updateField("vehicleModel", e.target.value)} placeholder="Vios" required />
+          </Field>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Field>
+            <FieldLabel htmlFor="vehicleYear">Year</FieldLabel>
+            <Input id="vehicleYear" type="number" value={values.vehicleYear} onChange={(e) => updateField("vehicleYear", e.target.value)} placeholder="2020" />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="vehicleVariant">Variant</FieldLabel>
+            <Input id="vehicleVariant" value={values.vehicleVariant} onChange={(e) => updateField("vehicleVariant", e.target.value)} placeholder="1.3 E CVT" />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="askingPrice">Asking price</FieldLabel>
+            <Input id="askingPrice" value={values.askingPrice} onChange={(e) => updateField("askingPrice", e.target.value)} placeholder="450000" />
+          </Field>
+        </div>
+      </section>
+
+      <Separator />
+
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-foreground">Lead Context</h3>
+          <p className="text-sm text-muted-foreground">
+            Capture queue context, source details, and any notes the team should see immediately.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="inquirySource">Inquiry source</FieldLabel>
+            <Input id="inquirySource" value={values.inquirySource} onChange={(e) => updateField("inquirySource", e.target.value)} placeholder="Facebook Marketplace" />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="region">Region</FieldLabel>
+            <Input id="region" value={values.region} onChange={(e) => updateField("region", e.target.value)} placeholder="Cebu" />
+          </Field>
+        </div>
         <Field>
-          <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" type="email" value={values.email} onChange={(e) => updateField("email", e.target.value)} />
+          <FieldLabel htmlFor="sellerStatus">Status</FieldLabel>
+          <Select value={values.status} onValueChange={(value) => updateField("status", value as SellerLeadStatus)}>
+            <SelectTrigger id="sellerStatus">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SELLER_LEAD_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field>
-          <FieldLabel htmlFor="facebookName">Facebook name</FieldLabel>
-          <Input id="facebookName" value={values.facebookName} onChange={(e) => updateField("facebookName", e.target.value)} />
+          <FieldLabel htmlFor="sellerNotes">Notes</FieldLabel>
+          <Textarea id="sellerNotes" rows={5} value={values.notes} onChange={(e) => updateField("notes", e.target.value)} placeholder="Seller says unit has complete papers and minor scratches on the rear bumper." />
         </Field>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field>
-          <FieldLabel htmlFor="vehicleBrand">Vehicle brand</FieldLabel>
-          <Input id="vehicleBrand" value={values.vehicleBrand} onChange={(e) => updateField("vehicleBrand", e.target.value)} required />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="vehicleModel">Vehicle model</FieldLabel>
-          <Input id="vehicleModel" value={values.vehicleModel} onChange={(e) => updateField("vehicleModel", e.target.value)} required />
-        </Field>
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Field>
-          <FieldLabel htmlFor="vehicleYear">Year</FieldLabel>
-          <Input id="vehicleYear" type="number" value={values.vehicleYear} onChange={(e) => updateField("vehicleYear", e.target.value)} />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="vehicleVariant">Variant</FieldLabel>
-          <Input id="vehicleVariant" value={values.vehicleVariant} onChange={(e) => updateField("vehicleVariant", e.target.value)} />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="askingPrice">Asking price</FieldLabel>
-          <Input id="askingPrice" value={values.askingPrice} onChange={(e) => updateField("askingPrice", e.target.value)} />
-        </Field>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field>
-          <FieldLabel htmlFor="inquirySource">Inquiry source</FieldLabel>
-          <Input id="inquirySource" value={values.inquirySource} onChange={(e) => updateField("inquirySource", e.target.value)} />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="region">Region</FieldLabel>
-          <Input id="region" value={values.region} onChange={(e) => updateField("region", e.target.value)} />
-        </Field>
-      </div>
-      <Field>
-        <FieldLabel htmlFor="sellerStatus">Status</FieldLabel>
-        <Select value={values.status} onValueChange={(value) => updateField("status", value as SellerLeadStatus)}>
-          <SelectTrigger id="sellerStatus">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {SELLER_LEAD_STATUSES.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="sellerNotes">Notes</FieldLabel>
-        <Textarea id="sellerNotes" rows={4} value={values.notes} onChange={(e) => updateField("notes", e.target.value)} />
-      </Field>
+      </section>
     </FieldGroup>
   )
 }
 
 export function SellerLeadsScreen() {
+  const router = useRouter()
   const authQuery = useAuthenticatedUserQuery()
   const sellerLeadsQuery = useSellerLeadsQuery()
   const createMutation = useCreateSellerLeadMutation()
   const updateMutation = useUpdateSellerLeadMutation()
-  const convertMutation = useConvertSellerLeadMutation()
 
   const [searchTerm, setSearchTerm] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<SellerLeadStatus | "all">("all")
   const [createOpen, setCreateOpen] = React.useState(false)
   const [viewLead, setViewLead] = React.useState<SellerLead | null>(null)
   const [editLead, setEditLead] = React.useState<SellerLead | null>(null)
-  const [convertLead, setConvertLead] = React.useState<SellerLead | null>(null)
   const [createForm, setCreateForm] = React.useState<SellerLeadFormValues>(getEmptySellerLeadFormValues)
 
   const currentUserId = authQuery.data?.user.id
   const leads = sellerLeadsQuery.data?.sellerLeads ?? []
   const filteredLeads = filterSellerLeads(leads, searchTerm, activeFilter)
+  const createPreview = getSellerLeadPreviewLabel(createForm)
+
+  async function handleStatusChange(lead: SellerLead, nextStatus: SellerLeadStatus) {
+    if (lead.status === nextStatus) {
+      return
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        id: lead.id,
+        payload: {
+          status: nextStatus,
+        },
+      })
+
+      toast.success(`Seller lead moved to ${nextStatus}`)
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to update seller lead status"))
+    }
+  }
 
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -442,7 +561,12 @@ export function SellerLeadsScreen() {
                       </TableCell>
                       <TableCell className="px-4 py-3 font-medium tabular-nums text-foreground">{formatVehicleMoney(lead.askingPrice)}</TableCell>
                       <TableCell className="px-4 py-3">
-                        <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">{lead.status}</Badge>
+                        <Badge
+                          variant={getSellerLeadStatusBadgeVariant(lead.status)}
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getSellerLeadStatusClassName(lead.status)}`}
+                        >
+                          {lead.status}
+                        </Badge>
                       </TableCell>
                       <TableCell className="px-4 py-3 text-sm text-foreground">{getAssigneeLabel(lead.assigneeUserId, currentUserId)}</TableCell>
                       <TableCell className="px-4 py-3">
@@ -473,12 +597,30 @@ export function SellerLeadsScreen() {
                             {lead.status !== "Purchased" && lead.status !== "Rejected" ? (
                               <>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setConvertLead(lead)}>
+                                <DropdownMenuItem onClick={() => router.push(buildConvertVehicleHref(lead))}>
                                   <ShuffleIcon />
                                   Convert to Vehicle
                                 </DropdownMenuItem>
                               </>
                             ) : null}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>Update status</DropdownMenuLabel>
+                            <DropdownMenuRadioGroup value={lead.status}>
+                              {SELLER_LEAD_STATUSES.map((status) => (
+                                <DropdownMenuRadioItem
+                                  key={status}
+                                  value={status}
+                                  className={`font-medium ${getSellerLeadStatusTextClassName(status)}`}
+                                  disabled={updateMutation.isPending}
+                                  onSelect={(event) => {
+                                    event.preventDefault()
+                                    void handleStatusChange(lead, status)
+                                  }}
+                                >
+                                  {status}
+                                </DropdownMenuRadioItem>
+                              ))}
+                            </DropdownMenuRadioGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -494,23 +636,82 @@ export function SellerLeadsScreen() {
           </CardContent>
         </Card>
 
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add Seller Lead</DialogTitle>
-              <DialogDescription>Capture a new acquisition inquiry and assign it to yourself by default.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <ApiErrorAlert title="Unable to create seller lead" message={getApiErrorMessage(createMutation.error, "")} />
-              <SellerLeadForm values={createForm} onChange={setCreateForm} />
-              <DialogFooter>
-                <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Creating lead">
-                  Create Seller Lead
-                </SubmitButton>
-              </DialogFooter>
+        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+          <SheetContent
+            side="right"
+            className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
+          >
+            <SheetHeader className="border-b px-6 py-5 pr-14">
+              <SheetTitle className="text-lg">Add Seller Lead</SheetTitle>
+              <SheetDescription>
+                Capture a new acquisition inquiry and assign it to yourself by default.
+              </SheetDescription>
+            </SheetHeader>
+            <form onSubmit={handleCreateSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
+                <div className="min-h-0 overflow-y-auto px-6 py-6">
+                  <div className="space-y-5">
+                    <ApiErrorAlert title="Unable to create seller lead" message={getApiErrorMessage(createMutation.error, "")} />
+                    <SellerLeadForm values={createForm} onChange={setCreateForm} />
+                  </div>
+                </div>
+                <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
+                  <div className="space-y-4">
+                    <Card className="border-border/70 py-0 shadow-none">
+                      <CardHeader className="border-b py-4">
+                        <CardTitle className="text-base">Lead Summary</CardTitle>
+                        <CardDescription>Live preview of the intake details you&apos;re capturing.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4 py-4">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Seller</p>
+                          <p className="text-sm font-medium text-foreground">{createForm.sellerName || "Not set"}</p>
+                        </div>
+                        <Separator />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vehicle</p>
+                          <p className="text-sm font-medium text-foreground">{createPreview.vehicle}</p>
+                          <p className="text-sm text-muted-foreground">{createPreview.variant}</p>
+                        </div>
+                        <Separator />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Asking Price</p>
+                          <p className="text-sm font-medium text-foreground">{formatVehicleMoney(createForm.askingPrice)}</p>
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                          <Badge
+                            variant={getSellerLeadStatusBadgeVariant(createForm.status)}
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getSellerLeadStatusClassName(createForm.status)}`}
+                          >
+                            {createForm.status}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="rounded-xl border border-border/70 bg-background/80 px-4 py-3 text-sm text-muted-foreground">
+                      Use this drawer for quick intake. Conversion into inventory still happens later from the seller lead row action.
+                    </div>
+                  </div>
+                </aside>
+              </div>
+              <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  This lead will be assigned to <span className="font-medium text-foreground">you</span>.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Creating lead">
+                    Create Seller Lead
+                  </SubmitButton>
+                </div>
+              </SheetFooter>
             </form>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
 
         <Dialog open={Boolean(viewLead)} onOpenChange={(open) => !open && setViewLead(null)}>
           <DialogContent className="max-w-xl">
@@ -546,19 +747,6 @@ export function SellerLeadsScreen() {
                 mutation={updateMutation}
                 currentUserId={currentUserId ?? null}
                 onClose={() => setEditLead(null)}
-              />
-            ) : null}
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={Boolean(convertLead)} onOpenChange={(open) => !open && setConvertLead(null)}>
-          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-            {convertLead ? (
-              <ConvertSellerLeadDialogForm
-                key={convertLead.id}
-                lead={convertLead}
-                mutation={convertMutation}
-                onClose={() => setConvertLead(null)}
               />
             ) : null}
           </DialogContent>
@@ -609,82 +797,6 @@ function EditSellerLeadDialogForm({
         <DialogFooter>
           <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Saving changes">
             Save Changes
-          </SubmitButton>
-        </DialogFooter>
-      </form>
-    </>
-  )
-}
-
-function ConvertSellerLeadDialogForm({
-  lead,
-  mutation,
-  onClose,
-}: {
-  lead: SellerLead
-  mutation: ReturnType<typeof useConvertSellerLeadMutation>
-  onClose: () => void
-}) {
-  const [values, setValues] = React.useState<ConvertSellerLeadFormValues>(() => getEmptyConvertSellerLeadFormValues(lead))
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    await mutation.mutateAsync(
-      {
-        id: lead.id,
-        payload: {
-          stockNumber: values.stockNumber,
-          year: values.year ? Number(values.year) : undefined,
-          variant: values.variant || null,
-          purchasePrice: values.purchasePrice || null,
-          targetSellingPrice: values.targetSellingPrice || null,
-          minimumAcceptablePrice: values.minimumAcceptablePrice || null,
-          status: values.status,
-          photos: parsePhotoLines(values.photoUrls),
-        },
-      },
-      {
-        onSuccess: () => {
-          toast.success("Seller lead converted to inventory")
-          onClose()
-        },
-      },
-    )
-  }
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Convert to Vehicle</DialogTitle>
-        <DialogDescription>
-          Create a vehicle record from {lead.sellerName}&apos;s lead using the existing conversion workflow.
-        </DialogDescription>
-      </DialogHeader>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <ApiErrorAlert title="Unable to convert seller lead" message={getApiErrorMessage(mutation.error, "")} />
-        <FieldGroup className="gap-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field><FieldLabel htmlFor="stockNumber">Stock number</FieldLabel><Input id="stockNumber" value={values.stockNumber} onChange={(e) => setValues((v) => ({ ...v, stockNumber: e.target.value }))} required /></Field>
-            <Field><FieldLabel htmlFor="convertYear">Vehicle year</FieldLabel><Input id="convertYear" type="number" value={values.year} onChange={(e) => setValues((v) => ({ ...v, year: e.target.value }))} /></Field>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field><FieldLabel htmlFor="variant">Variant</FieldLabel><Input id="variant" value={values.variant} onChange={(e) => setValues((v) => ({ ...v, variant: e.target.value }))} /></Field>
-            <Field><FieldLabel htmlFor="convertStatus">Vehicle status</FieldLabel><Select value={values.status} onValueChange={(value) => setValues((v) => ({ ...v, status: value as VehicleStatus }))}><SelectTrigger id="convertStatus"><SelectValue /></SelectTrigger><SelectContent>{VEHICLE_STATUSES.filter((status) => status !== "Sold").map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select></Field>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Field><FieldLabel htmlFor="purchasePrice">Purchase price</FieldLabel><Input id="purchasePrice" value={values.purchasePrice} onChange={(e) => setValues((v) => ({ ...v, purchasePrice: e.target.value }))} /></Field>
-            <Field><FieldLabel htmlFor="targetSellingPrice">Target selling price</FieldLabel><Input id="targetSellingPrice" value={values.targetSellingPrice} onChange={(e) => setValues((v) => ({ ...v, targetSellingPrice: e.target.value }))} /></Field>
-            <Field><FieldLabel htmlFor="minimumAcceptablePrice">Minimum acceptable price</FieldLabel><Input id="minimumAcceptablePrice" value={values.minimumAcceptablePrice} onChange={(e) => setValues((v) => ({ ...v, minimumAcceptablePrice: e.target.value }))} /></Field>
-          </div>
-          <Field>
-            <FieldLabel htmlFor="photoUrls">Photo URLs</FieldLabel>
-            <Textarea id="photoUrls" rows={4} value={values.photoUrls} onChange={(e) => setValues((v) => ({ ...v, photoUrls: e.target.value }))} placeholder="One URL per line" />
-          </Field>
-        </FieldGroup>
-        <DialogFooter>
-          <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Converting lead">
-            Convert to Vehicle
           </SubmitButton>
         </DialogFooter>
       </form>

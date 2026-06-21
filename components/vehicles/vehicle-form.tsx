@@ -16,6 +16,23 @@ import { getApiErrorMessage } from "@/types/api"
 import { VEHICLE_STATUSES, type VehicleStatus } from "@/types/vehicles"
 import type { VehicleFormValues } from "./vehicles.helpers"
 
+const TRANSMISSION_OPTIONS = [
+  "Automatic",
+  "Manual",
+  "CVT",
+  "Semi-Automatic",
+  "Dual-Clutch",
+]
+
+const FUEL_TYPE_OPTIONS = [
+  "Gasoline",
+  "Diesel",
+  "Hybrid",
+  "Plug-in Hybrid",
+  "Electric",
+  "LPG",
+]
+
 export function VehicleForm({
   values,
   onChange,
@@ -143,11 +160,33 @@ export function VehicleForm({
           </Field>
           <Field>
             <FieldLabel htmlFor="transmission">Transmission</FieldLabel>
-            <Input id="transmission" value={values.transmission} onChange={(e) => updateField("transmission", e.target.value)} placeholder="Automatic" />
+            <Select value={values.transmission || undefined} onValueChange={(value) => updateField("transmission", value)}>
+              <SelectTrigger id="transmission">
+                <SelectValue placeholder="Select transmission" />
+              </SelectTrigger>
+              <SelectContent>
+                {TRANSMISSION_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor="fuelType">Fuel type</FieldLabel>
-            <Input id="fuelType" value={values.fuelType} onChange={(e) => updateField("fuelType", e.target.value)} placeholder="Diesel" />
+            <Select value={values.fuelType || undefined} onValueChange={(value) => updateField("fuelType", value)}>
+              <SelectTrigger id="fuelType">
+                <SelectValue placeholder="Select fuel type" />
+              </SelectTrigger>
+              <SelectContent>
+                {FUEL_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
         </div>
       </section>

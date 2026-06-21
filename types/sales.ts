@@ -14,6 +14,7 @@ export interface Commission {
 
 export interface Sale {
   id: string
+  saleNumber: string
   vehicleId: string
   buyerLeadId: string
   createdByUserId: string

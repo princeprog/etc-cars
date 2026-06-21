@@ -15,9 +15,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { useConvertSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-convert-seller-lead-mutation"
 import { useCreateVehicleMutation } from "@/hooks/mutations/vehicles/use-create-vehicle-mutation"
 import { getApiErrorMessage } from "@/types/api"
-import { buildCreateVehiclePayload, getEmptyVehicleFormValues } from "./vehicles.helpers"
+import type { VehicleStatus } from "@/types/vehicles"
+import { buildCreateVehiclePayload, getEmptyVehicleFormValues, type VehicleFormValues } from "./vehicles.helpers"
 import { VehicleForm } from "./vehicle-form"
 
 function ReadinessItem({
@@ -46,10 +48,72 @@ function ReadinessItem({
   )
 }
 
-export function VehicleCreatePage() {
+type VehicleCreatePageSearchParams = Record<string, string | string[] | undefined>
+
+export function VehicleCreatePage({
+  searchParams,
+}: {
+  searchParams?: VehicleCreatePageSearchParams
+}) {
+  return <VehicleCreatePageContent searchParams={searchParams ?? {}} />
+}
+
+function getSingleSearchParamValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? null : value ?? null
+}
+
+function getConversionDefaults(searchParams: VehicleCreatePageSearchParams): {
+  sellerLeadId: string | null
+  sellerName: string
+  values: VehicleFormValues
+} {
+  const sellerLeadId = getSingleSearchParamValue(searchParams.sellerLeadId)
+  const sellerName = getSingleSearchParamValue(searchParams.sellerName) ?? ""
+
+  return {
+    sellerLeadId,
+    sellerName,
+    values: {
+      ...getEmptyVehicleFormValues(),
+      brand: getSingleSearchParamValue(searchParams.vehicleBrand) ?? "",
+      model: getSingleSearchParamValue(searchParams.vehicleModel) ?? "",
+      year: getSingleSearchParamValue(searchParams.vehicleYear) ?? "",
+      variant: getSingleSearchParamValue(searchParams.vehicleVariant) ?? "",
+      purchasePrice: getSingleSearchParamValue(searchParams.askingPrice) ?? "",
+      remarks: getSingleSearchParamValue(searchParams.notes) ?? "",
+      status: "Incoming",
+    },
+  }
+}
+
+function buildConvertPayload(values: VehicleFormValues) {
+  return {
+    stockNumber: values.stockNumber,
+    year: values.year ? Number(values.year) : undefined,
+    variant: values.variant || null,
+    mileage: values.mileage ? Number(values.mileage) : null,
+    transmission: values.transmission || null,
+    fuelType: values.fuelType || null,
+    color: values.color || null,
+    remarks: values.remarks || null,
+    purchasePrice: values.purchasePrice || null,
+    targetSellingPrice: values.targetSellingPrice || null,
+    minimumAcceptablePrice: values.minimumAcceptablePrice || null,
+    status: values.status as VehicleStatus,
+    photos: values.photos.map((photo, index) => ({
+      fileUrl: photo.fileUrl,
+      sortOrder: index,
+    })),
+  }
+}
+
+function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreatePageSearchParams }) {
   const router = useRouter()
   const createMutation = useCreateVehicleMutation()
-  const [values, setValues] = React.useState(getEmptyVehicleFormValues)
+  const convertMutation = useConvertSellerLeadMutation()
+  const conversionDefaults = React.useMemo(() => getConversionDefaults(searchParams), [searchParams])
+  const isSellerLeadConversion = Boolean(conversionDefaults.sellerLeadId)
+  const [values, setValues] = React.useState<VehicleFormValues>(conversionDefaults.values)
 
   const hasTargetPrice = Boolean(values.targetSellingPrice.trim())
   const hasMinimumPrice = Boolean(values.minimumAcceptablePrice.trim())
@@ -61,6 +125,23 @@ export function VehicleCreatePage() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (conversionDefaults.sellerLeadId) {
+      await convertMutation.mutateAsync(
+        {
+          id: conversionDefaults.sellerLeadId,
+          payload: buildConvertPayload(values),
+        },
+        {
+          onSuccess: () => {
+            toast.success("Seller lead converted to inventory")
+            router.push("/vehicles")
+          },
+        },
+      )
+
+      return
+    }
+
     await createMutation.mutateAsync(buildCreateVehiclePayload(values), {
       onSuccess: () => {
         toast.success("Vehicle created")
@@ -71,18 +152,22 @@ export function VehicleCreatePage() {
 
   return (
     <AuthenticatedAppShell
-      title="Add New Vehicle"
+      title={isSellerLeadConversion ? "Convert Seller Lead" : "Add New Vehicle"}
       breadcrumbs={[
         { label: "Vehicles", href: "/vehicles" },
-        { label: "Add New Vehicle" },
+        { label: isSellerLeadConversion ? "Convert Seller Lead" : "Add New Vehicle" },
       ]}
     >
       <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
         <section className="space-y-1">
           <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight">Add New Vehicle</h2>
+            <h2 className="text-2xl font-semibold tracking-tight">
+              {isSellerLeadConversion ? "Convert Seller Lead" : "Add New Vehicle"}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Create a new inventory record for a vehicle entering stock.
+              {isSellerLeadConversion
+                ? `Continue the acquisition workflow by creating inventory from ${conversionDefaults.sellerName || "this seller lead"}.`
+                : "Create a new inventory record for a vehicle entering stock."}
             </p>
           </div>
         </section>
@@ -96,8 +181,11 @@ export function VehicleCreatePage() {
               <form onSubmit={handleSubmit} className="flex flex-col">
                 <div className="space-y-5 px-6 py-6">
                   <ApiErrorAlert
-                    title="Unable to create vehicle"
-                    message={getApiErrorMessage(createMutation.error, "")}
+                    title={isSellerLeadConversion ? "Unable to convert seller lead" : "Unable to create vehicle"}
+                    message={getApiErrorMessage(
+                      isSellerLeadConversion ? convertMutation.error : createMutation.error,
+                      "",
+                    )}
                   />
                   <VehicleForm values={values} onChange={setValues} />
                 </div>
@@ -108,14 +196,14 @@ export function VehicleCreatePage() {
                   </p>
                   <div className="flex items-center gap-2">
                     <Button type="button" variant="outline" asChild>
-                      <Link href="/vehicles">Cancel</Link>
+                      <Link href={isSellerLeadConversion ? "/seller-leads" : "/vehicles"}>Cancel</Link>
                     </Button>
                     <SubmitButton
                       type="submit"
-                      pending={createMutation.isPending}
-                      pendingLabel="Creating vehicle"
+                      pending={isSellerLeadConversion ? convertMutation.isPending : createMutation.isPending}
+                      pendingLabel={isSellerLeadConversion ? "Converting lead" : "Creating vehicle"}
                     >
-                      Create Vehicle
+                      {isSellerLeadConversion ? "Convert to Vehicle" : "Create Vehicle"}
                     </SubmitButton>
                   </div>
                 </div>
@@ -176,9 +264,9 @@ export function VehicleCreatePage() {
                 <CardTitle className="text-base">Vehicle Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-4">
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border/70 bg-muted/40">
-                    {previewPhoto ? (
+                <div className={`grid gap-4 ${previewPhoto ? "grid-cols-[92px_minmax(0,1fr)]" : "grid-cols-1"}`}>
+                  {previewPhoto ? (
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border/70 bg-muted/40">
                       <Image
                         src={resolveApiAssetUrl(previewPhoto.fileUrl)}
                         alt="Vehicle preview"
@@ -187,12 +275,8 @@ export function VehicleCreatePage() {
                         sizes="160px"
                         className="object-cover"
                       />
-                    ) : (
-                      <div className="flex h-full items-center justify-center px-3 text-center text-xs text-muted-foreground">
-                        Upload a photo to preview the unit here
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
 
                   <div className="grid min-w-0 grid-cols-[104px_minmax(0,1fr)] gap-x-3 gap-y-2 text-sm">
                     <span className="text-muted-foreground">Stock Number</span>

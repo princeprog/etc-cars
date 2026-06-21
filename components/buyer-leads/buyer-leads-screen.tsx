@@ -20,7 +20,7 @@ import { ModuleLoadingState } from "@/components/operations/module-loading-state
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -34,12 +34,23 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -149,6 +160,59 @@ function filterBuyerLeads(leads: BuyerLead[], searchTerm: string, status: BuyerL
   })
 }
 
+function getBuyerLeadStatusBadgeVariant(status: BuyerLeadStatus): "default" | "secondary" | "outline" | "destructive" {
+  switch (status) {
+    case "Won":
+      return "secondary"
+    case "Lost":
+      return "destructive"
+    default:
+      return "outline"
+  }
+}
+
+function getBuyerLeadStatusClassName(status: BuyerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300"
+    case "Contacted":
+      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300"
+    case "Interested":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300"
+    case "Negotiating":
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+    case "Reserved":
+      return "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300"
+    case "Won":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+    case "Lost":
+      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300"
+    default:
+      return ""
+  }
+}
+
+function getBuyerLeadStatusTextClassName(status: BuyerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "text-sky-700 dark:text-sky-300"
+    case "Contacted":
+      return "text-slate-700 dark:text-slate-300"
+    case "Interested":
+      return "text-indigo-700 dark:text-indigo-300"
+    case "Negotiating":
+      return "text-amber-700 dark:text-amber-300"
+    case "Reserved":
+      return "text-orange-700 dark:text-orange-300"
+    case "Won":
+      return "text-emerald-700 dark:text-emerald-300"
+    case "Lost":
+      return "text-rose-700 dark:text-rose-300"
+    default:
+      return ""
+  }
+}
+
 function getAssigneeLabel(assigneeUserId: string | null, currentUserId?: string) {
   if (!assigneeUserId) {
     return "Unassigned"
@@ -159,6 +223,14 @@ function getAssigneeLabel(assigneeUserId: string | null, currentUserId?: string)
   }
 
   return "Assigned"
+}
+
+function getBuyerLeadPreviewLabel(values: BuyerLeadFormValues) {
+  return {
+    buyer: values.buyerName || "Not set",
+    contact: values.contactNumber || "No contact number yet",
+    channel: values.inquirySource || "Source not set",
+  }
 }
 
 function BuyerLeadForm({
@@ -173,54 +245,75 @@ function BuyerLeadForm({
   }
 
   return (
-    <FieldGroup className="gap-4">
-      <Field>
-        <FieldLabel htmlFor="buyerName">Buyer name</FieldLabel>
-        <Input id="buyerName" value={values.buyerName} onChange={(e) => updateField("buyerName", e.target.value)} required />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="buyerContactNumber">Contact number</FieldLabel>
-        <Input id="buyerContactNumber" value={values.contactNumber} onChange={(e) => updateField("contactNumber", e.target.value)} required />
-      </Field>
-      <div className="grid gap-4 md:grid-cols-2">
+    <FieldGroup className="gap-6">
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-foreground">Buyer Details</h3>
+          <p className="text-sm text-muted-foreground">
+            Capture the core contact information for the buyer inquiry.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="buyerName">Buyer name</FieldLabel>
+            <Input id="buyerName" value={values.buyerName} onChange={(e) => updateField("buyerName", e.target.value)} placeholder="Maria Santos" required />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="buyerContactNumber">Contact number</FieldLabel>
+            <Input id="buyerContactNumber" value={values.contactNumber} onChange={(e) => updateField("contactNumber", e.target.value)} placeholder="0917 987 6543" required />
+          </Field>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="buyerEmail">Email</FieldLabel>
+            <Input id="buyerEmail" type="email" value={values.email} onChange={(e) => updateField("email", e.target.value)} placeholder="buyer@example.com" />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="buyerFacebookName">Facebook name</FieldLabel>
+            <Input id="buyerFacebookName" value={values.facebookName} onChange={(e) => updateField("facebookName", e.target.value)} placeholder="Maria Santos FB" />
+          </Field>
+        </div>
+      </section>
+
+      <Separator />
+
+      <section className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-foreground">Buyer Intent</h3>
+          <p className="text-sm text-muted-foreground">
+            Capture buying context so the team can match this lead with the right inventory.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="buyerInquirySource">Inquiry source</FieldLabel>
+            <Input id="buyerInquirySource" value={values.inquirySource} onChange={(e) => updateField("inquirySource", e.target.value)} placeholder="Facebook Page" />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="desiredBudget">Desired budget</FieldLabel>
+            <Input id="desiredBudget" value={values.desiredBudget} onChange={(e) => updateField("desiredBudget", e.target.value)} placeholder="850000" />
+          </Field>
+        </div>
         <Field>
-          <FieldLabel htmlFor="buyerEmail">Email</FieldLabel>
-          <Input id="buyerEmail" type="email" value={values.email} onChange={(e) => updateField("email", e.target.value)} />
+          <FieldLabel htmlFor="buyerStatus">Status</FieldLabel>
+          <Select value={values.status} onValueChange={(value) => updateField("status", value as BuyerLeadStatus)}>
+            <SelectTrigger id="buyerStatus">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BUYER_LEAD_STATUSES.map((status) => (
+                <SelectItem key={status} value={status}>
+                  {status}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
         <Field>
-          <FieldLabel htmlFor="buyerFacebookName">Facebook name</FieldLabel>
-          <Input id="buyerFacebookName" value={values.facebookName} onChange={(e) => updateField("facebookName", e.target.value)} />
+          <FieldLabel htmlFor="buyerNotes">Notes</FieldLabel>
+          <Textarea id="buyerNotes" rows={5} value={values.notes} onChange={(e) => updateField("notes", e.target.value)} placeholder="Buyer prefers an automatic SUV, open to financing, and wants units available for viewing this week." />
         </Field>
-      </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field>
-          <FieldLabel htmlFor="buyerInquirySource">Inquiry source</FieldLabel>
-          <Input id="buyerInquirySource" value={values.inquirySource} onChange={(e) => updateField("inquirySource", e.target.value)} />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="desiredBudget">Desired budget</FieldLabel>
-          <Input id="desiredBudget" value={values.desiredBudget} onChange={(e) => updateField("desiredBudget", e.target.value)} />
-        </Field>
-      </div>
-      <Field>
-        <FieldLabel htmlFor="buyerStatus">Status</FieldLabel>
-        <Select value={values.status} onValueChange={(value) => updateField("status", value as BuyerLeadStatus)}>
-          <SelectTrigger id="buyerStatus">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {BUYER_LEAD_STATUSES.map((status) => (
-              <SelectItem key={status} value={status}>
-                {status}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="buyerNotes">Notes</FieldLabel>
-        <Textarea id="buyerNotes" rows={4} value={values.notes} onChange={(e) => updateField("notes", e.target.value)} />
-      </Field>
+      </section>
     </FieldGroup>
   )
 }
@@ -246,6 +339,26 @@ export function BuyerLeadsScreen() {
   const leads = buyerLeadsQuery.data?.buyerLeads ?? []
   const filteredLeads = filterBuyerLeads(leads, searchTerm, activeFilter)
   const availableVehicles = vehiclesQuery.data?.vehicles.filter((vehicle) => vehicle.status !== "Sold") ?? []
+  const createPreview = getBuyerLeadPreviewLabel(createForm)
+
+  async function handleStatusChange(lead: BuyerLead, nextStatus: BuyerLeadStatus) {
+    if (lead.status === nextStatus) {
+      return
+    }
+
+    try {
+      await updateMutation.mutateAsync({
+        id: lead.id,
+        payload: {
+          status: nextStatus,
+        },
+      })
+
+      toast.success(`Buyer lead moved to ${nextStatus}`)
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to update buyer lead status"))
+    }
+  }
 
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -352,7 +465,12 @@ export function BuyerLeadsScreen() {
                       <TableCell className="px-4 py-3 text-sm text-foreground">{lead.contactNumber}</TableCell>
                       <TableCell className="px-4 py-3 font-medium tabular-nums text-foreground">{formatVehicleMoney(lead.desiredBudget)}</TableCell>
                       <TableCell className="px-4 py-3">
-                        <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-[11px] font-medium">{lead.status}</Badge>
+                        <Badge
+                          variant={getBuyerLeadStatusBadgeVariant(lead.status)}
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(lead.status)}`}
+                        >
+                          {lead.status}
+                        </Badge>
                       </TableCell>
                       <TableCell className="px-4 py-3">
                         <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground">
@@ -390,6 +508,24 @@ export function BuyerLeadsScreen() {
                               <CarFrontIcon />
                               Manage Vehicles
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel>Update status</DropdownMenuLabel>
+                            <DropdownMenuRadioGroup value={lead.status}>
+                              {BUYER_LEAD_STATUSES.map((status) => (
+                                <DropdownMenuRadioItem
+                                  key={status}
+                                  value={status}
+                                  className={`font-medium ${getBuyerLeadStatusTextClassName(status)}`}
+                                  disabled={updateMutation.isPending}
+                                  onSelect={(event) => {
+                                    event.preventDefault()
+                                    void handleStatusChange(lead, status)
+                                  }}
+                                >
+                                  {status}
+                                </DropdownMenuRadioItem>
+                              ))}
+                            </DropdownMenuRadioGroup>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -405,23 +541,86 @@ export function BuyerLeadsScreen() {
           </CardContent>
         </Card>
 
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add Buyer Lead</DialogTitle>
-              <DialogDescription>Capture a new buyer inquiry and assign it to yourself by default.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <ApiErrorAlert title="Unable to create buyer lead" message={getApiErrorMessage(createMutation.error, "")} />
-              <BuyerLeadForm values={createForm} onChange={setCreateForm} />
-              <DialogFooter>
-                <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Creating buyer lead">
-                  Create Buyer Lead
-                </SubmitButton>
-              </DialogFooter>
+        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+          <SheetContent
+            side="right"
+            className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
+          >
+            <SheetHeader className="border-b px-6 py-5 pr-14">
+              <SheetTitle className="text-lg">Add Buyer Lead</SheetTitle>
+              <SheetDescription>
+                Capture a new buyer inquiry and assign it to yourself by default.
+              </SheetDescription>
+            </SheetHeader>
+            <form onSubmit={handleCreateSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
+                <div className="min-h-0 overflow-y-auto px-6 py-6">
+                  <div className="space-y-5">
+                    <ApiErrorAlert title="Unable to create buyer lead" message={getApiErrorMessage(createMutation.error, "")} />
+                    <BuyerLeadForm values={createForm} onChange={setCreateForm} />
+                  </div>
+                </div>
+                <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
+                  <div className="space-y-4">
+                    <Card className="border-border/70 py-0 shadow-none">
+                      <CardHeader className="border-b py-4">
+                        <CardTitle className="text-base">Lead Summary</CardTitle>
+                        <CardDescription>Live preview of the demand details you&apos;re capturing.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4 py-4">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Buyer</p>
+                          <p className="text-sm font-medium text-foreground">{createPreview.buyer}</p>
+                        </div>
+                        <Separator />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contact</p>
+                          <p className="text-sm font-medium text-foreground">{createPreview.contact}</p>
+                        </div>
+                        <Separator />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Inquiry Source</p>
+                          <p className="text-sm font-medium text-foreground">{createPreview.channel}</p>
+                        </div>
+                        <Separator />
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Desired Budget</p>
+                          <p className="text-sm font-medium text-foreground">{formatVehicleMoney(createForm.desiredBudget)}</p>
+                        </div>
+                        <Separator />
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                          <Badge
+                            variant={getBuyerLeadStatusBadgeVariant(createForm.status)}
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(createForm.status)}`}
+                          >
+                            {createForm.status}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="rounded-xl border border-border/70 bg-background/80 px-4 py-3 text-sm text-muted-foreground">
+                      Use this drawer for quick demand intake. Vehicle matching can be done later from the buyer lead row action.
+                    </div>
+                  </div>
+                </aside>
+              </div>
+              <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  This lead will be assigned to <span className="font-medium text-foreground">you</span>.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Creating buyer lead">
+                    Create Buyer Lead
+                  </SubmitButton>
+                </div>
+              </SheetFooter>
             </form>
-          </DialogContent>
-        </Dialog>
+          </SheetContent>
+        </Sheet>
 
         <Dialog open={Boolean(viewLead)} onOpenChange={(open) => !open && setViewLead(null)}>
           <DialogContent className="max-w-xl">

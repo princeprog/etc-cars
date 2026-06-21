@@ -16,7 +16,9 @@ export function GuestRoute({
 
   React.useEffect(() => {
     if (data?.user) {
-      router.replace("/dashboard")
+      router.replace(
+        data.user.mustChangePassword ? "/change-password" : "/dashboard",
+      )
     }
   }, [data?.user, router])
 

@@ -5,6 +5,7 @@ import type {
   AuthenticatedUserResponse,
   ChangePasswordPayload,
   CreateStaffPayload,
+  ListUsersParams,
   LoginPayload,
   LogoutResponse,
   UpdateUserStatusPayload,
@@ -35,8 +36,22 @@ export function createStaff(payload: CreateStaffPayload) {
   )
 }
 
-export function getUsers() {
-  return apiRequest<AuthenticatedUsersResponse>(API_ENDPOINTS.auth.users)
+export function getUsers(params?: ListUsersParams) {
+  const searchParams = new URLSearchParams()
+
+  if (params?.search?.trim()) {
+    searchParams.set("search", params.search.trim())
+  }
+
+  if (params?.status && params.status !== "all") {
+    searchParams.set("status", params.status)
+  }
+
+  const path = searchParams.size
+    ? `${API_ENDPOINTS.auth.users}?${searchParams.toString()}`
+    : API_ENDPOINTS.auth.users
+
+  return apiRequest<AuthenticatedUsersResponse>(path)
 }
 
 export function updateUserStatus(id: string, payload: UpdateUserStatusPayload) {

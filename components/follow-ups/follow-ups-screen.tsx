@@ -1,15 +1,18 @@
 "use client"
 
 import * as React from "react"
-import { format, formatDistanceToNow, isPast, isToday, addDays } from "date-fns"
+import { format, formatDistanceToNow, isPast, isToday } from "date-fns"
 import {
   AlertCircleIcon,
   CalendarClockIcon,
   CalendarDaysIcon,
   CheckCircle2Icon,
   CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   Clock3Icon,
   MoreHorizontalIcon,
+  PencilIcon,
   PlusIcon,
   RotateCcwIcon,
   SearchIcon,
@@ -63,15 +66,19 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { useCompleteFollowUpMutation } from "@/hooks/mutations/follow-ups/use-complete-follow-up-mutation"
 import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation"
+import { useUpdateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-update-follow-up-mutation"
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
 import { useFollowUpsQuery } from "@/hooks/queries/follow-ups/use-follow-ups-query"
+import { useFollowUpsSummaryQuery } from "@/hooks/queries/follow-ups/use-follow-ups-summary-query"
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query"
 import { getApiErrorMessage } from "@/types/api"
 import {
   FOLLOW_UP_STATUSES,
   LEAD_TYPES,
   type FollowUp,
+  type FollowUpListFilters,
+  type FollowUpSort,
   type FollowUpStatus,
   type LeadType,
 } from "@/types/follow-ups"
@@ -83,7 +90,19 @@ type FollowUpFormValues = {
   note: string
 }
 
-type QueueFilter = "all" | FollowUpStatus
+type StatusFilter = "all" | FollowUpStatus
+type LeadTypeFilter = "all" | LeadType
+type AssigneeFilter = "all" | "mine"
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50] as const
+const DEFAULT_PAGE_SIZE = 20
+
+const SORT_OPTIONS: { value: FollowUpSort; label: string }[] = [
+  { value: "dueAt", label: "Due date (soonest)" },
+  { value: "-dueAt", label: "Due date (latest)" },
+  { value: "-updatedAt", label: "Recently updated" },
+  { value: "updatedAt", label: "Least recently updated" },
+]
 
 function getEmptyFollowUpFormValues(): FollowUpFormValues {
   return {
@@ -134,25 +153,27 @@ function getQueueAccentClassName(status: FollowUpStatus) {
   }
 }
 
-function getUpcomingCount(followUps: FollowUp[]) {
-  const horizon = addDays(new Date(), 7)
-
-  return followUps.filter((followUp) => {
-    if (followUp.status === "Completed") {
-      return false
-    }
-
-    const dueDate = new Date(followUp.dueAt)
-    return dueDate > new Date() && dueDate <= horizon
-  }).length
-}
-
 function truncateText(value: string, length: number) {
   if (value.length <= length) {
     return value
   }
 
   return `${value.slice(0, length - 1)}…`
+}
+
+function toDateTimeLocalValue(iso: string) {
+  const date = new Date(iso)
+  const pad = (value: number) => String(value).padStart(2, "0")
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function toStartOfDayIso(value: string) {
+  return new Date(`${value}T00:00:00`).toISOString()
+}
+
+function toEndOfDayIso(value: string) {
+  return new Date(`${value}T23:59:59.999`).toISOString()
 }
 
 function FollowUpForm({
@@ -248,52 +269,108 @@ function FollowUpForm({
 
 export function FollowUpsScreen() {
   const authQuery = useAuthenticatedUserQuery()
-  const followUpsQuery = useFollowUpsQuery()
   const sellerLeadsQuery = useSellerLeadsQuery()
   const buyerLeadsQuery = useBuyerLeadsQuery()
   const createMutation = useCreateFollowUpMutation()
   const completeMutation = useCompleteFollowUpMutation()
+  const updateMutation = useUpdateFollowUpMutation()
 
   const [createOpen, setCreateOpen] = React.useState(false)
-  const [searchTerm, setSearchTerm] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState<QueueFilter>("all")
-  const [leadTypeFilter, setLeadTypeFilter] = React.useState<"all" | LeadType>("all")
-  const [assigneeFilter, setAssigneeFilter] = React.useState<"all" | "mine">("all")
+  const [searchInput, setSearchInput] = React.useState("")
+  const [debouncedSearch, setDebouncedSearch] = React.useState("")
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
+  const [leadTypeFilter, setLeadTypeFilter] = React.useState<LeadTypeFilter>("all")
+  const [assigneeFilter, setAssigneeFilter] = React.useState<AssigneeFilter>("all")
+  const [dueFrom, setDueFrom] = React.useState("")
+  const [dueTo, setDueTo] = React.useState("")
+  const [sort, setSort] = React.useState<FollowUpSort>("dueAt")
+  const [page, setPage] = React.useState(1)
+  const [pageSize, setPageSize] = React.useState<number>(DEFAULT_PAGE_SIZE)
+
   const [form, setForm] = React.useState<FollowUpFormValues>(getEmptyFollowUpFormValues)
   const [completeTarget, setCompleteTarget] = React.useState<FollowUp | null>(null)
+  const [editTarget, setEditTarget] = React.useState<FollowUp | null>(null)
+  const [rescheduleTarget, setRescheduleTarget] = React.useState<FollowUp | null>(null)
   const [outcomeNotes, setOutcomeNotes] = React.useState<Record<string, string>>({})
 
   const currentUserId = authQuery.data?.user.id
-  const followUps = React.useMemo(() => followUpsQuery.data?.followUps ?? [], [followUpsQuery.data?.followUps])
-  const sellerLeads = React.useMemo(() => sellerLeadsQuery.data?.sellerLeads ?? [], [sellerLeadsQuery.data?.sellerLeads])
-  const buyerLeads = React.useMemo(() => buyerLeadsQuery.data?.buyerLeads ?? [], [buyerLeadsQuery.data?.buyerLeads])
 
-  const sellerLeadMap = React.useMemo(
-    () =>
-      new Map(
-        sellerLeads.map((lead) => [
-          lead.id,
-          {
-            primary: lead.sellerName,
-            secondary: `${lead.vehicleBrand} ${lead.vehicleModel}`,
-          },
-        ]),
-      ),
-    [sellerLeads],
+  // Debounce the free-text search so we don't issue a request per keystroke.
+  // Resetting the page lives in the timeout callback (not the effect body) so a
+  // filter change always returns the operator to the first page.
+  React.useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearch(searchInput)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(handle)
+  }, [searchInput])
+
+  // Filter setters reset pagination so narrowing the list never strands the
+  // operator on an out-of-range page.
+  const handleStatusChange = (value: StatusFilter) => {
+    setStatusFilter(value)
+    setPage(1)
+  }
+  const handleLeadTypeChange = (value: LeadTypeFilter) => {
+    setLeadTypeFilter(value)
+    setPage(1)
+  }
+  const handleAssigneeChange = (value: AssigneeFilter) => {
+    setAssigneeFilter(value)
+    setPage(1)
+  }
+  const handleDueFromChange = (value: string) => {
+    setDueFrom(value)
+    setPage(1)
+  }
+  const handleDueToChange = (value: string) => {
+    setDueTo(value)
+    setPage(1)
+  }
+  const handleSortChange = (value: FollowUpSort) => {
+    setSort(value)
+    setPage(1)
+  }
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value)
+    setPage(1)
+  }
+
+  const assigneeScopeId = assigneeFilter === "mine" ? currentUserId : undefined
+
+  const filters = React.useMemo<FollowUpListFilters>(
+    () => ({
+      status: statusFilter === "all" ? undefined : statusFilter,
+      leadType: leadTypeFilter === "all" ? undefined : leadTypeFilter,
+      assigneeUserId: assigneeScopeId,
+      search: debouncedSearch.trim() || undefined,
+      dueFrom: dueFrom ? toStartOfDayIso(dueFrom) : undefined,
+      dueTo: dueTo ? toEndOfDayIso(dueTo) : undefined,
+      sort,
+      page,
+      pageSize,
+    }),
+    [statusFilter, leadTypeFilter, assigneeScopeId, debouncedSearch, dueFrom, dueTo, sort, page, pageSize],
   )
 
-  const buyerLeadMap = React.useMemo(
-    () =>
-      new Map(
-        buyerLeads.map((lead) => [
-          lead.id,
-          {
-            primary: lead.buyerName,
-            secondary: lead.contactNumber,
-          },
-        ]),
-      ),
-    [buyerLeads],
+  const followUpsQuery = useFollowUpsQuery(filters)
+  const summaryQuery = useFollowUpsSummaryQuery(assigneeScopeId)
+
+  const followUps = React.useMemo(
+    () => followUpsQuery.data?.followUps ?? [],
+    [followUpsQuery.data?.followUps],
+  )
+  const pagination = followUpsQuery.data?.pagination
+  const summary = summaryQuery.data?.summary
+
+  const sellerLeads = React.useMemo(
+    () => sellerLeadsQuery.data?.sellerLeads ?? [],
+    [sellerLeadsQuery.data?.sellerLeads],
+  )
+  const buyerLeads = React.useMemo(
+    () => buyerLeadsQuery.data?.buyerLeads ?? [],
+    [buyerLeadsQuery.data?.buyerLeads],
   )
 
   const leadOptions =
@@ -301,37 +378,23 @@ export function FollowUpsScreen() {
       ? sellerLeads.map((lead) => ({ id: lead.id, label: `${lead.sellerName} • ${lead.vehicleBrand} ${lead.vehicleModel}` }))
       : buyerLeads.map((lead) => ({ id: lead.id, label: `${lead.buyerName} • ${lead.contactNumber}` }))
 
-  const filteredFollowUps = followUps.filter((followUp) => {
-    const leadMeta =
-      followUp.leadType === "seller"
-        ? sellerLeadMap.get(followUp.sellerLeadId ?? "")
-        : buyerLeadMap.get(followUp.buyerLeadId ?? "")
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    leadTypeFilter !== "all" ||
+    assigneeFilter !== "all" ||
+    Boolean(dueFrom) ||
+    Boolean(dueTo) ||
+    Boolean(searchInput)
 
-    const normalizedSearch = searchTerm.trim().toLowerCase()
-    const haystack = [
-      followUp.note,
-      followUp.outcomeNote ?? "",
-      leadMeta?.primary ?? "",
-      leadMeta?.secondary ?? "",
-      followUp.leadType,
-    ]
-      .join(" ")
-      .toLowerCase()
-
-    const matchesSearch = normalizedSearch ? haystack.includes(normalizedSearch) : true
-    const matchesStatus = statusFilter === "all" ? true : followUp.status === statusFilter
-    const matchesLeadType = leadTypeFilter === "all" ? true : followUp.leadType === leadTypeFilter
-    const matchesAssignee = assigneeFilter === "all" ? true : followUp.assigneeUserId === currentUserId
-
-    return matchesSearch && matchesStatus && matchesLeadType && matchesAssignee
-  })
-
-  const overdueCount = followUps.filter((followUp) => followUp.status === "Overdue").length
-  const dueTodayCount = followUps.filter(
-    (followUp) => followUp.status !== "Completed" && isToday(new Date(followUp.dueAt)),
-  ).length
-  const upcomingCount = getUpcomingCount(followUps)
-  const completedCount = followUps.filter((followUp) => followUp.status === "Completed").length
+  function resetFilters() {
+    setSearchInput("")
+    setStatusFilter("all")
+    setLeadTypeFilter("all")
+    setAssigneeFilter("all")
+    setDueFrom("")
+    setDueTo("")
+    setPage(1)
+  }
 
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -376,37 +439,46 @@ export function FollowUpsScreen() {
   const summaryCards = [
     {
       title: "Overdue",
-      value: overdueCount,
+      value: summary?.overdue ?? 0,
       caption: "Needs attention",
       icon: AlertCircleIcon,
       iconClassName: "text-rose-600",
       iconWrapClassName: "bg-rose-50 text-rose-600 dark:bg-rose-950/40",
+      status: "Overdue" as FollowUpStatus,
     },
     {
       title: "Due Today",
-      value: dueTodayCount,
+      value: summary?.dueToday ?? 0,
       caption: "Due today",
       icon: CalendarClockIcon,
       iconClassName: "text-orange-600",
       iconWrapClassName: "bg-orange-50 text-orange-600 dark:bg-orange-950/40",
+      status: "Due" as FollowUpStatus,
     },
     {
       title: "Upcoming",
-      value: upcomingCount,
+      value: summary?.upcoming ?? 0,
       caption: "Next 7 days",
       icon: Clock3Icon,
       iconClassName: "text-blue-600",
       iconWrapClassName: "bg-blue-50 text-blue-600 dark:bg-blue-950/40",
+      status: "Due" as FollowUpStatus,
     },
     {
       title: "Completed",
-      value: completedCount,
+      value: summary?.completed ?? 0,
       caption: "Closed tasks",
       icon: CheckCircle2Icon,
       iconClassName: "text-emerald-600",
       iconWrapClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
+      status: "Completed" as FollowUpStatus,
     },
   ]
+
+  const total = pagination?.total ?? 0
+  const pageCount = pagination?.pageCount ?? 1
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const rangeEnd = Math.min(page * pageSize, total)
 
   return (
     <AuthenticatedAppShell title="Follow-Ups">
@@ -425,17 +497,17 @@ export function FollowUpsScreen() {
             </Button>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_180px_180px_180px_auto]">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_160px_160px_160px_auto]">
             <div className="relative">
               <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search follow-ups, leads, notes..."
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="Search notes, outcomes, lead names..."
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as QueueFilter)}>
+            <Select value={statusFilter} onValueChange={(value) => handleStatusChange(value as StatusFilter)}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -448,7 +520,7 @@ export function FollowUpsScreen() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={leadTypeFilter} onValueChange={(value) => setLeadTypeFilter(value as "all" | LeadType)}>
+            <Select value={leadTypeFilter} onValueChange={(value) => handleLeadTypeChange(value as LeadTypeFilter)}>
               <SelectTrigger>
                 <SelectValue placeholder="Lead type" />
               </SelectTrigger>
@@ -458,7 +530,7 @@ export function FollowUpsScreen() {
                 <SelectItem value="buyer">Buyer Lead</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={assigneeFilter} onValueChange={(value) => setAssigneeFilter(value as "all" | "mine")}>
+            <Select value={assigneeFilter} onValueChange={(value) => handleAssigneeChange(value as AssigneeFilter)}>
               <SelectTrigger>
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
@@ -467,26 +539,75 @@ export function FollowUpsScreen() {
                 <SelectItem value="mine">My Follow-Ups</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchTerm("")
-                setStatusFilter("all")
-                setLeadTypeFilter("all")
-                setAssigneeFilter("all")
-              }}
-            >
+            <Button variant="outline" onClick={resetFilters} disabled={!hasActiveFilters}>
               <RotateCcwIcon />
               Reset
             </Button>
           </div>
 
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_160px_minmax(0,1fr)]">
+            <Field>
+              <FieldLabel htmlFor="followUpDueFrom" className="text-xs text-muted-foreground">
+                Due from
+              </FieldLabel>
+              <Input
+                id="followUpDueFrom"
+                type="date"
+                value={dueFrom}
+                onChange={(event) => handleDueFromChange(event.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="followUpDueTo" className="text-xs text-muted-foreground">
+                Due to
+              </FieldLabel>
+              <Input
+                id="followUpDueTo"
+                type="date"
+                value={dueTo}
+                onChange={(event) => handleDueToChange(event.target.value)}
+              />
+            </Field>
+            <Field className="lg:max-w-[260px] lg:justify-self-end">
+              <FieldLabel htmlFor="followUpSort" className="text-xs text-muted-foreground">
+                Sort by
+              </FieldLabel>
+              <Select value={sort} onValueChange={(value) => handleSortChange(value as FollowUpSort)}>
+                <SelectTrigger id="followUpSort">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
+
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {summaryCards.map((card) => {
               const Icon = card.icon
+              const isActive = statusFilter === card.status
 
               return (
-                <Card key={card.title} className="border-border/70 py-0 shadow-xs">
+                <Card
+                  key={card.title}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleStatusChange(isActive ? "all" : card.status)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault()
+                      handleStatusChange(isActive ? "all" : card.status)
+                    }
+                  }}
+                  className={`cursor-pointer border-border/70 py-0 shadow-xs transition-colors hover:bg-muted/20 ${
+                    isActive ? "ring-2 ring-primary/40" : ""
+                  }`}
+                >
                   <CardContent className="flex items-center gap-4 p-5">
                     <div className={`flex size-11 items-center justify-center rounded-full ${card.iconWrapClassName}`}>
                       <Icon className={`size-5 ${card.iconClassName}`} />
@@ -516,117 +637,169 @@ export function FollowUpsScreen() {
               <div className="p-6">
                 <ApiErrorAlert title="Unable to load follow-ups" message={getApiErrorMessage(followUpsQuery.error, "")} />
               </div>
-            ) : filteredFollowUps.length ? (
-              <Table className="min-w-[1280px] border-collapse">
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Follow-Up</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Lead Type</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Lead / Contact</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Due Date</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Assignee</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Outcome / Note Preview</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Updated</TableHead>
-                    <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredFollowUps.map((followUp) => {
-                    const leadMeta =
-                      followUp.leadType === "seller"
-                        ? sellerLeadMap.get(followUp.sellerLeadId ?? "")
-                        : buyerLeadMap.get(followUp.buyerLeadId ?? "")
+            ) : followUps.length ? (
+              <>
+                <Table className="min-w-[1280px] border-collapse">
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Follow-Up</TableHead>
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Lead Type</TableHead>
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Lead / Contact</TableHead>
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Due Date</TableHead>
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Assignee</TableHead>
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Outcome / Note Preview</TableHead>
+                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Updated</TableHead>
+                      <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {followUps.map((followUp) => {
+                      const notePreview = followUp.outcomeNote || followUp.note
+                      const isOverdue =
+                        followUp.status === "Overdue" ||
+                        (followUp.status === "Due" && isPast(new Date(followUp.dueAt)) && !isToday(new Date(followUp.dueAt)))
 
-                    const notePreview = followUp.outcomeNote || followUp.note
-                    const isOverdue = followUp.status === "Overdue" || (followUp.status === "Due" && isPast(new Date(followUp.dueAt)) && !isToday(new Date(followUp.dueAt)))
+                      return (
+                        <TableRow key={followUp.id} className="hover:bg-muted/15">
+                          <TableCell className="px-4 py-3 align-top">
+                            <div className={`space-y-1 border-l-2 pl-3 ${getQueueAccentClassName(followUp.status)}`}>
+                              <p className="font-medium text-foreground">{truncateText(followUp.note, 36)}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {followUp.leadType === "seller" ? "Seller workflow" : "Buyer workflow"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 align-top">
+                            <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getLeadTypeBadgeClassName(followUp.leadType)}`}>
+                              {followUp.leadType === "seller" ? "Seller Lead" : "Buyer Lead"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 align-top">
+                            <div className="space-y-1">
+                              <p className="font-medium text-foreground">{followUp.leadName ?? "Lead not found"}</p>
+                              <p className="text-sm text-muted-foreground">{followUp.leadSecondary ?? "No lead context available"}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 align-top">
+                            <div className="space-y-1">
+                              <p className={`text-sm font-medium ${isOverdue ? "text-rose-600 dark:text-rose-300" : "text-foreground"}`}>
+                                {format(new Date(followUp.dueAt), "MMM d, yyyy")}
+                              </p>
+                              <p className={`text-xs ${isOverdue ? "text-rose-500 dark:text-rose-300" : "text-muted-foreground"}`}>
+                                {format(new Date(followUp.dueAt), "h:mm a")}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 align-top">
+                            <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getFollowUpStatusBadgeClassName(followUp.status)}`}>
+                              {followUp.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 align-top text-sm text-foreground">{getAssigneeLabel(followUp.assigneeUserId, currentUserId)}</TableCell>
+                          <TableCell className="px-4 py-3 align-top">
+                            <p className="max-w-[280px] text-sm text-foreground">{truncateText(notePreview, 72)}</p>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 align-top">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium text-foreground">
+                                {formatDistanceToNow(new Date(followUp.updatedAt), { addSuffix: true })}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{format(new Date(followUp.updatedAt), "MMM d, yyyy")}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="px-4 py-3 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon-sm" aria-label={`Actions for follow-up ${followUp.note}`}>
+                                  <MoreHorizontalIcon />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuLabel>Follow-up actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(followUp.note)
+                                    toast.success("Follow-up note copied")
+                                  }}
+                                >
+                                  <CalendarDaysIcon />
+                                  Copy Note
+                                </DropdownMenuItem>
+                                {followUp.status !== "Completed" ? (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setEditTarget(followUp)}>
+                                      <PencilIcon />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setRescheduleTarget(followUp)}>
+                                      <CalendarClockIcon />
+                                      Reschedule
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setCompleteTarget(followUp)} disabled={completeMutation.isPending}>
+                                      <CheckIcon />
+                                      Mark Complete
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : null}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
 
-                    return (
-                      <TableRow
-                        key={followUp.id}
-                        className="hover:bg-muted/15"
+                <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 sm:flex-row">
+                  <p className="text-sm text-muted-foreground">
+                    Showing <span className="font-medium text-foreground">{rangeStart}</span>–
+                    <span className="font-medium text-foreground">{rangeEnd}</span> of{" "}
+                    <span className="font-medium text-foreground">{total}</span>
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Rows</span>
+                      <Select value={String(pageSize)} onValueChange={(value) => handlePageSizeChange(Number(value))}>
+                        <SelectTrigger className="h-8 w-[72px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PAGE_SIZE_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={String(option)}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Page {page} of {pageCount}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label="Previous page"
+                        onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        disabled={page <= 1}
                       >
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className={`space-y-1 border-l-2 pl-3 ${getQueueAccentClassName(followUp.status)}`}>
-                            <p className="font-medium text-foreground">{truncateText(followUp.note, 36)}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {followUp.leadType === "seller" ? "Seller workflow" : "Buyer workflow"}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getLeadTypeBadgeClassName(followUp.leadType)}`}>
-                            {followUp.leadType === "seller" ? "Seller Lead" : "Buyer Lead"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className="space-y-1">
-                            <p className="font-medium text-foreground">{leadMeta?.primary ?? "Lead not found"}</p>
-                            <p className="text-sm text-muted-foreground">{leadMeta?.secondary ?? "No lead context available"}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className="space-y-1">
-                            <p className={`text-sm font-medium ${isOverdue ? "text-rose-600 dark:text-rose-300" : "text-foreground"}`}>
-                              {format(new Date(followUp.dueAt), "MMM d, yyyy")}
-                            </p>
-                            <p className={`text-xs ${isOverdue ? "text-rose-500 dark:text-rose-300" : "text-muted-foreground"}`}>
-                              {format(new Date(followUp.dueAt), "h:mm a")}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getFollowUpStatusBadgeClassName(followUp.status)}`}>
-                            {followUp.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top text-sm text-foreground">{getAssigneeLabel(followUp.assigneeUserId, currentUserId)}</TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <p className="max-w-[280px] text-sm text-foreground">{truncateText(notePreview, 72)}</p>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                              {formatDistanceToNow(new Date(followUp.updatedAt), { addSuffix: true })}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{format(new Date(followUp.updatedAt), "MMM d, yyyy")}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon-sm" aria-label={`Actions for follow-up ${followUp.note}`}>
-                                <MoreHorizontalIcon />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52">
-                              <DropdownMenuLabel>Follow-up actions</DropdownMenuLabel>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  navigator.clipboard.writeText(followUp.note)
-                                  toast.success("Follow-up note copied")
-                                }}
-                              >
-                                <CalendarDaysIcon />
-                                Copy Note
-                              </DropdownMenuItem>
-                              {followUp.status !== "Completed" ? (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem onClick={() => setCompleteTarget(followUp)} disabled={completeMutation.isPending}>
-                                    <CheckIcon />
-                                    Mark Complete
-                                  </DropdownMenuItem>
-                                </>
-                              ) : null}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+                        <ChevronLeftIcon />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label="Next page"
+                        onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                        disabled={page >= pageCount}
+                      >
+                        <ChevronRightIcon />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
             ) : (
               <div className="p-6">
                 <EmptyState title="No follow-ups match this view" description="Try another filter or create a new follow-up." />
@@ -709,6 +882,30 @@ export function FollowUpsScreen() {
           </SheetContent>
         </Sheet>
 
+        <Dialog open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)}>
+          <DialogContent className="max-w-lg">
+            {editTarget ? (
+              <EditFollowUpDialogForm
+                followUp={editTarget}
+                mutation={updateMutation}
+                onClose={() => setEditTarget(null)}
+              />
+            ) : null}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={Boolean(rescheduleTarget)} onOpenChange={(open) => !open && setRescheduleTarget(null)}>
+          <DialogContent className="max-w-md">
+            {rescheduleTarget ? (
+              <RescheduleFollowUpDialogForm
+                followUp={rescheduleTarget}
+                mutation={updateMutation}
+                onClose={() => setRescheduleTarget(null)}
+              />
+            ) : null}
+          </DialogContent>
+        </Dialog>
+
         <Dialog open={Boolean(completeTarget)} onOpenChange={(open) => !open && setCompleteTarget(null)}>
           <DialogContent className="max-w-lg">
             {completeTarget ? (
@@ -759,5 +956,145 @@ export function FollowUpsScreen() {
         </Dialog>
       </div>
     </AuthenticatedAppShell>
+  )
+}
+
+function EditFollowUpDialogForm({
+  followUp,
+  mutation,
+  onClose,
+}: {
+  followUp: FollowUp
+  mutation: ReturnType<typeof useUpdateFollowUpMutation>
+  onClose: () => void
+}) {
+  const [note, setNote] = React.useState(followUp.note)
+  const [dueAt, setDueAt] = React.useState(() => toDateTimeLocalValue(followUp.dueAt))
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    await mutation.mutateAsync(
+      {
+        id: followUp.id,
+        payload: {
+          note: note.trim(),
+          dueAt: new Date(dueAt).toISOString(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Follow-up updated")
+          onClose()
+        },
+      },
+    )
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Edit Follow-Up</DialogTitle>
+        <DialogDescription>Update the work note and due date without recreating the task.</DialogDescription>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <ApiErrorAlert title="Unable to update follow-up" message={getApiErrorMessage(mutation.error, "")} />
+        <Field>
+          <FieldLabel htmlFor="editFollowUpDueAt">Due at</FieldLabel>
+          <Input
+            id="editFollowUpDueAt"
+            type="datetime-local"
+            value={dueAt}
+            onChange={(event) => setDueAt(event.target.value)}
+            required
+          />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="editFollowUpNote">Note</FieldLabel>
+          <Textarea
+            id="editFollowUpNote"
+            rows={5}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            required
+          />
+        </Field>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Saving changes">
+            Save Changes
+          </SubmitButton>
+        </DialogFooter>
+      </form>
+    </>
+  )
+}
+
+function RescheduleFollowUpDialogForm({
+  followUp,
+  mutation,
+  onClose,
+}: {
+  followUp: FollowUp
+  mutation: ReturnType<typeof useUpdateFollowUpMutation>
+  onClose: () => void
+}) {
+  const [dueAt, setDueAt] = React.useState(() => toDateTimeLocalValue(followUp.dueAt))
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    await mutation.mutateAsync(
+      {
+        id: followUp.id,
+        payload: {
+          dueAt: new Date(dueAt).toISOString(),
+        },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Follow-up rescheduled")
+          onClose()
+        },
+      },
+    )
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Reschedule Follow-Up</DialogTitle>
+        <DialogDescription>Move the due date and time. The status updates automatically.</DialogDescription>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="rounded-lg border bg-muted/20 px-4 py-3">
+          <p className="text-sm font-medium text-foreground">{followUp.note}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Currently due {format(new Date(followUp.dueAt), "MMM d, yyyy • h:mm a")}
+          </p>
+        </div>
+        <ApiErrorAlert title="Unable to reschedule follow-up" message={getApiErrorMessage(mutation.error, "")} />
+        <Field>
+          <FieldLabel htmlFor="rescheduleFollowUpDueAt">New due at</FieldLabel>
+          <Input
+            id="rescheduleFollowUpDueAt"
+            type="datetime-local"
+            value={dueAt}
+            onChange={(event) => setDueAt(event.target.value)}
+            required
+          />
+        </Field>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Rescheduling">
+            Reschedule
+          </SubmitButton>
+        </DialogFooter>
+      </form>
+    </>
   )
 }

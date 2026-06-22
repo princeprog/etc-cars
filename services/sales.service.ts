@@ -5,6 +5,7 @@ import type {
   CreateSaleResponse,
   SaleResponse,
   SalesListFilters,
+  SalesSummaryResponse,
   SalesResponse,
 } from "@/types/sales"
 
@@ -28,6 +29,20 @@ export function getSales(filters: SalesListFilters = {}) {
 
 export function getSale(id: string) {
   return apiRequest<SaleResponse>(API_ENDPOINTS.sales.byId(id))
+}
+
+export function getSalesSummary(filters: SalesListFilters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.search) params.set("search", filters.search)
+  if (filters.status && filters.status !== "all") params.set("status", filters.status)
+  if (filters.agentName) params.set("agentName", filters.agentName)
+  if (filters.dateRange && filters.dateRange !== "all") params.set("dateRange", filters.dateRange)
+
+  const query = params.toString()
+  const path = query ? `${API_ENDPOINTS.sales.summary}?${query}` : API_ENDPOINTS.sales.summary
+
+  return apiRequest<SalesSummaryResponse>(path)
 }
 
 export function createSale(payload: CreateSalePayload) {

@@ -42,6 +42,7 @@ export const API_ENDPOINTS = {
   },
   sales: {
     root: "/sales",
+    summary: "/sales/summary",
     byId: (id: string) => `/sales/${id}`,
   },
 } as const

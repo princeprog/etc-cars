@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { format, formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 import {
   BadgeDollarSignIcon,
   BarChart3Icon,
@@ -21,6 +21,7 @@ import { EmptyState } from "@/components/operations/empty-state"
 import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
+import { SaleDetailDialog } from "@/components/sales/sale-detail-dialog"
 import { resolveApiAssetUrl } from "@/constants/api-config"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -56,8 +57,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { useLinkBuyerLeadVehicleMutation } from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation"
 import { useCreateSaleMutation } from "@/hooks/mutations/sales/use-create-sale-mutation"
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
+import { useBuyerLeadQuery } from "@/hooks/queries/buyer-leads/use-buyer-lead-query"
 import { useSalesQuery } from "@/hooks/queries/sales/use-sales-query"
+import { useSalesBuyerLeadSearchQuery } from "@/hooks/queries/sales/use-sales-buyer-lead-search-query"
+import { useSalesSummaryQuery } from "@/hooks/queries/sales/use-sales-summary-query"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { BuyerLead } from "@/types/buyer-leads"
@@ -76,6 +79,11 @@ type SaleFormValues = {
   commissionOverrideAmount: string
   commissionOverrideReason: string
   buyerClosingNote: string
+}
+
+type BuyerLeadOption = {
+  value: string
+  label: string
 }
 
 function getEmptySaleFormValues(defaultAgentName = ""): SaleFormValues {
@@ -148,10 +156,28 @@ function getSaleStatusClassName(status: Exclude<SalesFilterStatus, "all">) {
   }
 }
 
+function getCommissionPreview(values: SaleFormValues, currentUserName?: string) {
+  const effectiveAgentName = values.agentName.trim() || currentUserName?.trim() || ""
+  const defaultAmount = effectiveAgentName ? "5000.00" : null
+  const overrideAmount = values.commissionOverrideAmount.trim() || null
+  const finalAmount = effectiveAgentName ? overrideAmount ?? defaultAmount ?? "0.00" : "0.00"
+
+  return {
+    defaultAmount,
+    overrideAmount,
+    finalAmount,
+    needsOverrideReason: Boolean(overrideAmount && !values.commissionOverrideReason.trim()),
+  }
+}
+
 function SalesForm({
   values,
   onChange,
+  buyerLeadSearch,
+  onBuyerLeadSearchChange,
   buyerLeadOptions,
+  buyerLeadSearchPending,
+  buyerLeadSearchError,
   vehicleOptions,
   selectedBuyerLead,
   availableVehicles,
@@ -164,7 +190,11 @@ function SalesForm({
 }: {
   values: SaleFormValues
   onChange: (values: SaleFormValues) => void
-  buyerLeadOptions: { id: string; label: string }[]
+  buyerLeadSearch: string
+  onBuyerLeadSearchChange: (value: string) => void
+  buyerLeadOptions: BuyerLeadOption[]
+  buyerLeadSearchPending: boolean
+  buyerLeadSearchError?: unknown
   vehicleOptions: { id: string; label: string }[]
   selectedBuyerLead?: BuyerLead
   availableVehicles: { id: string; label: string }[]
@@ -176,6 +206,8 @@ function SalesForm({
   currentUserName?: string
 }) {
   const inlineVehicleSelectTriggerRef = React.useRef<HTMLButtonElement | null>(null)
+  const buyerLeadInputRef = React.useRef<HTMLInputElement | null>(null)
+  const [buyerLeadPickerOpen, setBuyerLeadPickerOpen] = React.useState(false)
 
   function updateField<K extends keyof SaleFormValues>(key: K, value: SaleFormValues[K]) {
     if (key === "buyerLeadId") {
@@ -213,18 +245,58 @@ function SalesForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="saleBuyerLeadId">Buyer lead</FieldLabel>
-            <Select value={values.buyerLeadId} onValueChange={(value) => updateField("buyerLeadId", value)}>
-              <SelectTrigger id="saleBuyerLeadId">
-                <SelectValue placeholder="Select buyer lead" />
-              </SelectTrigger>
-              <SelectContent>
-                {buyerLeadOptions.map((lead) => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    {lead.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Input
+                id="saleBuyerLeadId"
+                ref={buyerLeadInputRef}
+                value={buyerLeadSearch}
+                placeholder="Search buyer lead"
+                onFocus={() => setBuyerLeadPickerOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setBuyerLeadPickerOpen(false), 120)
+                }}
+                onChange={(event) => {
+                  onBuyerLeadSearchChange(event.target.value)
+                  setBuyerLeadPickerOpen(true)
+                }}
+              />
+              {buyerLeadPickerOpen ? (
+                <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-md border bg-popover shadow-md">
+                  <div className="border-b px-3 py-2 text-xs text-muted-foreground">
+                    {buyerLeadSearchPending
+                      ? "Searching buyer leads..."
+                      : buyerLeadSearchError
+                        ? "Unable to load buyer leads"
+                        : "Search by buyer name or contact number"}
+                  </div>
+                  {buyerLeadSearch.trim() && !buyerLeadSearchPending && buyerLeadOptions.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">No buyer leads found.</div>
+                  ) : null}
+                  {!buyerLeadSearch.trim() && !buyerLeadSearchPending ? (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">Start typing to search buyer leads.</div>
+                  ) : null}
+                  <div className="p-1">
+                    {buyerLeadOptions.map((lead) => (
+                      <button
+                        key={lead.value}
+                        type="button"
+                        className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(event) => {
+                          event.preventDefault()
+                          updateField("buyerLeadId", lead.value)
+                          onBuyerLeadSearchChange(lead.label)
+                          setBuyerLeadPickerOpen(false)
+                          buyerLeadInputRef.current?.blur()
+                        }}
+                      >
+                        {lead.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+            <ApiErrorAlert title="Unable to search buyer leads" message={getApiErrorMessage(buyerLeadSearchError ?? undefined, "")} />
           </Field>
           <Field>
             <FieldLabel htmlFor="saleVehicleId">Linked vehicle</FieldLabel>
@@ -342,7 +414,6 @@ function SalesForm({
 
 export function SalesScreen() {
   const authQuery = useAuthenticatedUserQuery()
-  const buyerLeadsQuery = useBuyerLeadsQuery({ page: 1, pageSize: 100 })
   const availableVehiclesQuery = useVehiclesQuery({ status: "Available" })
   const createMutation = useCreateSaleMutation()
   const linkVehicleMutation = useLinkBuyerLeadVehicleMutation()
@@ -354,7 +425,18 @@ export function SalesScreen() {
   const [rangeFilter, setRangeFilter] = React.useState<SalesFilterRange>("all")
   const [page, setPage] = React.useState(1)
   const [form, setForm] = React.useState<SaleFormValues>(() => getEmptySaleFormValues())
+  const [buyerLeadSearch, setBuyerLeadSearch] = React.useState("")
+  const [debouncedBuyerLeadSearch, setDebouncedBuyerLeadSearch] = React.useState("")
   const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("")
+  const [viewSaleId, setViewSaleId] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedBuyerLeadSearch(buyerLeadSearch)
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [buyerLeadSearch])
 
   const currentUserName = authQuery.data?.user.fullName ?? ""
   const salesFilters = React.useMemo<SalesListFilters>(
@@ -368,13 +450,28 @@ export function SalesScreen() {
     }),
     [agentFilter, currentUserName, page, rangeFilter, searchTerm, statusFilter],
   )
+  const salesSummaryFilters = React.useMemo<Omit<SalesListFilters, "page" | "pageSize">>(
+    () => ({
+      search: searchTerm.trim() || undefined,
+      status: statusFilter,
+      agentName: agentFilter === "mine" ? currentUserName : undefined,
+      dateRange: rangeFilter,
+    }),
+    [agentFilter, currentUserName, rangeFilter, searchTerm, statusFilter],
+  )
   const salesQuery = useSalesQuery(salesFilters)
-  const buyerLeads = buyerLeadsQuery.data?.buyerLeads ?? []
+  const salesSummaryQuery = useSalesSummaryQuery(salesSummaryFilters)
+  const buyerLeadSearchQuery = useSalesBuyerLeadSearchQuery(debouncedBuyerLeadSearch, createOpen)
+  const selectedBuyerLeadQuery = useBuyerLeadQuery(form.buyerLeadId)
+  const selectedBuyerLead = selectedBuyerLeadQuery.data?.buyerLead
+  const buyerLeadSearchResults = React.useMemo(
+    () => buyerLeadSearchQuery.data?.buyerLeads ?? [],
+    [buyerLeadSearchQuery.data?.buyerLeads],
+  )
   const sales = salesQuery.data?.sales ?? []
   const total = salesQuery.data?.total ?? 0
   const totalPages = salesQuery.data?.totalPages ?? 1
 
-  const selectedBuyerLead = buyerLeads.find((lead) => lead.id === form.buyerLeadId)
   const effectiveVehicleId = React.useMemo(() => {
     if (!selectedBuyerLead) {
       return form.vehicleId
@@ -389,15 +486,29 @@ export function SalesScreen() {
       : ""
   }, [form.vehicleId, selectedBuyerLead])
 
-  const totalSales = total
-  const revenueTotal = sales.reduce((sum, sale) => sum + Number(sale.finalSaleAmount || 0), 0)
-  const grossProfitTotal = sales.reduce((sum, sale) => sum + Number(sale.grossProfitAmount || 0), 0)
-  const commissionTotal = sales.reduce((sum, sale) => sum + Number(sale.commission.finalAmount || 0), 0)
+  const totalSales = salesSummaryQuery.data?.totalSales ?? 0
+  const revenueTotal = salesSummaryQuery.data?.totalRevenue ?? "0.00"
+  const grossProfitTotal = salesSummaryQuery.data?.totalGrossProfit ?? "0.00"
+  const commissionTotal = salesSummaryQuery.data?.totalCommissionPayouts ?? "0.00"
 
-  const buyerLeadOptions = buyerLeads.map((lead) => ({
-    id: lead.id,
-    label: `${lead.buyerName} • ${lead.status}`,
-  }))
+  const buyerLeadOptions = React.useMemo(() => {
+    const options = buyerLeadSearchResults.map((lead) => ({
+      value: lead.id,
+      label: `${lead.buyerName} • ${lead.contactNumber} • ${lead.status}`,
+    }))
+
+    if (
+      selectedBuyerLead &&
+      !options.some((option) => option.value === selectedBuyerLead.id)
+    ) {
+      options.unshift({
+        value: selectedBuyerLead.id,
+        label: `${selectedBuyerLead.buyerName} • ${selectedBuyerLead.contactNumber} • ${selectedBuyerLead.status}`,
+      })
+    }
+
+    return options
+  }, [buyerLeadSearchResults, selectedBuyerLead])
 
   const vehicleOptions =
     selectedBuyerLead?.vehicles.map((vehicle) => ({
@@ -412,6 +523,31 @@ export function SalesScreen() {
         id: vehicle.id,
         label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
       })) ?? []
+
+  const commissionPreview = getCommissionPreview(form, currentUserName)
+  const readinessChecks = [
+    {
+      label: "Buyer lead selected",
+      complete: Boolean(form.buyerLeadId),
+    },
+    {
+      label: "Linked vehicle ready",
+      complete: Boolean(effectiveVehicleId),
+    },
+    {
+      label: "Sale amount entered",
+      complete: Boolean(form.finalSaleAmount.trim()),
+    },
+    {
+      label: "Closing note covered",
+      complete: Boolean(form.buyerClosingNote.trim() || selectedBuyerLead?.closingNote?.trim()),
+    },
+    {
+      label: "Override reason provided",
+      complete: !commissionPreview.needsOverrideReason,
+    },
+  ]
+  const blockingItems = readinessChecks.filter((check) => !check.complete)
 
   async function handleInlineLinkVehicle() {
     if (!selectedBuyerLead || !inlineLinkVehicleId) {
@@ -468,21 +604,21 @@ export function SalesScreen() {
     },
     {
       title: "Revenue",
-      value: formatMoney(String(revenueTotal)),
+      value: formatMoney(revenueTotal),
       caption: "Booked revenue",
       icon: DollarSignIcon,
       iconWrapClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
     },
     {
       title: "Gross Profit",
-      value: formatMoney(String(grossProfitTotal)),
+      value: formatMoney(grossProfitTotal),
       caption: "Closed deals",
       icon: BarChart3Icon,
       iconWrapClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
     },
     {
       title: "Commission Payouts",
-      value: formatMoney(String(commissionTotal)),
+      value: formatMoney(commissionTotal),
       caption: "Locked commissions",
       icon: BadgeDollarSignIcon,
       iconWrapClassName: "bg-orange-50 text-orange-600 dark:bg-orange-950/40",
@@ -615,12 +751,11 @@ export function SalesScreen() {
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Sale Date</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Final Amount</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Gross Profit</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Commission</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
                     <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                    <TableBody>
                   {sales.map((sale) => {
                     const status = getSaleStatus(sale)
                     const previewPhoto = sale.vehicle.photos[0]
@@ -663,8 +798,8 @@ export function SalesScreen() {
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
-                            <p className="font-medium text-foreground">{buyerLeads.find((lead) => lead.id === sale.buyerLeadId)?.buyerName ?? "Buyer not found"}</p>
-                            <p className="text-xs text-muted-foreground">{buyerLeads.find((lead) => lead.id === sale.buyerLeadId)?.contactNumber ?? "No contact available"}</p>
+                            <p className="font-medium text-foreground">{sale.buyerLead.buyerName}</p>
+                            <p className="text-xs text-muted-foreground">{sale.buyerLead.contactNumber}</p>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
@@ -680,12 +815,6 @@ export function SalesScreen() {
                           {formatMoney(sale.grossProfitAmount)}
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
-                          <div className="space-y-1">
-                            <p className="text-sm font-semibold text-foreground">{formatMoney(sale.commission.finalAmount)}</p>
-                            <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(sale.updatedAt), { addSuffix: true })}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 align-top">
                           <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getSaleStatusClassName(status)}`}>
                             {getSaleStatusLabel(status)}
                           </Badge>
@@ -699,6 +828,9 @@ export function SalesScreen() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuLabel>Sale actions</DropdownMenuLabel>
+                              <DropdownMenuItem onClick={() => setViewSaleId(sale.id)}>
+                                View Details
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
                                   navigator.clipboard.writeText(sale.saleNumber)
@@ -743,7 +875,7 @@ export function SalesScreen() {
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
           <SheetContent
             side="right"
-            className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
+            className="overflow-hidden w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
           >
             <SheetHeader className="border-b px-6 py-5 pr-14">
               <SheetTitle className="text-lg">Finalize Sale</SheetTitle>
@@ -752,8 +884,9 @@ export function SalesScreen() {
               </SheetDescription>
             </SheetHeader>
             <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-              <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
-                <div className="min-h-0 overflow-y-auto px-6 py-6">
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="grid min-h-full gap-0 lg:min-h-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
+                  <div className="min-h-0 px-6 py-6 lg:overflow-y-auto">
                   <div className="space-y-5">
                     <ApiErrorAlert title="Unable to finalize sale" message={getApiErrorMessage(createMutation.error, "")} />
                     <SalesForm
@@ -761,11 +894,26 @@ export function SalesScreen() {
                       onChange={(nextValues) => {
                         if (nextValues.buyerLeadId !== form.buyerLeadId) {
                           setInlineLinkVehicleId("")
+
+                          const nextBuyerLead = buyerLeadSearchResults.find((lead) => lead.id === nextValues.buyerLeadId)
+                          if (nextBuyerLead?.closingNote && !nextValues.buyerClosingNote.trim()) {
+                            nextValues = {
+                              ...nextValues,
+                              buyerClosingNote: nextBuyerLead.closingNote,
+                            }
+                          }
+
+                          const nextBuyerLabel = buyerLeadOptions.find((lead) => lead.value === nextValues.buyerLeadId)?.label ?? ""
+                          setBuyerLeadSearch(nextBuyerLabel)
                         }
 
                         setForm(nextValues)
                       }}
+                      buyerLeadSearch={buyerLeadSearch}
+                      onBuyerLeadSearchChange={setBuyerLeadSearch}
                       buyerLeadOptions={buyerLeadOptions}
+                      buyerLeadSearchPending={buyerLeadSearchQuery.isPending}
+                      buyerLeadSearchError={buyerLeadSearchQuery.error}
                       vehicleOptions={vehicleOptions}
                       selectedBuyerLead={selectedBuyerLead}
                       availableVehicles={inlineAvailableVehicleOptions}
@@ -777,42 +925,98 @@ export function SalesScreen() {
                       currentUserName={currentUserName}
                     />
                   </div>
-                </div>
-                <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
-                  <div className="space-y-4">
-                    <Card className="border-border/70 py-0 shadow-none">
-                      <CardHeader className="border-b py-4">
-                        <CardTitle className="text-base">Sale Summary</CardTitle>
-                        <CardDescription>Live preview of the finalized sale record you&apos;re creating.</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4 py-4">
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Buyer Lead</p>
-                          <p className="text-sm font-medium text-foreground">
-                            {buyerLeadOptions.find((lead) => lead.id === form.buyerLeadId)?.label ?? "No buyer lead selected"}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vehicle</p>
-                          <p className="text-sm font-medium text-foreground">
-                            {vehicleOptions.find((vehicle) => vehicle.id === effectiveVehicleId)?.label ?? "No vehicle selected"}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Final Amount</p>
-                          <p className="text-sm font-medium text-foreground">{formatMoney(form.finalSaleAmount)}</p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent</p>
-                          <p className="text-sm font-medium text-foreground">{form.agentName || currentUserName || "Not set"}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
                   </div>
-                </aside>
+                  <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
+                    <div className="space-y-4">
+                      <Card className="border-border/70 py-0 shadow-none">
+                        <CardHeader className="border-b py-4">
+                          <CardTitle className="text-base">Sale Summary</CardTitle>
+                          <CardDescription>Live preview of the finalized sale record you&apos;re creating.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4 py-4">
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Buyer Lead</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {buyerLeadOptions.find((lead) => lead.value === form.buyerLeadId)?.label ?? "No buyer lead selected"}
+                            </p>
+                            {selectedBuyerLead ? (
+                              <p className="text-xs text-muted-foreground">
+                                {selectedBuyerLead.contactNumber}
+                                {selectedBuyerLead.closingNote ? " • Existing closing note on file" : ""}
+                              </p>
+                            ) : null}
+                          </div>
+                          <Separator />
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vehicle</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {vehicleOptions.find((vehicle) => vehicle.id === effectiveVehicleId)?.label ?? "No vehicle selected"}
+                            </p>
+                          </div>
+                          <Separator />
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Final Amount</p>
+                            <p className="text-sm font-medium text-foreground">{formatMoney(form.finalSaleAmount)}</p>
+                          </div>
+                          <Separator />
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent</p>
+                            <p className="text-sm font-medium text-foreground">{form.agentName || currentUserName || "Not set"}</p>
+                          </div>
+                          <Separator />
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Commission Outcome</p>
+                            <div className="space-y-1 rounded-lg border bg-muted/20 px-3 py-3 text-sm">
+                              <p className="flex items-center justify-between gap-3">
+                                <span className="text-muted-foreground">Default commission</span>
+                                <span className="font-medium text-foreground">{formatMoney(commissionPreview.defaultAmount)}</span>
+                              </p>
+                              <p className="flex items-center justify-between gap-3">
+                                <span className="text-muted-foreground">Override commission</span>
+                                <span className="font-medium text-foreground">{formatMoney(commissionPreview.overrideAmount)}</span>
+                              </p>
+                              <p className="flex items-center justify-between gap-3">
+                                <span className="text-muted-foreground">Final payout</span>
+                                <span className="font-medium text-foreground">{formatMoney(commissionPreview.finalAmount)}</span>
+                              </p>
+                            </div>
+                            {commissionPreview.needsOverrideReason ? (
+                              <p className="text-xs text-amber-700 dark:text-amber-300">
+                                Add an override reason before locking a custom commission amount.
+                              </p>
+                            ) : null}
+                          </div>
+                          <Separator />
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Readiness Checklist</p>
+                            <div className="space-y-2">
+                              {readinessChecks.map((check) => (
+                                <div key={check.label} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+                                  <span className="text-foreground">{check.label}</span>
+                                  <Badge
+                                    variant="outline"
+                                    className={check.complete ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"}
+                                  >
+                                    {check.complete ? "Ready" : "Missing"}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                            {blockingItems.length ? (
+                              <p className="text-xs text-muted-foreground">
+                                Complete the remaining checklist items before finalizing this deal.
+                              </p>
+                            ) : (
+                              <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                                This deal has the key inputs needed for sale finalization.
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </aside>
+                </div>
               </div>
               <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
@@ -830,6 +1034,8 @@ export function SalesScreen() {
             </form>
           </SheetContent>
         </Sheet>
+
+        <SaleDetailDialog open={Boolean(viewSaleId)} onOpenChange={(open) => !open && setViewSaleId(null)} saleId={viewSaleId} />
       </div>
     </AuthenticatedAppShell>
   )

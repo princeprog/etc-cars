@@ -1,3 +1,5 @@
+import type { PaginatedResponseMeta } from "@/types/api"
+
 export const FOLLOW_UP_STATUSES = ["Due", "Completed", "Overdue"] as const
 export const LEAD_TYPES = ["seller", "buyer"] as const
 
@@ -36,6 +38,17 @@ export interface FollowUpResponse {
   followUp: FollowUp
 }
 
-export interface FollowUpsResponse {
+export interface FollowUpListFilters {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: FollowUpStatus | "all"
+  leadType?: LeadType | "all"
+  assigneeUserId?: string
+  sortBy?: "dueAt" | "createdAt" | "updatedAt" | "status"
+  sortOrder?: "asc" | "desc"
+}
+
+export interface FollowUpsResponse extends PaginatedResponseMeta {
   followUps: FollowUp[]
 }

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { format, formatDistanceToNow, isSameMonth } from "date-fns"
+import { format, formatDistanceToNow } from "date-fns"
 import {
   BadgeDollarSignIcon,
   BarChart3Icon,
@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
+import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
 import { resolveApiAssetUrl } from "@/constants/api-config"
@@ -60,7 +61,7 @@ import { useSalesQuery } from "@/hooks/queries/sales/use-sales-query"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { BuyerLead } from "@/types/buyer-leads"
-import type { SaleWithDetails } from "@/types/sales"
+import type { SaleWithDetails, SalesListFilters } from "@/types/sales"
 
 type SalesFilterStatus = "all" | "finalized" | "commission_locked" | "needs_review"
 type SalesFilterAgent = "all" | "mine"
@@ -145,49 +146,6 @@ function getSaleStatusClassName(status: Exclude<SalesFilterStatus, "all">) {
     default:
       return ""
   }
-}
-
-function filterSales(
-  sales: SaleWithDetails[],
-  searchTerm: string,
-  statusFilter: SalesFilterStatus,
-  agentFilter: SalesFilterAgent,
-  rangeFilter: SalesFilterRange,
-  currentUserName?: string,
-) {
-  const now = new Date()
-  const normalizedSearch = searchTerm.trim().toLowerCase()
-
-  return sales.filter((sale) => {
-    const status = getSaleStatus(sale)
-    const haystack = [
-      sale.saleNumber,
-      sale.id,
-      sale.vehicle.stockNumber,
-      sale.vehicle.brand,
-      sale.vehicle.model,
-      sale.agentName ?? "",
-    ]
-      .join(" ")
-      .toLowerCase()
-
-    const matchesSearch = normalizedSearch ? haystack.includes(normalizedSearch) : true
-    const matchesStatus = statusFilter === "all" ? true : status === statusFilter
-    const matchesAgent =
-      agentFilter === "all"
-        ? true
-        : (sale.agentName ?? "").trim().toLowerCase() === (currentUserName ?? "").trim().toLowerCase()
-
-    const saleDate = new Date(sale.saleDate)
-    const matchesRange =
-      rangeFilter === "all"
-        ? true
-        : rangeFilter === "this_month"
-          ? isSameMonth(saleDate, now)
-          : saleDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30)
-
-    return matchesSearch && matchesStatus && matchesAgent && matchesRange
-  })
 }
 
 function SalesForm({
@@ -384,8 +342,7 @@ function SalesForm({
 
 export function SalesScreen() {
   const authQuery = useAuthenticatedUserQuery()
-  const buyerLeadsQuery = useBuyerLeadsQuery()
-  const salesQuery = useSalesQuery()
+  const buyerLeadsQuery = useBuyerLeadsQuery({ page: 1, pageSize: 100 })
   const availableVehiclesQuery = useVehiclesQuery({ status: "Available" })
   const createMutation = useCreateSaleMutation()
   const linkVehicleMutation = useLinkBuyerLeadVehicleMutation()
@@ -395,17 +352,44 @@ export function SalesScreen() {
   const [statusFilter, setStatusFilter] = React.useState<SalesFilterStatus>("all")
   const [agentFilter, setAgentFilter] = React.useState<SalesFilterAgent>("all")
   const [rangeFilter, setRangeFilter] = React.useState<SalesFilterRange>("all")
+  const [page, setPage] = React.useState(1)
   const [form, setForm] = React.useState<SaleFormValues>(() => getEmptySaleFormValues())
   const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("")
 
   const currentUserName = authQuery.data?.user.fullName ?? ""
+  const salesFilters = React.useMemo<SalesListFilters>(
+    () => ({
+      page,
+      pageSize: 10,
+      search: searchTerm.trim() || undefined,
+      status: statusFilter,
+      agentName: agentFilter === "mine" ? currentUserName : undefined,
+      dateRange: rangeFilter,
+    }),
+    [agentFilter, currentUserName, page, rangeFilter, searchTerm, statusFilter],
+  )
+  const salesQuery = useSalesQuery(salesFilters)
   const buyerLeads = buyerLeadsQuery.data?.buyerLeads ?? []
   const sales = salesQuery.data?.sales ?? []
+  const total = salesQuery.data?.total ?? 0
+  const totalPages = salesQuery.data?.totalPages ?? 1
 
   const selectedBuyerLead = buyerLeads.find((lead) => lead.id === form.buyerLeadId)
-  const filteredSales = filterSales(sales, searchTerm, statusFilter, agentFilter, rangeFilter, currentUserName)
+  const effectiveVehicleId = React.useMemo(() => {
+    if (!selectedBuyerLead) {
+      return form.vehicleId
+    }
 
-  const totalSales = sales.length
+    if (selectedBuyerLead.vehicles.length === 1) {
+      return selectedBuyerLead.vehicles[0]?.id ?? ""
+    }
+
+    return selectedBuyerLead.vehicles.some((vehicle) => vehicle.id === form.vehicleId)
+      ? form.vehicleId
+      : ""
+  }, [form.vehicleId, selectedBuyerLead])
+
+  const totalSales = total
   const revenueTotal = sales.reduce((sum, sale) => sum + Number(sale.finalSaleAmount || 0), 0)
   const grossProfitTotal = sales.reduce((sum, sale) => sum + Number(sale.grossProfitAmount || 0), 0)
   const commissionTotal = sales.reduce((sum, sale) => sum + Number(sale.commission.finalAmount || 0), 0)
@@ -428,39 +412,6 @@ export function SalesScreen() {
         id: vehicle.id,
         label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
       })) ?? []
-
-  React.useEffect(() => {
-    setInlineLinkVehicleId("")
-  }, [form.buyerLeadId])
-
-  React.useEffect(() => {
-    if (!selectedBuyerLead) {
-      return
-    }
-
-    if (selectedBuyerLead.vehicles.length === 1) {
-      const onlyLinkedVehicleId = selectedBuyerLead.vehicles[0]?.id
-
-      if (onlyLinkedVehicleId && form.vehicleId !== onlyLinkedVehicleId) {
-        setForm((current) => ({
-          ...current,
-          vehicleId: onlyLinkedVehicleId,
-        }))
-      }
-
-      return
-    }
-
-    if (
-      form.vehicleId &&
-      !selectedBuyerLead.vehicles.some((vehicle) => vehicle.id === form.vehicleId)
-    ) {
-      setForm((current) => ({
-        ...current,
-        vehicleId: "",
-      }))
-    }
-  }, [form.vehicleId, selectedBuyerLead])
 
   async function handleInlineLinkVehicle() {
     if (!selectedBuyerLead || !inlineLinkVehicleId) {
@@ -488,7 +439,7 @@ export function SalesScreen() {
     await createMutation.mutateAsync(
       {
         buyerLeadId: form.buyerLeadId,
-        vehicleId: form.vehicleId,
+        vehicleId: effectiveVehicleId,
         saleDate: new Date(form.saleDate).toISOString(),
         finalSaleAmount: form.finalSaleAmount,
         agentName: form.agentName || currentUserName || null,
@@ -560,12 +511,18 @@ export function SalesScreen() {
               <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value)
+                  setPage(1)
+                }}
                 placeholder="Search sales, buyer, vehicle, or ID..."
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as SalesFilterStatus)}>
+            <Select value={statusFilter} onValueChange={(value) => {
+              setStatusFilter(value as SalesFilterStatus)
+              setPage(1)
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -576,7 +533,10 @@ export function SalesScreen() {
                 <SelectItem value="needs_review">Needs Review</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={agentFilter} onValueChange={(value) => setAgentFilter(value as SalesFilterAgent)}>
+            <Select value={agentFilter} onValueChange={(value) => {
+              setAgentFilter(value as SalesFilterAgent)
+              setPage(1)
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Agent" />
               </SelectTrigger>
@@ -585,7 +545,10 @@ export function SalesScreen() {
                 <SelectItem value="mine">My Sales</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={rangeFilter} onValueChange={(value) => setRangeFilter(value as SalesFilterRange)}>
+            <Select value={rangeFilter} onValueChange={(value) => {
+              setRangeFilter(value as SalesFilterRange)
+              setPage(1)
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Date range" />
               </SelectTrigger>
@@ -602,6 +565,7 @@ export function SalesScreen() {
                 setStatusFilter("all")
                 setAgentFilter("all")
                 setRangeFilter("all")
+                setPage(1)
               }}
             >
               <RotateCcwIcon />
@@ -641,7 +605,7 @@ export function SalesScreen() {
               <div className="p-6">
                 <ApiErrorAlert title="Unable to load sales" message={getApiErrorMessage(salesQuery.error, "")} />
               </div>
-            ) : filteredSales.length ? (
+            ) : sales.length ? (
               <Table className="w-full border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
@@ -657,7 +621,7 @@ export function SalesScreen() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSales.map((sale) => {
+                  {sales.map((sale) => {
                     const status = getSaleStatus(sale)
                     const previewPhoto = sale.vehicle.photos[0]
 
@@ -765,6 +729,15 @@ export function SalesScreen() {
               </div>
             )}
           </CardContent>
+          {!salesQuery.isPending && !salesQuery.error && total > 0 ? (
+            <ListPagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              itemLabel="sales"
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
 
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
@@ -784,8 +757,14 @@ export function SalesScreen() {
                   <div className="space-y-5">
                     <ApiErrorAlert title="Unable to finalize sale" message={getApiErrorMessage(createMutation.error, "")} />
                     <SalesForm
-                      values={form}
-                      onChange={setForm}
+                      values={{ ...form, vehicleId: effectiveVehicleId }}
+                      onChange={(nextValues) => {
+                        if (nextValues.buyerLeadId !== form.buyerLeadId) {
+                          setInlineLinkVehicleId("")
+                        }
+
+                        setForm(nextValues)
+                      }}
                       buyerLeadOptions={buyerLeadOptions}
                       vehicleOptions={vehicleOptions}
                       selectedBuyerLead={selectedBuyerLead}
@@ -817,7 +796,7 @@ export function SalesScreen() {
                         <div className="space-y-1">
                           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vehicle</p>
                           <p className="text-sm font-medium text-foreground">
-                            {vehicleOptions.find((vehicle) => vehicle.id === form.vehicleId)?.label ?? "No vehicle selected"}
+                            {vehicleOptions.find((vehicle) => vehicle.id === effectiveVehicleId)?.label ?? "No vehicle selected"}
                           </p>
                         </div>
                         <Separator />

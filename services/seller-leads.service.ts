@@ -4,6 +4,7 @@ import type {
   ConvertSellerLeadPayload,
   SellerLeadResponse,
   SellerLeadsResponse,
+  SellerLeadListFilters,
   CreateSellerLeadPayload,
   UpdateSellerLeadPayload,
 } from "@/types/seller-leads"
@@ -14,8 +15,20 @@ export interface ConvertSellerLeadResponse {
   vehicle: VehicleResponse["vehicle"]
 }
 
-export function getSellerLeads() {
-  return apiRequest<SellerLeadsResponse>(API_ENDPOINTS.sellerLeads.root)
+export function getSellerLeads(filters: SellerLeadListFilters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.page) params.set("page", String(filters.page))
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
+  if (filters.search) params.set("search", filters.search)
+  if (filters.status && filters.status !== "all") params.set("status", filters.status)
+  if (filters.sortBy) params.set("sortBy", filters.sortBy)
+  if (filters.sortOrder) params.set("sortOrder", filters.sortOrder)
+
+  const query = params.toString()
+  const path = query ? `${API_ENDPOINTS.sellerLeads.root}?${query}` : API_ENDPOINTS.sellerLeads.root
+
+  return apiRequest<SellerLeadsResponse>(path)
 }
 
 export function getSellerLead(id: string) {

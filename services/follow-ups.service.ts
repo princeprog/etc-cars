@@ -3,15 +3,25 @@ import { apiRequest } from "@/services/api-service"
 import type {
   CompleteFollowUpPayload,
   CreateFollowUpPayload,
+  FollowUpListFilters,
   FollowUpResponse,
   FollowUpsResponse,
-  FollowUpStatus,
 } from "@/types/follow-ups"
 
-export function getFollowUps(status?: FollowUpStatus) {
-  const path = status
-    ? `${API_ENDPOINTS.followUps.root}?status=${encodeURIComponent(status)}`
-    : API_ENDPOINTS.followUps.root
+export function getFollowUps(filters: FollowUpListFilters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.page) params.set("page", String(filters.page))
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
+  if (filters.search) params.set("search", filters.search)
+  if (filters.status && filters.status !== "all") params.set("status", filters.status)
+  if (filters.leadType && filters.leadType !== "all") params.set("leadType", filters.leadType)
+  if (filters.assigneeUserId) params.set("assigneeUserId", filters.assigneeUserId)
+  if (filters.sortBy) params.set("sortBy", filters.sortBy)
+  if (filters.sortOrder) params.set("sortOrder", filters.sortOrder)
+
+  const query = params.toString()
+  const path = query ? `${API_ENDPOINTS.followUps.root}?${query}` : API_ENDPOINTS.followUps.root
 
   return apiRequest<FollowUpsResponse>(path)
 }

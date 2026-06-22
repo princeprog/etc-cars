@@ -1,3 +1,4 @@
+import type { PaginatedResponseMeta } from "@/types/api"
 import type { Vehicle } from "@/types/vehicles"
 
 export interface Commission {
@@ -54,6 +55,17 @@ export interface SaleResponse {
   sale: SaleWithDetails
 }
 
-export interface SalesResponse {
+export interface SalesListFilters {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: "all" | "finalized" | "commission_locked" | "needs_review"
+  agentName?: string
+  dateRange?: "all" | "this_month" | "last_30_days"
+  sortBy?: "saleDate" | "createdAt" | "finalSaleAmount" | "saleNumber" | "agentName"
+  sortOrder?: "asc" | "desc"
+}
+
+export interface SalesResponse extends PaginatedResponseMeta {
   sales: SaleWithDetails[]
 }

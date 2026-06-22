@@ -3,13 +3,13 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { getFollowUps } from "@/services/follow-ups.service"
-import type { FollowUpStatus } from "@/types/follow-ups"
+import type { FollowUpListFilters } from "@/types/follow-ups"
 import { followUpsQueryKeys } from "./follow-ups-query-keys"
 
-export function useFollowUpsQuery(status?: FollowUpStatus) {
+export function useFollowUpsQuery(filters: FollowUpListFilters = {}) {
   return useQuery({
-    queryKey: followUpsQueryKeys.lists(status),
-    queryFn: () => getFollowUps(status),
+    queryKey: followUpsQueryKeys.filteredList(filters),
+    queryFn: () => getFollowUps(filters),
     retry: false,
   })
 }

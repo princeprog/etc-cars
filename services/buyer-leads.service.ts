@@ -3,13 +3,26 @@ import { apiRequest } from "@/services/api-service"
 import type {
   BuyerLeadResponse,
   BuyerLeadsResponse,
+  BuyerLeadListFilters,
   CreateBuyerLeadPayload,
   LinkBuyerLeadVehiclePayload,
   UpdateBuyerLeadPayload,
 } from "@/types/buyer-leads"
 
-export function getBuyerLeads() {
-  return apiRequest<BuyerLeadsResponse>(API_ENDPOINTS.buyerLeads.root)
+export function getBuyerLeads(filters: BuyerLeadListFilters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.page) params.set("page", String(filters.page))
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
+  if (filters.search) params.set("search", filters.search)
+  if (filters.status && filters.status !== "all") params.set("status", filters.status)
+  if (filters.sortBy) params.set("sortBy", filters.sortBy)
+  if (filters.sortOrder) params.set("sortOrder", filters.sortOrder)
+
+  const query = params.toString()
+  const path = query ? `${API_ENDPOINTS.buyerLeads.root}?${query}` : API_ENDPOINTS.buyerLeads.root
+
+  return apiRequest<BuyerLeadsResponse>(path)
 }
 
 export function getBuyerLead(id: string) {

@@ -19,6 +19,7 @@ import { toast } from "sonner"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
+import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
@@ -72,6 +73,7 @@ import {
   FOLLOW_UP_STATUSES,
   LEAD_TYPES,
   type FollowUp,
+  type FollowUpListFilters,
   type FollowUpStatus,
   type LeadType,
 } from "@/types/follow-ups"
@@ -248,9 +250,8 @@ function FollowUpForm({
 
 export function FollowUpsScreen() {
   const authQuery = useAuthenticatedUserQuery()
-  const followUpsQuery = useFollowUpsQuery()
-  const sellerLeadsQuery = useSellerLeadsQuery()
-  const buyerLeadsQuery = useBuyerLeadsQuery()
+  const sellerLeadsQuery = useSellerLeadsQuery({ page: 1, pageSize: 100 })
+  const buyerLeadsQuery = useBuyerLeadsQuery({ page: 1, pageSize: 100 })
   const createMutation = useCreateFollowUpMutation()
   const completeMutation = useCompleteFollowUpMutation()
 
@@ -259,12 +260,27 @@ export function FollowUpsScreen() {
   const [statusFilter, setStatusFilter] = React.useState<QueueFilter>("all")
   const [leadTypeFilter, setLeadTypeFilter] = React.useState<"all" | LeadType>("all")
   const [assigneeFilter, setAssigneeFilter] = React.useState<"all" | "mine">("all")
+  const [page, setPage] = React.useState(1)
   const [form, setForm] = React.useState<FollowUpFormValues>(getEmptyFollowUpFormValues)
   const [completeTarget, setCompleteTarget] = React.useState<FollowUp | null>(null)
   const [outcomeNotes, setOutcomeNotes] = React.useState<Record<string, string>>({})
 
   const currentUserId = authQuery.data?.user.id
+  const filters = React.useMemo<FollowUpListFilters>(
+    () => ({
+      page,
+      pageSize: 10,
+      search: searchTerm.trim() || undefined,
+      status: statusFilter,
+      leadType: leadTypeFilter,
+      assigneeUserId: assigneeFilter === "mine" ? currentUserId : undefined,
+    }),
+    [assigneeFilter, currentUserId, leadTypeFilter, page, searchTerm, statusFilter],
+  )
+  const followUpsQuery = useFollowUpsQuery(filters)
   const followUps = React.useMemo(() => followUpsQuery.data?.followUps ?? [], [followUpsQuery.data?.followUps])
+  const total = followUpsQuery.data?.total ?? 0
+  const totalPages = followUpsQuery.data?.totalPages ?? 1
   const sellerLeads = React.useMemo(() => sellerLeadsQuery.data?.sellerLeads ?? [], [sellerLeadsQuery.data?.sellerLeads])
   const buyerLeads = React.useMemo(() => buyerLeadsQuery.data?.buyerLeads ?? [], [buyerLeadsQuery.data?.buyerLeads])
 
@@ -300,31 +316,6 @@ export function FollowUpsScreen() {
     form.leadType === "seller"
       ? sellerLeads.map((lead) => ({ id: lead.id, label: `${lead.sellerName} • ${lead.vehicleBrand} ${lead.vehicleModel}` }))
       : buyerLeads.map((lead) => ({ id: lead.id, label: `${lead.buyerName} • ${lead.contactNumber}` }))
-
-  const filteredFollowUps = followUps.filter((followUp) => {
-    const leadMeta =
-      followUp.leadType === "seller"
-        ? sellerLeadMap.get(followUp.sellerLeadId ?? "")
-        : buyerLeadMap.get(followUp.buyerLeadId ?? "")
-
-    const normalizedSearch = searchTerm.trim().toLowerCase()
-    const haystack = [
-      followUp.note,
-      followUp.outcomeNote ?? "",
-      leadMeta?.primary ?? "",
-      leadMeta?.secondary ?? "",
-      followUp.leadType,
-    ]
-      .join(" ")
-      .toLowerCase()
-
-    const matchesSearch = normalizedSearch ? haystack.includes(normalizedSearch) : true
-    const matchesStatus = statusFilter === "all" ? true : followUp.status === statusFilter
-    const matchesLeadType = leadTypeFilter === "all" ? true : followUp.leadType === leadTypeFilter
-    const matchesAssignee = assigneeFilter === "all" ? true : followUp.assigneeUserId === currentUserId
-
-    return matchesSearch && matchesStatus && matchesLeadType && matchesAssignee
-  })
 
   const overdueCount = followUps.filter((followUp) => followUp.status === "Overdue").length
   const dueTodayCount = followUps.filter(
@@ -430,12 +421,18 @@ export function FollowUpsScreen() {
               <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value)
+                  setPage(1)
+                }}
                 placeholder="Search follow-ups, leads, notes..."
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as QueueFilter)}>
+            <Select value={statusFilter} onValueChange={(value) => {
+              setStatusFilter(value as QueueFilter)
+              setPage(1)
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -448,7 +445,10 @@ export function FollowUpsScreen() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={leadTypeFilter} onValueChange={(value) => setLeadTypeFilter(value as "all" | LeadType)}>
+            <Select value={leadTypeFilter} onValueChange={(value) => {
+              setLeadTypeFilter(value as "all" | LeadType)
+              setPage(1)
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Lead type" />
               </SelectTrigger>
@@ -458,7 +458,10 @@ export function FollowUpsScreen() {
                 <SelectItem value="buyer">Buyer Lead</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={assigneeFilter} onValueChange={(value) => setAssigneeFilter(value as "all" | "mine")}>
+            <Select value={assigneeFilter} onValueChange={(value) => {
+              setAssigneeFilter(value as "all" | "mine")
+              setPage(1)
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
@@ -474,6 +477,7 @@ export function FollowUpsScreen() {
                 setStatusFilter("all")
                 setLeadTypeFilter("all")
                 setAssigneeFilter("all")
+                setPage(1)
               }}
             >
               <RotateCcwIcon />
@@ -516,7 +520,7 @@ export function FollowUpsScreen() {
               <div className="p-6">
                 <ApiErrorAlert title="Unable to load follow-ups" message={getApiErrorMessage(followUpsQuery.error, "")} />
               </div>
-            ) : filteredFollowUps.length ? (
+            ) : followUps.length ? (
               <Table className="min-w-[1280px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
@@ -532,7 +536,7 @@ export function FollowUpsScreen() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredFollowUps.map((followUp) => {
+                  {followUps.map((followUp) => {
                     const leadMeta =
                       followUp.leadType === "seller"
                         ? sellerLeadMap.get(followUp.sellerLeadId ?? "")
@@ -633,6 +637,15 @@ export function FollowUpsScreen() {
               </div>
             )}
           </CardContent>
+          {!followUpsQuery.isPending && !followUpsQuery.error && total > 0 ? (
+            <ListPagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              itemLabel="follow-ups"
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
 
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>

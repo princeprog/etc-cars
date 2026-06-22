@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
+import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
@@ -70,6 +71,7 @@ import { getApiErrorMessage } from "@/types/api"
 import {
   BUYER_LEAD_STATUSES,
   type BuyerLead,
+  type BuyerLeadListFilters,
   type BuyerLeadStatus,
   type CreateBuyerLeadPayload,
   type UpdateBuyerLeadPayload,
@@ -139,25 +141,6 @@ function parseUpdateBuyerLeadPayload(values: BuyerLeadFormValues): UpdateBuyerLe
     notes: values.notes || null,
     status: values.status,
   }
-}
-
-function filterBuyerLeads(leads: BuyerLead[], searchTerm: string, status: BuyerLeadStatus | "all") {
-  const normalized = searchTerm.trim().toLowerCase()
-
-  return leads.filter((lead) => {
-    const matchesStatus = status === "all" ? true : lead.status === status
-    const haystack = [
-      lead.buyerName,
-      lead.contactNumber,
-      lead.email ?? "",
-      lead.desiredBudget ?? "",
-    ]
-      .join(" ")
-      .toLowerCase()
-
-    const matchesSearch = normalized ? haystack.includes(normalized) : true
-    return matchesStatus && matchesSearch
-  })
 }
 
 function getBuyerLeadStatusBadgeVariant(status: BuyerLeadStatus): "default" | "secondary" | "outline" | "destructive" {
@@ -320,7 +303,6 @@ function BuyerLeadForm({
 
 export function BuyerLeadsScreen() {
   const authQuery = useAuthenticatedUserQuery()
-  const buyerLeadsQuery = useBuyerLeadsQuery()
   const vehiclesQuery = useVehiclesQuery({ status: "Available" })
   const createMutation = useCreateBuyerLeadMutation()
   const updateMutation = useUpdateBuyerLeadMutation()
@@ -329,15 +311,28 @@ export function BuyerLeadsScreen() {
 
   const [searchTerm, setSearchTerm] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<BuyerLeadStatus | "all">("all")
+  const [page, setPage] = React.useState(1)
   const [createOpen, setCreateOpen] = React.useState(false)
   const [viewLead, setViewLead] = React.useState<BuyerLead | null>(null)
   const [editLead, setEditLead] = React.useState<BuyerLead | null>(null)
   const [manageVehiclesLead, setManageVehiclesLead] = React.useState<BuyerLead | null>(null)
   const [createForm, setCreateForm] = React.useState<BuyerLeadFormValues>(getEmptyBuyerLeadFormValues)
 
+  const filters = React.useMemo<BuyerLeadListFilters>(
+    () => ({
+      page,
+      pageSize: 10,
+      search: searchTerm.trim() || undefined,
+      status: activeFilter,
+    }),
+    [activeFilter, page, searchTerm],
+  )
+  const buyerLeadsQuery = useBuyerLeadsQuery(filters)
+
   const currentUserId = authQuery.data?.user.id
   const leads = buyerLeadsQuery.data?.buyerLeads ?? []
-  const filteredLeads = filterBuyerLeads(leads, searchTerm, activeFilter)
+  const total = buyerLeadsQuery.data?.total ?? 0
+  const totalPages = buyerLeadsQuery.data?.totalPages ?? 1
   const availableVehicles = vehiclesQuery.data?.vehicles ?? []
   const createPreview = getBuyerLeadPreviewLabel(createForm)
 
@@ -395,12 +390,18 @@ export function BuyerLeadsScreen() {
                 <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value)
+                    setPage(1)
+                  }}
                   placeholder="Search buyer, contact, or budget"
                   className="pl-9"
                 />
               </div>
-              <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as BuyerLeadStatus | "all")}>
+              <Select value={activeFilter} onValueChange={(value) => {
+                setActiveFilter(value as BuyerLeadStatus | "all")
+                setPage(1)
+              }}>
                 <SelectTrigger className="w-full md:w-[220px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -418,13 +419,14 @@ export function BuyerLeadsScreen() {
                 onClick={() => {
                   setSearchTerm("")
                   setActiveFilter("all")
+                  setPage(1)
                 }}
               >
                 Reset
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Showing {filteredLeads.length} of {leads.length} buyer leads
+              Showing {leads.length} of {total} buyer leads
             </p>
           </div>
         </section>
@@ -439,7 +441,7 @@ export function BuyerLeadsScreen() {
               <div className="p-6">
                 <ApiErrorAlert title="Unable to load buyer leads" message={getApiErrorMessage(buyerLeadsQuery.error, "")} />
               </div>
-            ) : filteredLeads.length ? (
+            ) : leads.length ? (
               <Table className="min-w-[1040px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
@@ -454,7 +456,7 @@ export function BuyerLeadsScreen() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLeads.map((lead) => (
+                  {leads.map((lead) => (
                     <TableRow key={lead.id} className="hover:bg-muted/15">
                       <TableCell className="px-4 py-3">
                         <div className="space-y-1">
@@ -539,6 +541,15 @@ export function BuyerLeadsScreen() {
               </div>
             )}
           </CardContent>
+          {!buyerLeadsQuery.isPending && !buyerLeadsQuery.error && total > 0 ? (
+            <ListPagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              itemLabel="buyer leads"
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
 
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>

@@ -54,13 +54,6 @@ export interface FollowUpListFilters {
   sort?: FollowUpSort
 }
 
-export interface FollowUpPagination {
-  total: number
-  page: number
-  pageSize: number
-  pageCount: number
-}
-
 export interface FollowUpSummary {
   overdue: number
   dueToday: number
@@ -74,7 +67,10 @@ export interface FollowUpResponse {
 
 export interface FollowUpsResponse {
   followUps: FollowUp[]
-  pagination: FollowUpPagination
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
 }
 
 export interface FollowUpSummaryResponse {

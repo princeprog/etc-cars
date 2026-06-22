@@ -361,7 +361,7 @@ export function FollowUpsScreen() {
     () => followUpsQuery.data?.followUps ?? [],
     [followUpsQuery.data?.followUps],
   )
-  const pagination = followUpsQuery.data?.pagination
+  const paginationData = followUpsQuery.data
   const summary = summaryQuery.data?.summary
 
   const sellerLeads = React.useMemo(
@@ -475,8 +475,8 @@ export function FollowUpsScreen() {
     },
   ]
 
-  const total = pagination?.total ?? 0
-  const pageCount = pagination?.pageCount ?? 1
+  const total = paginationData?.total ?? 0
+  const pageCount = paginationData?.totalPages ?? 1
   const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1
   const rangeEnd = Math.min(page * pageSize, total)
 

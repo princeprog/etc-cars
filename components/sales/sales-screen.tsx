@@ -12,6 +12,7 @@ import {
   ReceiptTextIcon,
   RotateCcwIcon,
   SearchIcon,
+  XIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -220,6 +221,9 @@ function SalesForm({
 
   const hasSelectedBuyerLead = Boolean(values.buyerLeadId)
   const hasLinkedVehicles = Boolean(selectedBuyerLead?.vehicles.length)
+  const selectedBuyerLeadLabel = selectedBuyerLead
+    ? `${selectedBuyerLead.buyerName} • ${selectedBuyerLead.contactNumber} • ${selectedBuyerLead.status}`
+    : ""
 
   React.useEffect(() => {
     if (!hasSelectedBuyerLead || hasLinkedVehicles) {
@@ -245,12 +249,43 @@ function SalesForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="saleBuyerLeadId">Buyer lead</FieldLabel>
-            <div className="relative">
+            <div className="space-y-2">
+              {selectedBuyerLead ? (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Selected buyer
+                    </p>
+                    <Badge
+                      variant="outline"
+                      className="max-w-full truncate rounded-full border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    >
+                      {selectedBuyerLeadLabel}
+                    </Badge>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0"
+                    aria-label="Clear selected buyer"
+                    onClick={() => {
+                      updateField("buyerLeadId", "")
+                      onBuyerLeadSearchChange("")
+                      setBuyerLeadPickerOpen(false)
+                      buyerLeadInputRef.current?.focus()
+                    }}
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
+              ) : null}
+              <div className="relative">
               <Input
                 id="saleBuyerLeadId"
                 ref={buyerLeadInputRef}
                 value={buyerLeadSearch}
-                placeholder="Search buyer lead"
+                placeholder={selectedBuyerLead ? "Search to replace buyer lead" : "Search buyer lead"}
                 onFocus={() => setBuyerLeadPickerOpen(true)}
                 onBlur={() => {
                   window.setTimeout(() => setBuyerLeadPickerOpen(false), 120)
@@ -267,13 +302,17 @@ function SalesForm({
                       ? "Searching buyer leads..."
                       : buyerLeadSearchError
                         ? "Unable to load buyer leads"
-                        : "Search by buyer name or contact number"}
+                        : selectedBuyerLead
+                          ? "Search by buyer name or contact number to replace the selected buyer"
+                          : "Search by buyer name or contact number"}
                   </div>
                   {buyerLeadSearch.trim() && !buyerLeadSearchPending && buyerLeadOptions.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-muted-foreground">No buyer leads found.</div>
                   ) : null}
                   {!buyerLeadSearch.trim() && !buyerLeadSearchPending ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">Start typing to search buyer leads.</div>
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {selectedBuyerLead ? "Start typing to replace the selected buyer lead." : "Start typing to search buyer leads."}
+                    </div>
                   ) : null}
                   <div className="p-1">
                     {buyerLeadOptions.map((lead) => (
@@ -284,7 +323,7 @@ function SalesForm({
                         onMouseDown={(event) => {
                           event.preventDefault()
                           updateField("buyerLeadId", lead.value)
-                          onBuyerLeadSearchChange(lead.label)
+                          onBuyerLeadSearchChange("")
                           setBuyerLeadPickerOpen(false)
                           buyerLeadInputRef.current?.blur()
                         }}
@@ -295,6 +334,7 @@ function SalesForm({
                   </div>
                 </div>
               ) : null}
+              </div>
             </div>
             <ApiErrorAlert title="Unable to search buyer leads" message={getApiErrorMessage(buyerLeadSearchError ?? undefined, "")} />
           </Field>
@@ -549,6 +589,21 @@ export function SalesScreen() {
   ]
   const blockingItems = readinessChecks.filter((check) => !check.complete)
 
+  const resetCreateSaleState = React.useCallback(() => {
+    setForm(getEmptySaleFormValues(currentUserName))
+    setBuyerLeadSearch("")
+    setDebouncedBuyerLeadSearch("")
+    setInlineLinkVehicleId("")
+  }, [currentUserName])
+
+  function handleCreateOpenChange(nextOpen: boolean) {
+    setCreateOpen(nextOpen)
+
+    if (!nextOpen) {
+      resetCreateSaleState()
+    }
+  }
+
   async function handleInlineLinkVehicle() {
     if (!selectedBuyerLead || !inlineLinkVehicleId) {
       return
@@ -586,9 +641,8 @@ export function SalesScreen() {
       {
         onSuccess: () => {
           toast.success("Sale finalized")
+          resetCreateSaleState()
           setCreateOpen(false)
-          setForm(getEmptySaleFormValues())
-          setInlineLinkVehicleId("")
         },
       },
     )
@@ -636,7 +690,12 @@ export function SalesScreen() {
                 Track finalized deals, review deal value, and monitor commission outcomes across the sales pipeline.
               </p>
             </div>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button
+              onClick={() => {
+                resetCreateSaleState()
+                setCreateOpen(true)
+              }}
+            >
               <PlusIcon />
               Finalize Sale
             </Button>
@@ -872,9 +931,12 @@ export function SalesScreen() {
           ) : null}
         </Card>
 
-        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <Sheet open={createOpen} onOpenChange={handleCreateOpenChange}>
           <SheetContent
             side="right"
+            onOpenAutoFocus={(event) => {
+              event.preventDefault()
+            }}
             className="overflow-hidden w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
           >
             <SheetHeader className="border-b px-6 py-5 pr-14">
@@ -903,8 +965,7 @@ export function SalesScreen() {
                             }
                           }
 
-                          const nextBuyerLabel = buyerLeadOptions.find((lead) => lead.value === nextValues.buyerLeadId)?.label ?? ""
-                          setBuyerLeadSearch(nextBuyerLabel)
+                          setBuyerLeadSearch("")
                         }
 
                         setForm(nextValues)

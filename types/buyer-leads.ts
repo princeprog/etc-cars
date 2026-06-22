@@ -66,6 +66,7 @@ export interface BuyerLeadListFilters {
   page?: number
   pageSize?: number
   search?: string
+  eligibleForSale?: boolean
   status?: BuyerLeadStatus | "all"
   sortBy?: "updatedAt" | "createdAt" | "buyerName" | "status" | "desiredBudget"
   sortOrder?: "asc" | "desc"

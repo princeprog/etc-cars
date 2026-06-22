@@ -15,6 +15,7 @@ export function useSalesBuyerLeadSearchQuery(search: string, open: boolean) {
       getBuyerLeads({
         page: 1,
         pageSize: SALES_BUYER_LEAD_SEARCH_PAGE_SIZE,
+        eligibleForSale: true,
         search: normalizedSearch || undefined,
       }),
     enabled: open,

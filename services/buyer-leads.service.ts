@@ -15,6 +15,7 @@ export function getBuyerLeads(filters: BuyerLeadListFilters = {}) {
   if (filters.page) params.set("page", String(filters.page))
   if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
   if (filters.search) params.set("search", filters.search)
+  if (filters.eligibleForSale) params.set("eligibleForSale", "true")
   if (filters.status && filters.status !== "all") params.set("status", filters.status)
   if (filters.sortBy) params.set("sortBy", filters.sortBy)
   if (filters.sortOrder) params.set("sortOrder", filters.sortOrder)

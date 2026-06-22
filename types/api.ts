@@ -4,6 +4,13 @@ export interface ApiErrorResponse {
   statusCode?: number
 }
 
+export interface PaginatedResponseMeta {
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+}
+
 export class AppApiError extends Error {
   constructor(
     message: string,

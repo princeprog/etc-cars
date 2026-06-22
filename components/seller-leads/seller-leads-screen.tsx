@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
+import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
@@ -69,6 +70,7 @@ import {
   SELLER_LEAD_STATUSES,
   type CreateSellerLeadPayload,
   type SellerLead,
+  type SellerLeadListFilters,
   type SellerLeadStatus,
   type UpdateSellerLeadPayload,
 } from "@/types/seller-leads"
@@ -198,27 +200,6 @@ function buildConvertVehicleHref(lead: SellerLead) {
   }
 
   return `/vehicles/new?${params.toString()}`
-}
-
-function filterSellerLeads(leads: SellerLead[], searchTerm: string, status: SellerLeadStatus | "all") {
-  const normalized = searchTerm.trim().toLowerCase()
-
-  return leads.filter((lead) => {
-    const matchesStatus = status === "all" ? true : lead.status === status
-    const haystack = [
-      lead.sellerName,
-      lead.contactNumber,
-      lead.vehicleBrand,
-      lead.vehicleModel,
-      lead.vehicleVariant ?? "",
-      lead.vehicleYear ? String(lead.vehicleYear) : "",
-    ]
-      .join(" ")
-      .toLowerCase()
-
-    const matchesSearch = normalized ? haystack.includes(normalized) : true
-    return matchesStatus && matchesSearch
-  })
 }
 
 function getSellerLeadStatusBadgeVariant(status: SellerLeadStatus): "default" | "secondary" | "outline" | "destructive" {
@@ -415,20 +396,32 @@ function SellerLeadForm({
 export function SellerLeadsScreen() {
   const router = useRouter()
   const authQuery = useAuthenticatedUserQuery()
-  const sellerLeadsQuery = useSellerLeadsQuery()
   const createMutation = useCreateSellerLeadMutation()
   const updateMutation = useUpdateSellerLeadMutation()
 
   const [searchTerm, setSearchTerm] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<SellerLeadStatus | "all">("all")
+  const [page, setPage] = React.useState(1)
   const [createOpen, setCreateOpen] = React.useState(false)
   const [viewLead, setViewLead] = React.useState<SellerLead | null>(null)
   const [editLead, setEditLead] = React.useState<SellerLead | null>(null)
   const [createForm, setCreateForm] = React.useState<SellerLeadFormValues>(getEmptySellerLeadFormValues)
 
+  const filters = React.useMemo<SellerLeadListFilters>(
+    () => ({
+      page,
+      pageSize: 10,
+      search: searchTerm.trim() || undefined,
+      status: activeFilter,
+    }),
+    [activeFilter, page, searchTerm],
+  )
+  const sellerLeadsQuery = useSellerLeadsQuery(filters)
+
   const currentUserId = authQuery.data?.user.id
   const leads = sellerLeadsQuery.data?.sellerLeads ?? []
-  const filteredLeads = filterSellerLeads(leads, searchTerm, activeFilter)
+  const total = sellerLeadsQuery.data?.total ?? 0
+  const totalPages = sellerLeadsQuery.data?.totalPages ?? 1
   const createPreview = getSellerLeadPreviewLabel(createForm)
 
   async function handleStatusChange(lead: SellerLead, nextStatus: SellerLeadStatus) {
@@ -485,12 +478,18 @@ export function SellerLeadsScreen() {
                 <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value)
+                    setPage(1)
+                  }}
                   placeholder="Search seller, contact, or vehicle"
                   className="pl-9"
                 />
               </div>
-              <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as SellerLeadStatus | "all")}>
+              <Select value={activeFilter} onValueChange={(value) => {
+                setActiveFilter(value as SellerLeadStatus | "all")
+                setPage(1)
+              }}>
                 <SelectTrigger className="w-full md:w-[220px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -508,13 +507,14 @@ export function SellerLeadsScreen() {
                 onClick={() => {
                   setSearchTerm("")
                   setActiveFilter("all")
+                  setPage(1)
                 }}
               >
                 Reset
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Showing {filteredLeads.length} of {leads.length} seller leads
+              Showing {leads.length} of {total} seller leads
             </p>
           </div>
         </section>
@@ -529,7 +529,7 @@ export function SellerLeadsScreen() {
               <div className="p-6">
                 <ApiErrorAlert title="Unable to load seller leads" message={getApiErrorMessage(sellerLeadsQuery.error, "")} />
               </div>
-            ) : filteredLeads.length ? (
+            ) : leads.length ? (
               <Table className="min-w-[1080px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
@@ -544,7 +544,7 @@ export function SellerLeadsScreen() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLeads.map((lead) => (
+                  {leads.map((lead) => (
                     <TableRow key={lead.id} className="hover:bg-muted/15">
                       <TableCell className="px-4 py-3">
                         <div className="space-y-1">
@@ -634,6 +634,15 @@ export function SellerLeadsScreen() {
               </div>
             )}
           </CardContent>
+          {!sellerLeadsQuery.isPending && !sellerLeadsQuery.error && total > 0 ? (
+            <ListPagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              itemLabel="seller leads"
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
 
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>

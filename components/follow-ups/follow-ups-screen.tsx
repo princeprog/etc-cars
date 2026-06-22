@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
+import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
@@ -269,8 +270,8 @@ function FollowUpForm({
 
 export function FollowUpsScreen() {
   const authQuery = useAuthenticatedUserQuery()
-  const sellerLeadsQuery = useSellerLeadsQuery()
-  const buyerLeadsQuery = useBuyerLeadsQuery()
+  const sellerLeadsQuery = useSellerLeadsQuery({ page: 1, pageSize: 100 })
+  const buyerLeadsQuery = useBuyerLeadsQuery({ page: 1, pageSize: 100 })
   const createMutation = useCreateFollowUpMutation()
   const completeMutation = useCompleteFollowUpMutation()
   const updateMutation = useUpdateFollowUpMutation()
@@ -286,7 +287,6 @@ export function FollowUpsScreen() {
   const [sort, setSort] = React.useState<FollowUpSort>("dueAt")
   const [page, setPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState<number>(DEFAULT_PAGE_SIZE)
-
   const [form, setForm] = React.useState<FollowUpFormValues>(getEmptyFollowUpFormValues)
   const [completeTarget, setCompleteTarget] = React.useState<FollowUp | null>(null)
   const [editTarget, setEditTarget] = React.useState<FollowUp | null>(null)

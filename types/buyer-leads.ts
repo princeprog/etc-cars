@@ -1,3 +1,5 @@
+import type { PaginatedResponseMeta } from "@/types/api"
+
 export const BUYER_LEAD_STATUSES = [
   "New Inquiry",
   "Contacted",
@@ -60,6 +62,16 @@ export interface BuyerLeadResponse {
   buyerLead: BuyerLead
 }
 
-export interface BuyerLeadsResponse {
+export interface BuyerLeadListFilters {
+  page?: number
+  pageSize?: number
+  search?: string
+  eligibleForSale?: boolean
+  status?: BuyerLeadStatus | "all"
+  sortBy?: "updatedAt" | "createdAt" | "buyerName" | "status" | "desiredBudget"
+  sortOrder?: "asc" | "desc"
+}
+
+export interface BuyerLeadsResponse extends PaginatedResponseMeta {
   buyerLeads: BuyerLead[]
 }

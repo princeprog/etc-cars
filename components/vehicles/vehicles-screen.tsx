@@ -8,6 +8,7 @@ import { EyeIcon, EyeOffIcon, SearchIcon, Settings2Icon } from "lucide-react"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
+import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,6 +33,7 @@ import {
 } from "./vehicles-table"
 
 const VEHICLE_COLUMNS_STORAGE_KEY = "etc-cars:vehicles:visible-columns"
+const VEHICLES_PAGE_SIZE = 10
 
 function getStoredVisibleColumns(): VisibleVehicleColumns {
   if (typeof window === "undefined") {
@@ -67,6 +69,7 @@ export function VehiclesScreen() {
   const vehiclesQuery = useVehiclesQuery()
   const [searchTerm, setSearchTerm] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<VehicleFilterValue>("all")
+  const [page, setPage] = React.useState(1)
   const [viewVehicle, setViewVehicle] = React.useState<Vehicle | null>(null)
   const [visibleColumns, setVisibleColumns] = React.useState<VisibleVehicleColumns>(getStoredVisibleColumns)
   const [columnSearchTerm, setColumnSearchTerm] = React.useState("")
@@ -74,6 +77,13 @@ export function VehiclesScreen() {
   const vehicles = vehiclesQuery.data?.vehicles ?? []
   const counts = getVehicleStatusCounts(vehicles)
   const filteredVehicles = filterVehicles(vehicles, searchTerm, activeFilter)
+  const totalFilteredVehicles = filteredVehicles.length
+  const totalPages = Math.max(1, Math.ceil(totalFilteredVehicles / VEHICLES_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const paginatedVehicles = React.useMemo(() => {
+    const start = (currentPage - 1) * VEHICLES_PAGE_SIZE
+    return filteredVehicles.slice(start, start + VEHICLES_PAGE_SIZE)
+  }, [currentPage, filteredVehicles])
   const filteredColumnOptions = VEHICLE_COLUMN_MANAGER_OPTIONS.filter((column) =>
     column.label.toLowerCase().includes(columnSearchTerm.trim().toLowerCase()),
   )
@@ -152,12 +162,18 @@ export function VehiclesScreen() {
                 <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value)
+                    setPage(1)
+                  }}
                   placeholder="Search stock no., make, model, or variant"
                   className="pl-9"
                 />
               </div>
-              <Select value={activeFilter} onValueChange={(value) => setActiveFilter(value as VehicleFilterValue)}>
+              <Select value={activeFilter} onValueChange={(value) => {
+                setActiveFilter(value as VehicleFilterValue)
+                setPage(1)
+              }}>
                 <SelectTrigger className="w-full md:w-[180px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -174,6 +190,7 @@ export function VehiclesScreen() {
                 onClick={() => {
                   setSearchTerm("")
                   setActiveFilter("all")
+                  setPage(1)
                 }}
               >
                 Reset
@@ -181,7 +198,7 @@ export function VehiclesScreen() {
             </div>
             <div className="flex items-center gap-2 self-end md:self-auto">
               <p className="text-sm text-muted-foreground">
-                Showing {filteredVehicles.length} of {vehicles.length} vehicles
+                Showing {paginatedVehicles.length} of {totalFilteredVehicles} filtered vehicles
               </p>
               <Popover>
                 <PopoverTrigger asChild>
@@ -282,9 +299,9 @@ export function VehiclesScreen() {
               <div className="p-6">
                 <ApiErrorAlert title="Unable to load vehicles" message={getApiErrorMessage(vehiclesQuery.error, "")} />
               </div>
-            ) : filteredVehicles.length ? (
+            ) : paginatedVehicles.length ? (
               <VehiclesTable
-                vehicles={filteredVehicles}
+                vehicles={paginatedVehicles}
                 visibleColumns={visibleColumns}
                 onView={setViewVehicle}
                 onEdit={(vehicle) => router.push(`/vehicles/${vehicle.id}/edit`)}
@@ -302,6 +319,15 @@ export function VehiclesScreen() {
               </div>
             )}
           </CardContent>
+          {!vehiclesQuery.isPending && !vehiclesQuery.error && totalFilteredVehicles > 0 ? (
+            <ListPagination
+              page={currentPage}
+              totalPages={totalPages}
+              total={totalFilteredVehicles}
+              itemLabel="vehicles"
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
 
         <VehicleDetailDialog open={Boolean(viewVehicle)} onOpenChange={(open) => !open && setViewVehicle(null)} vehicle={viewVehicle} />

@@ -1,13 +1,48 @@
 import { API_ENDPOINTS } from "@/constants/api-config"
 import { apiRequest } from "@/services/api-service"
-import type { CreateSalePayload, CreateSaleResponse, SaleResponse, SalesResponse } from "@/types/sales"
+import type {
+  CreateSalePayload,
+  CreateSaleResponse,
+  SaleResponse,
+  SalesListFilters,
+  SalesSummaryResponse,
+  SalesResponse,
+} from "@/types/sales"
 
-export function getSales() {
-  return apiRequest<SalesResponse>(API_ENDPOINTS.sales.root)
+export function getSales(filters: SalesListFilters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.page) params.set("page", String(filters.page))
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
+  if (filters.search) params.set("search", filters.search)
+  if (filters.status && filters.status !== "all") params.set("status", filters.status)
+  if (filters.agentName) params.set("agentName", filters.agentName)
+  if (filters.dateRange && filters.dateRange !== "all") params.set("dateRange", filters.dateRange)
+  if (filters.sortBy) params.set("sortBy", filters.sortBy)
+  if (filters.sortOrder) params.set("sortOrder", filters.sortOrder)
+
+  const query = params.toString()
+  const path = query ? `${API_ENDPOINTS.sales.root}?${query}` : API_ENDPOINTS.sales.root
+
+  return apiRequest<SalesResponse>(path)
 }
 
 export function getSale(id: string) {
   return apiRequest<SaleResponse>(API_ENDPOINTS.sales.byId(id))
+}
+
+export function getSalesSummary(filters: SalesListFilters = {}) {
+  const params = new URLSearchParams()
+
+  if (filters.search) params.set("search", filters.search)
+  if (filters.status && filters.status !== "all") params.set("status", filters.status)
+  if (filters.agentName) params.set("agentName", filters.agentName)
+  if (filters.dateRange && filters.dateRange !== "all") params.set("dateRange", filters.dateRange)
+
+  const query = params.toString()
+  const path = query ? `${API_ENDPOINTS.sales.summary}?${query}` : API_ENDPOINTS.sales.summary
+
+  return apiRequest<SalesSummaryResponse>(path)
 }
 
 export function createSale(payload: CreateSalePayload) {

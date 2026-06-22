@@ -1,3 +1,5 @@
+import type { PaginatedResponseMeta } from "@/types/api"
+
 export const SELLER_LEAD_STATUSES = [
   "New Inquiry",
   "Contacted",
@@ -73,6 +75,15 @@ export interface SellerLeadResponse {
   sellerLead: SellerLead
 }
 
-export interface SellerLeadsResponse {
+export interface SellerLeadListFilters {
+  page?: number
+  pageSize?: number
+  search?: string
+  status?: SellerLeadStatus | "all"
+  sortBy?: "updatedAt" | "createdAt" | "sellerName" | "status"
+  sortOrder?: "asc" | "desc"
+}
+
+export interface SellerLeadsResponse extends PaginatedResponseMeta {
   sellerLeads: SellerLead[]
 }

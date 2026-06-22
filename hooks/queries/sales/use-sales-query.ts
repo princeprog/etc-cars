@@ -3,12 +3,13 @@
 import { useQuery } from "@tanstack/react-query"
 
 import { getSales } from "@/services/sales.service"
+import type { SalesListFilters } from "@/types/sales"
 import { salesQueryKeys } from "./sales-query-keys"
 
-export function useSalesQuery() {
+export function useSalesQuery(filters: SalesListFilters = {}) {
   return useQuery({
-    queryKey: salesQueryKeys.lists(),
-    queryFn: getSales,
+    queryKey: salesQueryKeys.filteredList(filters),
+    queryFn: () => getSales(filters),
     retry: false,
   })
 }

@@ -42,6 +42,13 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import {
   Table,
@@ -56,9 +63,18 @@ import { useUpdateUserStatusMutation } from "@/hooks/mutations/auth/use-update-u
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { useUsersQuery } from "@/hooks/queries/auth/use-users-query"
 import { getApiErrorMessage } from "@/types/api"
-import type { AuthenticatedUser } from "@/types/auth"
+import type { AuthenticatedUser, ListUsersParams } from "@/types/auth"
 
 const DEFAULT_STAFF_PASSWORD = "123456"
+const STATUS_FILTER_OPTIONS: Array<{
+  label: string
+  value: NonNullable<ListUsersParams["status"]>
+}> = [
+  { label: "all", value: "all" },
+  { label: "active", value: "active" },
+  { label: "disabled", value: "disabled" },
+  { label: "change password required", value: "change_password_required" },
+]
 
 export function StaffScreen() {
   return (
@@ -73,7 +89,13 @@ export function StaffScreen() {
 
 function StaffScreenContent() {
   const authQuery = useAuthenticatedUserQuery()
-  const usersQuery = useUsersQuery()
+  const [search, setSearch] = React.useState("")
+  const [statusFilter, setStatusFilter] =
+    React.useState<NonNullable<ListUsersParams["status"]>>("all")
+  const usersQuery = useUsersQuery({
+    search,
+    status: statusFilter,
+  })
   const createStaffMutation = useCreateStaffMutation()
   const updateUserStatusMutation = useUpdateUserStatusMutation()
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
@@ -148,8 +170,7 @@ function StaffScreenContent() {
     )
   }
 
-  const staffUsers =
-    usersQuery.data?.users.filter((user) => user.role === "staff") ?? []
+  const staffUsers = usersQuery.data?.users ?? []
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -289,9 +310,38 @@ function StaffScreenContent() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name or email"
+              className="sm:max-w-sm"
+            />
+            <Select
+              value={statusFilter}
+              onValueChange={(value) =>
+                setStatusFilter(value as NonNullable<ListUsersParams["status"]>)
+              }
+            >
+              <SelectTrigger className="w-full sm:w-64">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_FILTER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <ApiErrorAlert
-            title="Unable to update staff status"
-            message={getApiErrorMessage(updateUserStatusMutation.error, "")}
+            title="Unable to load staff data"
+            message={
+              getApiErrorMessage(usersQuery.error, "") ||
+              getApiErrorMessage(updateUserStatusMutation.error, "")
+            }
           />
 
           {usersQuery.isPending ? (
@@ -310,7 +360,6 @@ function StaffScreenContent() {
                     <TableHead className="px-4">Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Password</TableHead>
                     <TableHead className="px-4 text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -330,20 +379,21 @@ function StaffScreenContent() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={user.active ? "secondary" : "destructive"}
+                            variant={
+                              user.mustChangePassword
+                                ? "outline"
+                                : user.active
+                                  ? "secondary"
+                                  : "destructive"
+                            }
                             className="rounded-md"
                           >
-                            {user.active ? "Active" : "Disabled"}
+                            {user.mustChangePassword
+                              ? "change password required"
+                              : user.active
+                                ? "active"
+                                : "disabled"}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.mustChangePassword ? (
-                            <Badge variant="outline" className="rounded-md">
-                              Must change password
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">Updated</span>
-                          )}
                         </TableCell>
                         <TableCell className="px-4 text-right">
                           <SubmitButton

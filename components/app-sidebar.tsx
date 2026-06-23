@@ -19,6 +19,7 @@ import {
   BellRingIcon,
   CarFrontIcon,
   ChartColumnIcon,
+  ClipboardListIcon,
   HandCoinsIcon,
   LayoutDashboardIcon,
   ScanSearchIcon,
@@ -32,6 +33,11 @@ const data = {
       title: "Dashboard",
       url: "/dashboard",
       icon: <LayoutDashboardIcon />,
+    },
+    {
+      title: "Activity History",
+      url: "/activity-history",
+      icon: <ClipboardListIcon />,
     },
     {
       title: "Vehicles",

@@ -22,6 +22,7 @@ import {
   LayoutDashboardIcon,
   ScanSearchIcon,
   ShoppingBagIcon,
+  UsersRoundIcon,
 } from "lucide-react"
 
 const data = {
@@ -29,50 +30,39 @@ const data = {
     {
       title: "Dashboard",
       url: "/dashboard",
-      icon: (
-        <LayoutDashboardIcon
-        />
-      ),
+      icon: <LayoutDashboardIcon />,
     },
     {
       title: "Vehicles",
       url: "/vehicles",
-      icon: (
-        <CarFrontIcon
-        />
-      ),
+      icon: <CarFrontIcon />,
     },
     {
       title: "Seller Leads",
       url: "/seller-leads",
-      icon: (
-        <ScanSearchIcon
-        />
-      ),
+      icon: <ScanSearchIcon />,
     },
     {
       title: "Buyer Leads",
       url: "/buyer-leads",
-      icon: (
-        <ShoppingBagIcon
-        />
-      ),
+      icon: <ShoppingBagIcon />,
     },
     {
       title: "Follow-Ups",
       url: "/follow-ups",
-      icon: (
-        <BellRingIcon
-        />
-      ),
+      icon: <BellRingIcon />,
     },
     {
       title: "Sales",
       url: "/sales",
-      icon: (
-        <HandCoinsIcon
-        />
-      ),
+      icon: <HandCoinsIcon />,
+    },
+  ],
+  adminNav: [
+    {
+      title: "Staff",
+      url: "/staff",
+      icon: <UsersRoundIcon />,
     },
   ],
 }
@@ -85,6 +75,7 @@ export function AppSidebar({
     name: string
     email: string
     avatar: string
+    role: "admin" | "staff"
   }
 }) {
   return (
@@ -122,7 +113,10 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain label="Workspace" items={data.navMain} />
+        {user.role === "admin" ? (
+          <NavMain label="Administration" items={data.adminNav} />
+        ) : null}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} />

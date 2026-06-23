@@ -3,6 +3,8 @@ export interface AuthenticatedUser {
   email: string
   fullName: string
   role: "admin" | "staff"
+  mustChangePassword: boolean
+  active: boolean
 }
 
 export interface LoginPayload {
@@ -12,6 +14,29 @@ export interface LoginPayload {
 
 export interface AuthenticatedUserResponse {
   user: AuthenticatedUser
+}
+
+export interface CreateStaffPayload {
+  email: string
+  fullName?: string
+  role: "staff"
+}
+
+export interface ChangePasswordPayload {
+  newPassword: string
+}
+
+export interface AuthenticatedUsersResponse {
+  users: AuthenticatedUser[]
+}
+
+export interface ListUsersParams {
+  search?: string
+  status?: "active" | "disabled" | "change_password_required" | "all"
+}
+
+export interface UpdateUserStatusPayload {
+  active: boolean
 }
 
 export interface LogoutResponse {

@@ -42,8 +42,12 @@ export function LoginForm({
         password,
       },
       {
-        onSuccess: () => {
-          router.replace("/dashboard")
+        onSuccess: (response) => {
+          router.replace(
+            response.user.mustChangePassword
+              ? "/change-password"
+              : "/dashboard",
+          )
         },
       },
     )
@@ -100,7 +104,11 @@ export function LoginForm({
                 />
               </Field>
               <Field className="gap-2">
-                <Button type="submit" className="h-11" disabled={loginMutation.isPending}>
+                <Button
+                  type="submit"
+                  className="h-11"
+                  disabled={loginMutation.isPending}
+                >
                   {loginMutation.isPending ? (
                     <>
                       <Spinner className="size-4" />

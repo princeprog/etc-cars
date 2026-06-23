@@ -75,6 +75,7 @@ import {
   type UpdateSellerLeadPayload,
 } from "@/types/seller-leads"
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
 
 type SellerLeadFormValues = {
   sellerName: string
@@ -741,6 +742,7 @@ export function SellerLeadsScreen() {
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</p>
                     <p className="text-sm text-foreground">{viewLead.notes ?? "No notes recorded."}</p>
                   </div>
+                  <ActivityHistoryPanel entityType="seller_lead" entityId={viewLead.id} />
                 </div>
               </>
             ) : null}

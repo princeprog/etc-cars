@@ -30,6 +30,11 @@ export interface AuthenticatedUsersResponse {
   users: AuthenticatedUser[]
 }
 
+export interface ListUsersParams {
+  search?: string
+  status?: "active" | "disabled" | "change_password_required" | "all"
+}
+
 export interface UpdateUserStatusPayload {
   active: boolean
 }

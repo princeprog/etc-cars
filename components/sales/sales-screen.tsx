@@ -28,6 +28,13 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -64,8 +71,13 @@ import { useSalesBuyerLeadSearchQuery } from "@/hooks/queries/sales/use-sales-bu
 import { useSalesSummaryQuery } from "@/hooks/queries/sales/use-sales-summary-query"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
+<<<<<<< Updated upstream
 import type { BuyerLead } from "@/types/buyer-leads"
 import type { SaleWithDetails, SalesListFilters } from "@/types/sales"
+=======
+import type { SaleWithDetails } from "@/types/sales"
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
+>>>>>>> Stashed changes
 
 type SalesFilterStatus = "all" | "finalized" | "commission_locked" | "needs_review"
 type SalesFilterAgent = "all" | "mine"
@@ -465,6 +477,7 @@ export function SalesScreen() {
   const [rangeFilter, setRangeFilter] = React.useState<SalesFilterRange>("all")
   const [page, setPage] = React.useState(1)
   const [form, setForm] = React.useState<SaleFormValues>(() => getEmptySaleFormValues())
+<<<<<<< Updated upstream
   const [buyerLeadSearch, setBuyerLeadSearch] = React.useState("")
   const [debouncedBuyerLeadSearch, setDebouncedBuyerLeadSearch] = React.useState("")
   const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("")
@@ -477,6 +490,9 @@ export function SalesScreen() {
 
     return () => window.clearTimeout(timer)
   }, [buyerLeadSearch])
+=======
+  const [viewSale, setViewSale] = React.useState<SaleWithDetails | null>(null)
+>>>>>>> Stashed changes
 
   const currentUserName = authQuery.data?.user.fullName ?? ""
   const salesFilters = React.useMemo<SalesListFilters>(
@@ -891,6 +907,11 @@ export function SalesScreen() {
                                 View Details
                               </DropdownMenuItem>
                               <DropdownMenuItem
+                                onClick={() => setViewSale(sale)}
+                              >
+                                View Activity
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
                                 onClick={() => {
                                   navigator.clipboard.writeText(sale.saleNumber)
                                   toast.success("Sale number copied")
@@ -1096,7 +1117,37 @@ export function SalesScreen() {
           </SheetContent>
         </Sheet>
 
+<<<<<<< Updated upstream
         <SaleDetailDialog open={Boolean(viewSaleId)} onOpenChange={(open) => !open && setViewSaleId(null)} saleId={viewSaleId} />
+=======
+        <Dialog open={Boolean(viewSale)} onOpenChange={(open) => !open && setViewSale(null)}>
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            {viewSale ? (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{viewSale.saleNumber}</DialogTitle>
+                  <DialogDescription>
+                    {viewSale.vehicle.stockNumber} • {viewSale.vehicle.brand} {viewSale.vehicle.model}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-5">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Final Amount</p>
+                      <p className="text-sm text-foreground">{formatMoney(viewSale.finalSaleAmount)}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent</p>
+                      <p className="text-sm text-foreground">{viewSale.agentName ?? "Unassigned"}</p>
+                    </div>
+                  </div>
+                  <ActivityHistoryPanel entityType="sale" entityId={viewSale.id} />
+                </div>
+              </>
+            ) : null}
+          </DialogContent>
+        </Dialog>
+>>>>>>> Stashed changes
       </div>
     </AuthenticatedAppShell>
   )

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import type { Vehicle } from "@/types/vehicles"
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
 import { getVehicleStatusBadgeVariant } from "./vehicles.helpers"
 
 function DetailRow({
@@ -90,6 +91,10 @@ export function VehicleDetailDialog({
               <p className="text-sm text-muted-foreground">No photos recorded.</p>
             )}
           </div>
+
+          <Separator />
+
+          <ActivityHistoryPanel entityType="vehicle" entityId={vehicle.id} />
         </div>
       </DialogContent>
     </Dialog>

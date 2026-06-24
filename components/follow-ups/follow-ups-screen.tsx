@@ -2,15 +2,14 @@
 
 import * as React from "react"
 import { format, formatDistanceToNow, isPast, isToday } from "date-fns"
+import type { DateRange } from "react-day-picker"
 import {
-  AlertCircleIcon,
+  ArrowUpIcon,
   CalendarClockIcon,
   CalendarDaysIcon,
-  CheckCircle2Icon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  Clock3Icon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
@@ -22,11 +21,12 @@ import { toast } from "sonner"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
-import { ListPagination } from "@/components/operations/list-pagination"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DateRangePicker } from "@/components/ui/date-picker"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog,
@@ -75,41 +75,35 @@ import { useFollowUpsSummaryQuery } from "@/hooks/queries/follow-ups/use-follow-
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query"
 import { getApiErrorMessage } from "@/types/api"
 import {
-  FOLLOW_UP_STATUSES,
   LEAD_TYPES,
   type FollowUp,
   type FollowUpListFilters,
   type FollowUpSort,
+  type FollowUpSortKey,
   type FollowUpStatus,
+  type FollowUpStatusFilter,
   type LeadType,
 } from "@/types/follow-ups"
 
 type FollowUpFormValues = {
   leadType: LeadType
   leadId: string
-  dueAt: string
+  dueAt: Date | undefined
   note: string
 }
 
-type StatusFilter = "all" | FollowUpStatus
+type StatusFilter = "all" | FollowUpStatus | "DueToday" | "Upcoming"
 type LeadTypeFilter = "all" | LeadType
 type AssigneeFilter = "all" | "mine"
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const
 const DEFAULT_PAGE_SIZE = 20
 
-const SORT_OPTIONS: { value: FollowUpSort; label: string }[] = [
-  { value: "dueAt", label: "Due date (soonest)" },
-  { value: "-dueAt", label: "Due date (latest)" },
-  { value: "-updatedAt", label: "Recently updated" },
-  { value: "updatedAt", label: "Least recently updated" },
-]
-
 function getEmptyFollowUpFormValues(): FollowUpFormValues {
   return {
     leadType: "seller",
     leadId: "",
-    dueAt: "",
+    dueAt: undefined,
     note: "",
   }
 }
@@ -118,7 +112,6 @@ function getAssigneeLabel(assigneeUserId: string, currentUserId?: string) {
   if (assigneeUserId === currentUserId) {
     return "You"
   }
-
   return "Assigned"
 }
 
@@ -158,23 +151,60 @@ function truncateText(value: string, length: number) {
   if (value.length <= length) {
     return value
   }
-
   return `${value.slice(0, length - 1)}…`
 }
 
-function toDateTimeLocalValue(iso: string) {
-  const date = new Date(iso)
-  const pad = (value: number) => String(value).padStart(2, "0")
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
+function toStartOfDayIso(dateStr: string) {
+  return new Date(`${dateStr}T00:00:00`).toISOString()
 }
 
-function toStartOfDayIso(value: string) {
-  return new Date(`${value}T00:00:00`).toISOString()
-}
+function SortableColumnHeader({
+  label,
+  sortKey,
+  currentSort,
+  onSort,
+  className,
+}: {
+  label: string
+  sortKey: FollowUpSortKey
+  currentSort: FollowUpSort
+  onSort: (sort: FollowUpSort) => void
+  className?: string
+}) {
+  const isAsc = currentSort === sortKey
+  const isDesc = currentSort === (`-${sortKey}` as FollowUpSort)
+  const isActive = isAsc || isDesc
 
-function toEndOfDayIso(value: string) {
-  return new Date(`${value}T23:59:59.999`).toISOString()
+  function handleClick() {
+    if (!isActive || isDesc) {
+      onSort(sortKey)
+    } else {
+      onSort(`-${sortKey}` as FollowUpSort)
+    }
+  }
+
+  return (
+    <TableHead className={`px-4 ${className ?? ""}`}>
+      <button
+        type="button"
+        onClick={handleClick}
+        className="group/sort inline-flex items-center gap-1 text-xs font-semibold text-foreground/80 transition-colors hover:text-foreground"
+      >
+        {label}
+        <span
+          className={`inline-flex size-4 items-center justify-center rounded transition-all duration-200 ease-out ${
+            isActive
+              ? "text-foreground"
+              : "text-muted-foreground"
+          }`}
+        >
+          <ArrowUpIcon
+            className={`size-3 transition-transform duration-200 ease-out ${isDesc ? "rotate-180" : ""}`}
+          />
+        </span>
+      </button>
+    </TableHead>
+  )
 }
 
 function FollowUpForm({
@@ -233,12 +263,12 @@ function FollowUpForm({
         </div>
         <Field>
           <FieldLabel htmlFor="followUpDueAt">Due at</FieldLabel>
-          <Input
+          <DateTimePicker
             id="followUpDueAt"
-            type="datetime-local"
             value={values.dueAt}
-            onChange={(event) => updateField("dueAt", event.target.value)}
-            required
+            onChange={(date) => updateField("dueAt", date)}
+            minDate={new Date()}
+            placeholder="Select due date & time"
           />
         </Field>
       </section>
@@ -277,13 +307,13 @@ export function FollowUpsScreen() {
   const updateMutation = useUpdateFollowUpMutation()
 
   const [createOpen, setCreateOpen] = React.useState(false)
+  const [createStep, setCreateStep] = React.useState<"form" | "confirm">("form")
   const [searchInput, setSearchInput] = React.useState("")
   const [debouncedSearch, setDebouncedSearch] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
   const [leadTypeFilter, setLeadTypeFilter] = React.useState<LeadTypeFilter>("all")
   const [assigneeFilter, setAssigneeFilter] = React.useState<AssigneeFilter>("all")
-  const [dueFrom, setDueFrom] = React.useState("")
-  const [dueTo, setDueTo] = React.useState("")
+  const [dueDateRange, setDueDateRange] = React.useState<DateRange | undefined>(undefined)
   const [sort, setSort] = React.useState<FollowUpSort>("dueAt")
   const [page, setPage] = React.useState(1)
   const [pageSize, setPageSize] = React.useState<number>(DEFAULT_PAGE_SIZE)
@@ -295,9 +325,6 @@ export function FollowUpsScreen() {
 
   const currentUserId = authQuery.data?.user.id
 
-  // Debounce the free-text search so we don't issue a request per keystroke.
-  // Resetting the page lives in the timeout callback (not the effect body) so a
-  // filter change always returns the operator to the first page.
   React.useEffect(() => {
     const handle = setTimeout(() => {
       setDebouncedSearch(searchInput)
@@ -306,8 +333,6 @@ export function FollowUpsScreen() {
     return () => clearTimeout(handle)
   }, [searchInput])
 
-  // Filter setters reset pagination so narrowing the list never strands the
-  // operator on an out-of-range page.
   const handleStatusChange = (value: StatusFilter) => {
     setStatusFilter(value)
     setPage(1)
@@ -320,12 +345,8 @@ export function FollowUpsScreen() {
     setAssigneeFilter(value)
     setPage(1)
   }
-  const handleDueFromChange = (value: string) => {
-    setDueFrom(value)
-    setPage(1)
-  }
-  const handleDueToChange = (value: string) => {
-    setDueTo(value)
+  const handleDueDateRangeChange = (value: DateRange | undefined) => {
+    setDueDateRange(value)
     setPage(1)
   }
   const handleSortChange = (value: FollowUpSort) => {
@@ -339,20 +360,47 @@ export function FollowUpsScreen() {
 
   const assigneeScopeId = assigneeFilter === "mine" ? currentUserId : undefined
 
-  const filters = React.useMemo<FollowUpListFilters>(
-    () => ({
-      status: statusFilter === "all" ? undefined : statusFilter,
+  const filters = React.useMemo<FollowUpListFilters>(() => {
+    let apiStatus: FollowUpStatusFilter | undefined
+    let filterDueFrom: string | undefined
+    let filterDueTo: string | undefined
+
+    if (statusFilter === "all") {
+      apiStatus = undefined
+    } else if (statusFilter === "DueToday") {
+      apiStatus = "DueToday"
+    } else if (statusFilter === "Upcoming") {
+      apiStatus = "Due"
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const pad = (v: number) => String(v).padStart(2, "0")
+      const tomorrowStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`
+      filterDueFrom = toStartOfDayIso(tomorrowStr)
+    } else {
+      apiStatus = statusFilter
+    }
+
+    if (dueDateRange?.from && dueDateRange?.to) {
+      const dFrom = new Date(dueDateRange.from)
+      dFrom.setHours(0, 0, 0, 0)
+      filterDueFrom = dFrom.toISOString()
+      const dTo = new Date(dueDateRange.to)
+      dTo.setHours(23, 59, 59, 999)
+      filterDueTo = dTo.toISOString()
+    }
+
+    return {
+      status: apiStatus,
       leadType: leadTypeFilter === "all" ? undefined : leadTypeFilter,
       assigneeUserId: assigneeScopeId,
       search: debouncedSearch.trim() || undefined,
-      dueFrom: dueFrom ? toStartOfDayIso(dueFrom) : undefined,
-      dueTo: dueTo ? toEndOfDayIso(dueTo) : undefined,
+      dueFrom: filterDueFrom,
+      dueTo: filterDueTo,
       sort,
       page,
       pageSize,
-    }),
-    [statusFilter, leadTypeFilter, assigneeScopeId, debouncedSearch, dueFrom, dueTo, sort, page, pageSize],
-  )
+    }
+  }, [statusFilter, leadTypeFilter, assigneeScopeId, debouncedSearch, dueDateRange, sort, page, pageSize])
 
   const followUpsQuery = useFollowUpsQuery(filters)
   const summaryQuery = useFollowUpsSummaryQuery(assigneeScopeId)
@@ -382,8 +430,7 @@ export function FollowUpsScreen() {
     statusFilter !== "all" ||
     leadTypeFilter !== "all" ||
     assigneeFilter !== "all" ||
-    Boolean(dueFrom) ||
-    Boolean(dueTo) ||
+    dueDateRange?.from !== undefined ||
     Boolean(searchInput)
 
   function resetFilters() {
@@ -391,28 +438,41 @@ export function FollowUpsScreen() {
     setStatusFilter("all")
     setLeadTypeFilter("all")
     setAssigneeFilter("all")
-    setDueFrom("")
-    setDueTo("")
+    setDueDateRange(undefined)
     setPage(1)
   }
 
-  async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function handleCreateOpen() {
+    setForm(getEmptyFollowUpFormValues())
+    setCreateStep("form")
+    setCreateOpen(true)
+  }
 
+  function handleCreateClose() {
+    setCreateOpen(false)
+    setCreateStep("form")
+    setForm(getEmptyFollowUpFormValues())
+  }
+
+  function handleCreateFormSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setCreateStep("confirm")
+  }
+
+  async function handleCreateConfirm() {
     await createMutation.mutateAsync(
       {
         leadType: form.leadType,
         sellerLeadId: form.leadType === "seller" ? form.leadId : undefined,
         buyerLeadId: form.leadType === "buyer" ? form.leadId : undefined,
         assigneeUserId: currentUserId ?? "",
-        dueAt: new Date(form.dueAt).toISOString(),
+        dueAt: form.dueAt!.toISOString(),
         note: form.note,
       },
       {
         onSuccess: () => {
           toast.success("Follow-up created")
-          setCreateOpen(false)
-          setForm(getEmptyFollowUpFormValues())
+          handleCreateClose()
         },
       },
     )
@@ -436,42 +496,35 @@ export function FollowUpsScreen() {
     )
   }
 
-  const summaryCards = [
+  const summaryCards: {
+    title: string
+    value: number
+    caption: string
+    badge: string
+  }[] = [
     {
       title: "Overdue",
       value: summary?.overdue ?? 0,
       caption: "Needs attention",
-      icon: AlertCircleIcon,
-      iconClassName: "text-rose-600",
-      iconWrapClassName: "bg-rose-50 text-rose-600 dark:bg-rose-950/40",
-      status: "Overdue" as FollowUpStatus,
+      badge: "Overdue",
     },
     {
       title: "Due Today",
       value: summary?.dueToday ?? 0,
-      caption: "Due today",
-      icon: CalendarClockIcon,
-      iconClassName: "text-orange-600",
-      iconWrapClassName: "bg-orange-50 text-orange-600 dark:bg-orange-950/40",
-      status: "Due" as FollowUpStatus,
+      caption: "Action required",
+      badge: "Today",
     },
     {
       title: "Upcoming",
       value: summary?.upcoming ?? 0,
       caption: "Next 7 days",
-      icon: Clock3Icon,
-      iconClassName: "text-blue-600",
-      iconWrapClassName: "bg-blue-50 text-blue-600 dark:bg-blue-950/40",
-      status: "Due" as FollowUpStatus,
+      badge: "Upcoming",
     },
     {
       title: "Completed",
       value: summary?.completed ?? 0,
       caption: "Closed tasks",
-      icon: CheckCircle2Icon,
-      iconClassName: "text-emerald-600",
-      iconWrapClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
-      status: "Completed" as FollowUpStatus,
+      badge: "Finalized",
     },
   ]
 
@@ -482,22 +535,51 @@ export function FollowUpsScreen() {
 
   return (
     <AuthenticatedAppShell title="Follow-Ups">
-      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        <section className="flex flex-col gap-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-1">
+      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+
+        {/* Header */}
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-0.5">
               <h2 className="text-2xl font-semibold tracking-tight">Follow-Ups</h2>
               <p className="text-sm text-muted-foreground">
                 Track due tasks, overdue reminders, and completed follow-up activity across buyer and seller workflows.
               </p>
             </div>
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button onClick={handleCreateOpen} className="shrink-0">
               <PlusIcon />
               Add Follow-Up
             </Button>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_160px_160px_160px_auto]">
+          {/* Summary Cards — display only, not clickable */}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {summaryCards.map((card) => (
+              <Card
+                key={card.title}
+                className="border-border/70 py-0 shadow-xs"
+              >
+                <CardContent className="p-5">
+                  <div className="mb-3 flex items-start justify-between">
+                    <p className="text-sm text-muted-foreground">{card.title}</p>
+                    <Badge
+                      variant="outline"
+                      className="rounded-sm px-1.5 py-0 text-[10px] font-medium text-muted-foreground"
+                    >
+                      {card.badge}
+                    </Badge>
+                  </div>
+                  <p className="text-3xl font-bold tracking-tight text-foreground">{card.value}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{card.caption}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Filters */}
+        <section className="flex flex-col gap-2">
+          <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_1fr_1fr_1fr_auto]">
             <div className="relative">
               <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -508,20 +590,20 @@ export function FollowUpsScreen() {
               />
             </div>
             <Select value={statusFilter} onValueChange={(value) => handleStatusChange(value as StatusFilter)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                {FOLLOW_UP_STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
+                <SelectItem value="Overdue">Overdue</SelectItem>
+                <SelectItem value="DueToday">Due Today</SelectItem>
+                <SelectItem value="Due">Due</SelectItem>
+                <SelectItem value="Upcoming">Upcoming</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
               </SelectContent>
             </Select>
             <Select value={leadTypeFilter} onValueChange={(value) => handleLeadTypeChange(value as LeadTypeFilter)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Lead type" />
               </SelectTrigger>
               <SelectContent>
@@ -531,7 +613,7 @@ export function FollowUpsScreen() {
               </SelectContent>
             </Select>
             <Select value={assigneeFilter} onValueChange={(value) => handleAssigneeChange(value as AssigneeFilter)}>
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Assignee" />
               </SelectTrigger>
               <SelectContent>
@@ -539,93 +621,29 @@ export function FollowUpsScreen() {
                 <SelectItem value="mine">My Follow-Ups</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={resetFilters} disabled={!hasActiveFilters}>
+            <Button variant="outline" onClick={resetFilters} disabled={!hasActiveFilters} size="default">
               <RotateCcwIcon />
               Reset
             </Button>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_160px_minmax(0,1fr)]">
+          <div className="flex items-end gap-2">
             <Field>
-              <FieldLabel htmlFor="followUpDueFrom" className="text-xs text-muted-foreground">
-                Due from
+              <FieldLabel htmlFor="followUpDueDateRange" className="text-xs text-muted-foreground">
+                Due date range
               </FieldLabel>
-              <Input
-                id="followUpDueFrom"
-                type="date"
-                value={dueFrom}
-                onChange={(event) => handleDueFromChange(event.target.value)}
+              <DateRangePicker
+                id="followUpDueDateRange"
+                value={dueDateRange}
+                onChange={handleDueDateRangeChange}
+                placeholder="Filter by date range"
+                className="w-[320px]"
               />
             </Field>
-            <Field>
-              <FieldLabel htmlFor="followUpDueTo" className="text-xs text-muted-foreground">
-                Due to
-              </FieldLabel>
-              <Input
-                id="followUpDueTo"
-                type="date"
-                value={dueTo}
-                onChange={(event) => handleDueToChange(event.target.value)}
-              />
-            </Field>
-            <Field className="lg:max-w-[260px] lg:justify-self-end">
-              <FieldLabel htmlFor="followUpSort" className="text-xs text-muted-foreground">
-                Sort by
-              </FieldLabel>
-              <Select value={sort} onValueChange={(value) => handleSortChange(value as FollowUpSort)}>
-                <SelectTrigger id="followUpSort">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SORT_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((card) => {
-              const Icon = card.icon
-              const isActive = statusFilter === card.status
-
-              return (
-                <Card
-                  key={card.title}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleStatusChange(isActive ? "all" : card.status)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault()
-                      handleStatusChange(isActive ? "all" : card.status)
-                    }
-                  }}
-                  className={`cursor-pointer border-border/70 py-0 shadow-xs transition-colors hover:bg-muted/20 ${
-                    isActive ? "ring-2 ring-primary/40" : ""
-                  }`}
-                >
-                  <CardContent className="flex items-center gap-4 p-5">
-                    <div className={`flex size-11 items-center justify-center rounded-full ${card.iconWrapClassName}`}>
-                      <Icon className={`size-5 ${card.iconClassName}`} />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">{card.title}</p>
-                      <div className="flex items-end gap-2">
-                        <span className="text-2xl font-semibold tracking-tight text-foreground">{card.value}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{card.caption}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
           </div>
         </section>
 
+        {/* Table */}
         <Card className="overflow-hidden border-border/70 py-0 shadow-xs">
           <CardContent className="p-0">
             <ApiErrorAlert title="Follow-up action failed" message={getApiErrorMessage(completeMutation.error, "")} />
@@ -642,14 +660,14 @@ export function FollowUpsScreen() {
                 <Table className="min-w-[1280px] border-collapse">
                   <TableHeader className="bg-muted/30">
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Follow-Up</TableHead>
-                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Lead Type</TableHead>
-                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Lead / Contact</TableHead>
-                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Due Date</TableHead>
-                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
+                      <SortableColumnHeader label="Follow-Up" sortKey="note" currentSort={sort} onSort={handleSortChange} />
+                      <SortableColumnHeader label="Lead Type" sortKey="leadType" currentSort={sort} onSort={handleSortChange} />
+                      <SortableColumnHeader label="Lead / Contact" sortKey="leadName" currentSort={sort} onSort={handleSortChange} />
+                      <SortableColumnHeader label="Due Date" sortKey="dueAt" currentSort={sort} onSort={handleSortChange} />
+                      <SortableColumnHeader label="Status" sortKey="status" currentSort={sort} onSort={handleSortChange} />
                       <TableHead className="px-4 text-xs font-semibold text-foreground/80">Assignee</TableHead>
                       <TableHead className="px-4 text-xs font-semibold text-foreground/80">Outcome / Note Preview</TableHead>
-                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Updated</TableHead>
+                      <SortableColumnHeader label="Updated" sortKey="updatedAt" currentSort={sort} onSort={handleSortChange} />
                       <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -731,7 +749,7 @@ export function FollowUpsScreen() {
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => setEditTarget(followUp)}>
                                       <PencilIcon />
-                                      Edit
+                                      Edit Note
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => setRescheduleTarget(followUp)}>
                                       <CalendarClockIcon />
@@ -759,21 +777,23 @@ export function FollowUpsScreen() {
                     <span className="font-medium text-foreground">{total}</span>
                   </p>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">Rows</span>
-                      <Select value={String(pageSize)} onValueChange={(value) => handlePageSizeChange(Number(value))}>
-                        <SelectTrigger className="h-8 w-[72px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PAGE_SIZE_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={String(option)}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {total > 10 ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">Rows</span>
+                        <Select value={String(pageSize)} onValueChange={(value) => handlePageSizeChange(Number(value))}>
+                          <SelectTrigger className="h-8 w-[72px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAGE_SIZE_OPTIONS.map((option) => (
+                              <SelectItem key={option} value={String(option)}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null}
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">
                         Page {page} of {pageCount}
@@ -808,80 +828,116 @@ export function FollowUpsScreen() {
           </CardContent>
         </Card>
 
-        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        {/* Create Sheet — two-step: form → "are you sure?" */}
+        <Sheet open={createOpen} onOpenChange={(open) => { if (!open) handleCreateClose() }}>
           <SheetContent
             side="right"
             className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
           >
-            <SheetHeader className="border-b px-6 py-5 pr-14">
-              <SheetTitle className="text-lg">Add Follow-Up</SheetTitle>
-              <SheetDescription>
-                Schedule due work against either seller leads or buyer leads.
-              </SheetDescription>
-            </SheetHeader>
-            <form onSubmit={handleCreateSubmit} className="flex min-h-0 flex-1 flex-col">
-              <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
-                <div className="min-h-0 overflow-y-auto px-6 py-6">
-                  <div className="space-y-5">
-                    <ApiErrorAlert title="Unable to create follow-up" message={getApiErrorMessage(createMutation.error, "")} />
-                    <FollowUpForm values={form} onChange={setForm} leadOptions={leadOptions} />
+            {createStep === "form" ? (
+              <>
+                <SheetHeader className="border-b px-6 py-5 pr-14">
+                  <SheetTitle className="text-lg">Add Follow-Up</SheetTitle>
+                  <SheetDescription>
+                    Schedule due work against either seller leads or buyer leads.
+                  </SheetDescription>
+                </SheetHeader>
+                <form onSubmit={handleCreateFormSubmit} className="flex min-h-0 flex-1 flex-col">
+                  <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
+                    <div className="min-h-0 overflow-y-auto px-6 py-6">
+                      <div className="space-y-5">
+                        <ApiErrorAlert title="Unable to create follow-up" message={getApiErrorMessage(createMutation.error, "")} />
+                        <FollowUpForm values={form} onChange={setForm} leadOptions={leadOptions} />
+                      </div>
+                    </div>
+                    <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
+                      <div className="space-y-4">
+                        <Card className="border-border/70 py-0 shadow-none">
+                          <CardHeader className="border-b py-4">
+                            <CardTitle className="text-base">Follow-Up Summary</CardTitle>
+                            <CardDescription>Live preview of the queue item you&apos;re scheduling.</CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4 py-4">
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lead Type</p>
+                              <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getLeadTypeBadgeClassName(form.leadType)}`}>
+                                {form.leadType === "seller" ? "Seller Lead" : "Buyer Lead"}
+                              </Badge>
+                            </div>
+                            <Separator />
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lead</p>
+                              <p className="text-sm font-medium text-foreground">
+                                {leadOptions.find((lead) => lead.id === form.leadId)?.label ?? "No lead selected"}
+                              </p>
+                            </div>
+                            <Separator />
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Due Date</p>
+                              <p className="text-sm font-medium text-foreground">
+                                {form.dueAt ? format(form.dueAt, "MMM d, yyyy • h:mm a") : "Not scheduled"}
+                              </p>
+                            </div>
+                            <Separator />
+                            <div className="space-y-1">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Note Preview</p>
+                              <p className="text-sm text-foreground">{form.note ? truncateText(form.note, 110) : "No note entered yet"}</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </aside>
                   </div>
+                  <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      This follow-up will be assigned to <span className="font-medium text-foreground">you</span>.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="outline" onClick={handleCreateClose}>
+                        Cancel
+                      </Button>
+                      <Button type="submit">
+                        Create Follow-Up
+                      </Button>
+                    </div>
+                  </SheetFooter>
+                </form>
+              </>
+            ) : (
+              <>
+                <SheetHeader className="border-b px-6 py-5 pr-14">
+                  <SheetTitle className="text-lg">Are you sure?</SheetTitle>
+                  <SheetDescription>
+                    You are about to create a new follow-up. This action will add it to your queue.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-10">
+                  <ApiErrorAlert title="Unable to create follow-up" message={getApiErrorMessage(createMutation.error, "")} />
+                  <p className="text-center text-sm text-muted-foreground">
+                    This follow-up will be scheduled and assigned to you.
+                  </p>
                 </div>
-                <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
-                  <div className="space-y-4">
-                    <Card className="border-border/70 py-0 shadow-none">
-                      <CardHeader className="border-b py-4">
-                        <CardTitle className="text-base">Follow-Up Summary</CardTitle>
-                        <CardDescription>Live preview of the queue item you&apos;re scheduling.</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4 py-4">
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lead Type</p>
-                          <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getLeadTypeBadgeClassName(form.leadType)}`}>
-                            {form.leadType === "seller" ? "Seller Lead" : "Buyer Lead"}
-                          </Badge>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Lead</p>
-                          <p className="text-sm font-medium text-foreground">
-                            {leadOptions.find((lead) => lead.id === form.leadId)?.label ?? "No lead selected"}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Due Date</p>
-                          <p className="text-sm font-medium text-foreground">
-                            {form.dueAt ? format(new Date(form.dueAt), "MMM d, yyyy • h:mm a") : "Not scheduled"}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Note Preview</p>
-                          <p className="text-sm text-foreground">{form.note ? truncateText(form.note, 110) : "No note entered yet"}</p>
-                        </div>
-                      </CardContent>
-                    </Card>
+                <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" onClick={() => setCreateStep("form")}>
+                      Go Back
+                    </Button>
+                    <SubmitButton
+                      type="button"
+                      pending={createMutation.isPending}
+                      pendingLabel="Creating..."
+                      onClick={handleCreateConfirm}
+                    >
+                      Yes, Create
+                    </SubmitButton>
                   </div>
-                </aside>
-              </div>
-              <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  This follow-up will be assigned to <span className="font-medium text-foreground">you</span>.
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
-                    Cancel
-                  </Button>
-                  <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Creating follow-up">
-                    Create Follow-Up
-                  </SubmitButton>
-                </div>
-              </SheetFooter>
-            </form>
+                </SheetFooter>
+              </>
+            )}
           </SheetContent>
         </Sheet>
 
+        {/* Edit Dialog — notes only */}
         <Dialog open={Boolean(editTarget)} onOpenChange={(open) => !open && setEditTarget(null)}>
           <DialogContent className="max-w-lg">
             {editTarget ? (
@@ -894,6 +950,7 @@ export function FollowUpsScreen() {
           </DialogContent>
         </Dialog>
 
+        {/* Reschedule Dialog — date only */}
         <Dialog open={Boolean(rescheduleTarget)} onOpenChange={(open) => !open && setRescheduleTarget(null)}>
           <DialogContent className="max-w-md">
             {rescheduleTarget ? (
@@ -906,6 +963,7 @@ export function FollowUpsScreen() {
           </DialogContent>
         </Dialog>
 
+        {/* Complete Dialog */}
         <Dialog open={Boolean(completeTarget)} onOpenChange={(open) => !open && setCompleteTarget(null)}>
           <DialogContent className="max-w-lg">
             {completeTarget ? (
@@ -959,6 +1017,7 @@ export function FollowUpsScreen() {
   )
 }
 
+// Edit: note only — simple "are you sure?" confirmation
 function EditFollowUpDialogForm({
   followUp,
   mutation,
@@ -969,46 +1028,58 @@ function EditFollowUpDialogForm({
   onClose: () => void
 }) {
   const [note, setNote] = React.useState(followUp.note)
-  const [dueAt, setDueAt] = React.useState(() => toDateTimeLocalValue(followUp.dueAt))
+  const [step, setStep] = React.useState<"form" | "confirm">("form")
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setStep("confirm")
+  }
 
+  async function handleConfirm() {
     await mutation.mutateAsync(
       {
         id: followUp.id,
         payload: {
           note: note.trim(),
-          dueAt: new Date(dueAt).toISOString(),
         },
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up updated")
+          toast.success("Follow-up note updated")
           onClose()
         },
       },
     )
   }
 
+  if (step === "confirm") {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle>Are you sure?</DialogTitle>
+          <DialogDescription>You are about to update the note for this follow-up.</DialogDescription>
+        </DialogHeader>
+        <ApiErrorAlert title="Unable to update follow-up" message={getApiErrorMessage(mutation.error, "")} />
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setStep("form")}>
+            Go Back
+          </Button>
+          <SubmitButton type="button" pending={mutation.isPending} pendingLabel="Saving..." onClick={handleConfirm}>
+            Yes, Save Changes
+          </SubmitButton>
+        </DialogFooter>
+      </>
+    )
+  }
+
   return (
     <>
       <DialogHeader>
-        <DialogTitle>Edit Follow-Up</DialogTitle>
-        <DialogDescription>Update the work note and due date without recreating the task.</DialogDescription>
+        <DialogTitle>Edit Note</DialogTitle>
+        <DialogDescription>Update the work note for this follow-up.</DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
         <ApiErrorAlert title="Unable to update follow-up" message={getApiErrorMessage(mutation.error, "")} />
-        <Field>
-          <FieldLabel htmlFor="editFollowUpDueAt">Due at</FieldLabel>
-          <Input
-            id="editFollowUpDueAt"
-            type="datetime-local"
-            value={dueAt}
-            onChange={(event) => setDueAt(event.target.value)}
-            required
-          />
-        </Field>
         <Field>
           <FieldLabel htmlFor="editFollowUpNote">Note</FieldLabel>
           <Textarea
@@ -1023,15 +1094,16 @@ function EditFollowUpDialogForm({
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Saving changes">
+          <Button type="submit">
             Save Changes
-          </SubmitButton>
+          </Button>
         </DialogFooter>
       </form>
     </>
   )
 }
 
+// Reschedule: date only — simple "are you sure?" confirmation
 function RescheduleFollowUpDialogForm({
   followUp,
   mutation,
@@ -1041,16 +1113,20 @@ function RescheduleFollowUpDialogForm({
   mutation: ReturnType<typeof useUpdateFollowUpMutation>
   onClose: () => void
 }) {
-  const [dueAt, setDueAt] = React.useState(() => toDateTimeLocalValue(followUp.dueAt))
+  const [dueAt, setDueAt] = React.useState<Date>(() => new Date(followUp.dueAt))
+  const [step, setStep] = React.useState<"form" | "confirm">("form")
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    setStep("confirm")
+  }
 
+  async function handleConfirm() {
     await mutation.mutateAsync(
       {
         id: followUp.id,
         payload: {
-          dueAt: new Date(dueAt).toISOString(),
+          dueAt: dueAt.toISOString(),
         },
       },
       {
@@ -1062,6 +1138,26 @@ function RescheduleFollowUpDialogForm({
     )
   }
 
+  if (step === "confirm") {
+    return (
+      <>
+        <DialogHeader>
+          <DialogTitle>Are you sure?</DialogTitle>
+          <DialogDescription>You are about to reschedule this follow-up.</DialogDescription>
+        </DialogHeader>
+        <ApiErrorAlert title="Unable to reschedule follow-up" message={getApiErrorMessage(mutation.error, "")} />
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => setStep("form")}>
+            Go Back
+          </Button>
+          <SubmitButton type="button" pending={mutation.isPending} pendingLabel="Rescheduling..." onClick={handleConfirm}>
+            Yes, Reschedule
+          </SubmitButton>
+        </DialogFooter>
+      </>
+    )
+  }
+
   return (
     <>
       <DialogHeader>
@@ -1069,30 +1165,24 @@ function RescheduleFollowUpDialogForm({
         <DialogDescription>Move the due date and time. The status updates automatically.</DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="rounded-lg border bg-muted/20 px-4 py-3">
-          <p className="text-sm font-medium text-foreground">{followUp.note}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Currently due {format(new Date(followUp.dueAt), "MMM d, yyyy • h:mm a")}
-          </p>
-        </div>
         <ApiErrorAlert title="Unable to reschedule follow-up" message={getApiErrorMessage(mutation.error, "")} />
         <Field>
-          <FieldLabel htmlFor="rescheduleFollowUpDueAt">New due at</FieldLabel>
-          <Input
+          <FieldLabel htmlFor="rescheduleFollowUpDueAt">New due date</FieldLabel>
+          <DateTimePicker
             id="rescheduleFollowUpDueAt"
-            type="datetime-local"
             value={dueAt}
-            onChange={(event) => setDueAt(event.target.value)}
-            required
+            onChange={(date) => { if (date) setDueAt(date) }}
+            minDate={new Date()}
+            placeholder="Select new date & time"
           />
         </Field>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Rescheduling">
+          <Button type="submit">
             Reschedule
-          </SubmitButton>
+          </Button>
         </DialogFooter>
       </form>
     </>

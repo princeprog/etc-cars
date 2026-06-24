@@ -1,10 +1,19 @@
 export const FOLLOW_UP_STATUSES = ["Due", "Completed", "Overdue"] as const
 export const LEAD_TYPES = ["seller", "buyer"] as const
-export const FOLLOW_UP_SORTS = ["dueAt", "-dueAt", "updatedAt", "-updatedAt"] as const
+export const FOLLOW_UP_SORT_KEYS = [
+  "note",
+  "leadType",
+  "leadName",
+  "dueAt",
+  "status",
+  "updatedAt",
+] as const
 
 export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number]
+export type FollowUpStatusFilter = FollowUpStatus | "DueToday"
 export type LeadType = (typeof LEAD_TYPES)[number]
-export type FollowUpSort = (typeof FOLLOW_UP_SORTS)[number]
+export type FollowUpSortKey = (typeof FOLLOW_UP_SORT_KEYS)[number]
+export type FollowUpSort = FollowUpSortKey | `-${FollowUpSortKey}`
 
 export interface FollowUp {
   id: string
@@ -43,7 +52,7 @@ export interface CompleteFollowUpPayload {
 }
 
 export interface FollowUpListFilters {
-  status?: FollowUpStatus
+  status?: FollowUpStatusFilter
   leadType?: LeadType
   assigneeUserId?: string
   dueFrom?: string

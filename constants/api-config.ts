@@ -34,6 +34,9 @@ export const API_ENDPOINTS = {
   vehicles: {
     root: "/vehicles",
     byId: (id: string) => `/vehicles/${id}`,
+    trackedCosts: (id: string) => `/vehicles/${id}/tracked-costs`,
+    trackedCostById: (id: string, costId: string) =>
+      `/vehicles/${id}/tracked-costs/${costId}`,
   },
   uploads: {
     vehiclePhoto: "/uploads/vehicle-photos",

@@ -40,6 +40,7 @@ export const API_ENDPOINTS = {
   },
   followUps: {
     root: "/follow-ups",
+    summary: "/follow-ups/summary",
     byId: (id: string) => `/follow-ups/${id}`,
     complete: (id: string) => `/follow-ups/${id}/complete`,
   },

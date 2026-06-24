@@ -6,24 +6,63 @@ import type {
   FollowUpListFilters,
   FollowUpResponse,
   FollowUpsResponse,
+  FollowUpSummaryResponse,
+  UpdateFollowUpPayload,
 } from "@/types/follow-ups"
 
-export function getFollowUps(filters: FollowUpListFilters = {}) {
-  const params = new URLSearchParams()
+export function getFollowUps(filters?: FollowUpListFilters) {
+  const searchParams = new URLSearchParams()
 
-  if (filters.page) params.set("page", String(filters.page))
-  if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
-  if (filters.search) params.set("search", filters.search)
-  if (filters.status && filters.status !== "all") params.set("status", filters.status)
-  if (filters.leadType && filters.leadType !== "all") params.set("leadType", filters.leadType)
-  if (filters.assigneeUserId) params.set("assigneeUserId", filters.assigneeUserId)
-  if (filters.sortBy) params.set("sortBy", filters.sortBy)
-  if (filters.sortOrder) params.set("sortOrder", filters.sortOrder)
+  if (filters?.status) {
+    searchParams.set("status", filters.status)
+  }
 
-  const query = params.toString()
-  const path = query ? `${API_ENDPOINTS.followUps.root}?${query}` : API_ENDPOINTS.followUps.root
+  if (filters?.leadType) {
+    searchParams.set("leadType", filters.leadType)
+  }
 
-  return apiRequest<FollowUpsResponse>(path)
+  if (filters?.assigneeUserId) {
+    searchParams.set("assigneeUserId", filters.assigneeUserId)
+  }
+
+  if (filters?.dueFrom) {
+    searchParams.set("dueFrom", filters.dueFrom)
+  }
+
+  if (filters?.dueTo) {
+    searchParams.set("dueTo", filters.dueTo)
+  }
+
+  if (filters?.search) {
+    searchParams.set("search", filters.search)
+  }
+
+  if (filters?.sort) {
+    searchParams.set("sort", filters.sort)
+  }
+
+  if (filters?.page) {
+    searchParams.set("page", String(filters.page))
+  }
+
+  if (filters?.pageSize) {
+    searchParams.set("pageSize", String(filters.pageSize))
+  }
+
+  const queryString = searchParams.toString()
+  const endpoint = queryString
+    ? `${API_ENDPOINTS.followUps.root}?${queryString}`
+    : API_ENDPOINTS.followUps.root
+
+  return apiRequest<FollowUpsResponse>(endpoint)
+}
+
+export function getFollowUpsSummary(assigneeUserId?: string) {
+  const endpoint = assigneeUserId
+    ? `${API_ENDPOINTS.followUps.summary}?assigneeUserId=${encodeURIComponent(assigneeUserId)}`
+    : API_ENDPOINTS.followUps.summary
+
+  return apiRequest<FollowUpSummaryResponse>(endpoint)
 }
 
 export function getFollowUp(id: string) {
@@ -33,6 +72,13 @@ export function getFollowUp(id: string) {
 export function createFollowUp(payload: CreateFollowUpPayload) {
   return apiRequest<FollowUpResponse, CreateFollowUpPayload>(API_ENDPOINTS.followUps.root, {
     method: "POST",
+    body: payload,
+  })
+}
+
+export function updateFollowUp(id: string, payload: UpdateFollowUpPayload) {
+  return apiRequest<FollowUpResponse, UpdateFollowUpPayload>(API_ENDPOINTS.followUps.byId(id), {
+    method: "PATCH",
     body: payload,
   })
 }

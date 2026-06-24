@@ -1,10 +1,19 @@
-import type { PaginatedResponseMeta } from "@/types/api"
-
 export const FOLLOW_UP_STATUSES = ["Due", "Completed", "Overdue"] as const
 export const LEAD_TYPES = ["seller", "buyer"] as const
+export const FOLLOW_UP_SORT_KEYS = [
+  "note",
+  "leadType",
+  "leadName",
+  "dueAt",
+  "status",
+  "updatedAt",
+] as const
 
 export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number]
+export type FollowUpStatusFilter = FollowUpStatus | "DueToday"
 export type LeadType = (typeof LEAD_TYPES)[number]
+export type FollowUpSortKey = (typeof FOLLOW_UP_SORT_KEYS)[number]
+export type FollowUpSort = FollowUpSortKey | `-${FollowUpSortKey}`
 
 export interface FollowUp {
   id: string
@@ -17,6 +26,8 @@ export interface FollowUp {
   status: FollowUpStatus
   note: string
   outcomeNote: string | null
+  leadName: string | null
+  leadSecondary: string | null
   createdAt: string
   updatedAt: string
 }
@@ -30,25 +41,47 @@ export interface CreateFollowUpPayload {
   note: string
 }
 
+export interface UpdateFollowUpPayload {
+  dueAt?: string
+  note?: string
+  assigneeUserId?: string
+}
+
 export interface CompleteFollowUpPayload {
   outcomeNote: string
+}
+
+export interface FollowUpListFilters {
+  status?: FollowUpStatusFilter
+  leadType?: LeadType
+  assigneeUserId?: string
+  dueFrom?: string
+  dueTo?: string
+  search?: string
+  page?: number
+  pageSize?: number
+  sort?: FollowUpSort
+}
+
+export interface FollowUpSummary {
+  overdue: number
+  dueToday: number
+  upcoming: number
+  completed: number
 }
 
 export interface FollowUpResponse {
   followUp: FollowUp
 }
 
-export interface FollowUpListFilters {
-  page?: number
-  pageSize?: number
-  search?: string
-  status?: FollowUpStatus | "all"
-  leadType?: LeadType | "all"
-  assigneeUserId?: string
-  sortBy?: "dueAt" | "createdAt" | "updatedAt" | "status"
-  sortOrder?: "asc" | "desc"
+export interface FollowUpsResponse {
+  followUps: FollowUp[]
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
 }
 
-export interface FollowUpsResponse extends PaginatedResponseMeta {
-  followUps: FollowUp[]
+export interface FollowUpSummaryResponse {
+  summary: FollowUpSummary
 }

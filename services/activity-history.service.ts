@@ -1,11 +1,25 @@
 import { API_ENDPOINTS } from "@/constants/api-config"
 import { apiRequest } from "@/services/api-service"
 import type { ActivityEntityType, ActivityHistoryResponse } from "@/types/activity-history"
-import type { ActivityHistoryListResponse } from "@/types/activity-history-page"
+import type { ActivityHistoryListFilters, ActivityHistoryListResponse } from "@/types/activity-history-page"
 
-export function getAllActivityHistory(limit = 100) {
-  const path = `${API_ENDPOINTS.activityHistory.root}?limit=${limit}`
-  return apiRequest<ActivityHistoryListResponse>(path)
+export function getAllActivityHistory(filters?: ActivityHistoryListFilters) {
+  const searchParams = new URLSearchParams()
+
+  if (filters?.page) {
+    searchParams.set("page", String(filters.page))
+  }
+
+  if (filters?.pageSize) {
+    searchParams.set("pageSize", String(filters.pageSize))
+  }
+
+  const queryString = searchParams.toString()
+  const endpoint = queryString
+    ? `${API_ENDPOINTS.activityHistory.root}?${queryString}`
+    : API_ENDPOINTS.activityHistory.root
+
+  return apiRequest<ActivityHistoryListResponse>(endpoint)
 }
 
 export function getActivityHistory(entityType: ActivityEntityType, entityId: string, limit = 50) {

@@ -12,6 +12,7 @@ import { ModuleLoadingState } from "@/components/operations/module-loading-state
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAllActivityHistoryQuery } from "@/hooks/queries/activity-history/use-all-activity-history-query"
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { ActivityHistoryEvent } from "@/types/activity-history"
 
@@ -74,11 +75,33 @@ function groupEventsByDay(events: ActivityHistoryEvent[]) {
   return sections
 }
 
+function isStaffRestrictedEvent(event: ActivityHistoryEvent) {
+  if (event.entityType !== "user") {
+    return false
+  }
+
+  const normalizedAction = event.actionType.toLowerCase()
+  const normalizedSummary = event.summary.toLowerCase()
+
+  return (
+    normalizedAction.includes("status") ||
+    normalizedAction.includes("enable") ||
+    normalizedAction.includes("disable") ||
+    normalizedSummary.includes("account enabled") ||
+    normalizedSummary.includes("account disabled")
+  )
+}
+
 export function ActivityHistoryScreen() {
+  const authQuery = useAuthenticatedUserQuery()
   const [page, setPage] = React.useState(1)
   const activityQuery = useAllActivityHistoryQuery({ page, pageSize: ACTIVITY_HISTORY_PAGE_SIZE })
-  const events = activityQuery.data?.events ?? []
-  const total = activityQuery.data?.total ?? 0
+  const isAdmin = authQuery.data?.user.role === "admin"
+  const events = React.useMemo(() => {
+    const allEvents = activityQuery.data?.events ?? []
+    return isAdmin ? allEvents : allEvents.filter((event) => !isStaffRestrictedEvent(event))
+  }, [activityQuery.data?.events, isAdmin])
+  const total = events.length
   const totalPages = activityQuery.data?.totalPages ?? 1
   const sections = groupEventsByDay(events)
 
@@ -103,6 +126,11 @@ export function ActivityHistoryScreen() {
                 <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
                   Review the latest lead, vehicle, link, and sale events in one reverse-chronological feed with a cleaner timeline view.
                 </p>
+                {!isAdmin ? (
+                  <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
+                    Staff-facing activity hides sensitive account enable and disable actions.
+                  </p>
+                ) : null}
               </div>
             </div>
 

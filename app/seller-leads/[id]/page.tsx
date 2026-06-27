@@ -1,4 +1,4 @@
-import { SellerLeadEvaluationPage } from "@/components/seller-leads/seller-leads-screen"
+import { SellerLeadEvaluationPage } from "@/components/seller-leads/seller-lead-evaluation-page"
 
 export default async function SellerLeadEvaluationRoute({
   params,

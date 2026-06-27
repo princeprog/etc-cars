@@ -785,7 +785,6 @@ function EditSellerLeadDialogForm({
             <SellerLeadForm values={values} onChange={setValues} />
             <Separator />
             <AcquisitionEvaluationForm values={values} onChange={setValues} />
-            <EstimatedCostsCard leadId={leadId} lead={lead} />
           </div>
           <div className="space-y-6">
             <AcquisitionSummaryCard lead={lead} />
@@ -827,6 +826,7 @@ function EditSellerLeadDialogForm({
           </SubmitButton>
         </div>
       </form>
+      <EstimatedCostsCard leadId={leadId} lead={lead} />
     </div>
   )
 }
@@ -1140,35 +1140,6 @@ export function SellerLeadsScreen() {
           </DialogContent>
         </Dialog>
 
-      </div>
-    </AuthenticatedAppShell>
-  )
-}
-
-export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
-  const updateMutation = useUpdateSellerLeadMutation()
-
-  return (
-    <AuthenticatedAppShell
-      title="Seller Lead Evaluation"
-      breadcrumbs={[
-        { label: "Seller Leads", href: "/seller-leads" },
-        { label: "Evaluation" },
-      ]}
-    >
-      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        <section className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Seller Lead Evaluation</h2>
-          <p className="text-sm text-muted-foreground">
-            Review the inspection, economics, and approval state for this acquisition opportunity.
-          </p>
-        </section>
-
-        <Card className="border-border/70 shadow-xs">
-          <CardContent className="p-6">
-            <EditSellerLeadDialogForm leadId={leadId} mutation={updateMutation} />
-          </CardContent>
-        </Card>
       </div>
     </AuthenticatedAppShell>
   )

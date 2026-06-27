@@ -1,4 +1,4 @@
-export const ACTIVITY_ENTITY_TYPES = ["seller_lead", "buyer_lead", "vehicle", "sale"] as const
+export const ACTIVITY_ENTITY_TYPES = ["seller_lead", "buyer_lead", "vehicle", "sale", "follow_up", "user"] as const
 
 export type ActivityEntityType = (typeof ACTIVITY_ENTITY_TYPES)[number]
 

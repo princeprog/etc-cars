@@ -23,6 +23,9 @@ export const API_ENDPOINTS = {
     root: "/seller-leads",
     byId: (id: string) => `/seller-leads/${id}`,
     convert: (id: string) => `/seller-leads/${id}/convert`,
+    estimatedCosts: (id: string) => `/seller-leads/${id}/estimated-costs`,
+    estimatedCostById: (id: string, costId: string) =>
+      `/seller-leads/${id}/estimated-costs/${costId}`,
   },
   buyerLeads: {
     root: "/buyer-leads",
@@ -34,6 +37,9 @@ export const API_ENDPOINTS = {
   vehicles: {
     root: "/vehicles",
     byId: (id: string) => `/vehicles/${id}`,
+    trackedCosts: (id: string) => `/vehicles/${id}/tracked-costs`,
+    trackedCostById: (id: string, costId: string) =>
+      `/vehicles/${id}/tracked-costs/${costId}`,
   },
   uploads: {
     vehiclePhoto: "/uploads/vehicle-photos",

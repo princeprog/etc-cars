@@ -19,6 +19,7 @@ import {
   BellRingIcon,
   CarFrontIcon,
   ChartColumnIcon,
+  ClipboardListIcon,
   HandCoinsIcon,
   LayoutDashboardIcon,
   ScanSearchIcon,
@@ -65,6 +66,11 @@ const data = {
     },
   ],
   adminNav: [
+    {
+      title: "Activity History",
+      url: "/activity-history",
+      icon: <ClipboardListIcon />,
+    },
     {
       title: "Staff",
       url: "/staff",

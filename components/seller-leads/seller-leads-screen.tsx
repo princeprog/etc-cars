@@ -90,6 +90,7 @@ import {
   type UpdateSellerLeadPayload,
 } from "@/types/seller-leads"
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
 
 const INSPECTION_KEYS = [
   "engine",
@@ -1120,7 +1121,8 @@ export function SellerLeadsScreen() {
                   <DialogTitle>{viewLead.sellerName}</DialogTitle>
                   <DialogDescription>{getSellerLeadVehicleLabel(viewLead)}</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-6">
+                  <div className="grid gap-6 md:grid-cols-2">
                   <Card className="border-border/70 shadow-none">
                     <CardHeader className="border-b">
                       <CardTitle className="text-base">Lead Snapshot</CardTitle>
@@ -1134,6 +1136,12 @@ export function SellerLeadsScreen() {
                     </CardContent>
                   </Card>
                   <AcquisitionSummaryCard lead={viewLead} />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</p>
+                    <p className="text-sm text-foreground">{viewLead.notes ?? "No notes recorded."}</p>
+                  </div>
+                  <ActivityHistoryPanel entityType="seller_lead" entityId={viewLead.id} />
                 </div>
               </>
             ) : null}

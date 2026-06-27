@@ -78,6 +78,7 @@ import {
 } from "@/types/buyer-leads"
 import type { Vehicle } from "@/types/vehicles"
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
 
 type BuyerLeadFormValues = {
   buyerName: string
@@ -666,6 +667,7 @@ export function BuyerLeadsScreen() {
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</p>
                     <p className="text-sm text-foreground">{viewLead.notes ?? "No notes recorded."}</p>
                   </div>
+                  <ActivityHistoryPanel entityType="buyer_lead" entityId={viewLead.id} />
                 </div>
               </>
             ) : null}

@@ -171,7 +171,6 @@ function StaffScreenContent() {
   }
 
   const staffUsers = usersQuery.data?.users ?? []
-  const staffUsers = usersQuery.data?.users ?? []
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -361,7 +360,6 @@ function StaffScreenContent() {
                     <TableHead className="px-4">Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Password</TableHead>
                     <TableHead className="px-4 text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -396,15 +394,6 @@ function StaffScreenContent() {
                                 ? "active"
                                 : "disabled"}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.mustChangePassword ? (
-                            <Badge variant="outline" className="rounded-md">
-                              Must change password
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground">Updated</span>
-                          )}
                         </TableCell>
                         <TableCell className="px-4 text-right">
                           <SubmitButton

@@ -3,7 +3,23 @@
 import * as React from "react"
 import Link from "next/link"
 import { format } from "date-fns"
-import { CheckCircle2Icon, CircleIcon, InfoIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import {
+  AlertTriangleIcon,
+  CalendarDaysIcon,
+  CheckCircle2Icon,
+  CircleIcon,
+  FileTextIcon,
+  GaugeIcon,
+  InfoIcon,
+  MapPinIcon,
+  MessageSquareTextIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  Trash2Icon,
+  UserRoundIcon,
+  WrenchIcon,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
@@ -11,6 +27,7 @@ import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
 import { SubmitButton } from "@/components/operations/submit-button"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,9 +35,11 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import {
   useCreateSellerLeadEstimatedCostMutation,
   useDeleteSellerLeadEstimatedCostMutation,
@@ -225,6 +244,73 @@ function formatInspectionLabel(key: InspectionKey) {
   return key.charAt(0).toUpperCase() + key.slice(1)
 }
 
+function getInspectionRatingColor(rating: SellerLeadInspectionRating) {
+  switch (rating) {
+    case "excellent":
+      return "bg-emerald-500"
+    case "good":
+      return "bg-blue-500"
+    case "fair":
+      return "bg-amber-500"
+    case "poor":
+      return "bg-rose-500"
+    default:
+      return "bg-muted"
+  }
+}
+
+function getInspectionScore(findings: InspectionFormValues["inspectionFindings"]) {
+  const weights: Record<SellerLeadInspectionRating, number> = {
+    excellent: 4,
+    good: 3,
+    fair: 2,
+    poor: 1,
+  }
+
+  const total = INSPECTION_KEYS.reduce(
+    (sum, key) => sum + weights[findings[key].rating],
+    0,
+  )
+
+  return Math.round((total / (INSPECTION_KEYS.length * 4)) * 100)
+}
+
+function getInspectionBreakdown(findings: InspectionFormValues["inspectionFindings"]) {
+  const poor = INSPECTION_KEYS.filter((key) => findings[key].rating === "poor")
+  const fair = INSPECTION_KEYS.filter((key) => findings[key].rating === "fair")
+  const strong = INSPECTION_KEYS.filter((key) =>
+    ["excellent", "good"].includes(findings[key].rating),
+  )
+
+  return { poor, fair, strong }
+}
+
+function getInspectionReadiness(findings: InspectionFormValues["inspectionFindings"]) {
+  const { poor, fair } = getInspectionBreakdown(findings)
+
+  if (poor.length > 0) {
+    return {
+      label: "Needs attention",
+      description: "Critical issues found. Review before costing.",
+      progress: 38,
+    }
+  }
+
+  if (fair.length >= 3) {
+    return {
+      label: "Proceed with caution",
+      description: "Vehicle is costable but needs realistic repair allowance.",
+      progress: 68,
+    }
+  }
+
+  return {
+    label: "Ready for costing",
+    description: "Condition profile is stable enough to move into valuation.",
+    progress: 84,
+  }
+}
+
 function getSellerLeadVehicleLabel(lead: SellerLead) {
   return [lead.vehicleBrand, lead.vehicleModel, lead.vehicleYear ? String(lead.vehicleYear) : "", lead.vehicleVariant ?? ""]
     .filter(Boolean)
@@ -389,12 +475,14 @@ function OverviewTab({
 }
 
 function InspectionTab({
+  lead,
   values,
   onChange,
   onSave,
   pending,
   dirty,
 }: {
+  lead: SellerLead
   values: InspectionFormValues
   onChange: (values: InspectionFormValues) => void
   onSave: () => Promise<void>
@@ -418,63 +506,296 @@ function InspectionTab({
     })
   }
 
+  const score = getInspectionScore(values.inspectionFindings)
+  const breakdown = getInspectionBreakdown(values.inspectionFindings)
+  const readiness = getInspectionReadiness(values.inspectionFindings)
+  const fairCount = breakdown.fair.length
+  const poorCount = breakdown.poor.length
+  const strongCount = breakdown.strong.length
+
   return (
-    <Card className="border-border/70 shadow-xs">
-      <CardHeader className="border-b">
-        <CardTitle className="text-base">Inspection Report</CardTitle>
-        <CardDescription>Document the unit’s actual condition after physical appraisal.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6 pt-6">
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="inspectionCompletedAt">Inspection completed at</FieldLabel>
-            <Input id="inspectionCompletedAt" type="datetime-local" value={values.inspectionCompletedAt} onChange={(e) => updateField("inspectionCompletedAt", e.target.value)} />
-          </Field>
-          <div className="rounded-xl border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-            Use this tab to capture inspection evidence first. Costing and decision should be based on what’s recorded here.
-          </div>
-        </div>
-
-        <Field>
-          <FieldLabel htmlFor="inspectionNotes">Inspection notes</FieldLabel>
-          <Textarea id="inspectionNotes" rows={4} value={values.inspectionNotes} onChange={(e) => updateField("inspectionNotes", e.target.value)} />
-        </Field>
-
-        <Separator />
-
-        <div className="space-y-4">
-          {INSPECTION_KEYS.map((key) => (
-            <div key={key} className="grid gap-3 rounded-xl border border-border/70 p-4 md:grid-cols-[180px_180px_minmax(0,1fr)]">
-              <div className="text-sm font-medium text-foreground">{formatInspectionLabel(key)}</div>
-              <NativeSelect
-                value={values.inspectionFindings[key].rating}
-                onChange={(event) => updateInspectionField(key, "rating", event.target.value)}
-              >
-                {SELLER_LEAD_INSPECTION_RATINGS.map((rating) => (
-                  <NativeSelectOption key={rating} value={rating}>
-                    {rating.charAt(0).toUpperCase() + rating.slice(1)}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              <Input
-                value={values.inspectionFindings[key].notes}
-                onChange={(event) => updateInspectionField(key, "notes", event.target.value)}
-                placeholder="Inspection note"
-              />
+    <div className="space-y-6">
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader className="border-b">
+          <CardTitle className="text-base">Inspection Session</CardTitle>
+          <CardDescription>Record the appraisal session details before rating each system.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6">
+          <div className="grid gap-4 xl:grid-cols-4 md:grid-cols-2">
+            <div className="rounded-xl border bg-muted/15 p-4">
+              <div className="flex items-start gap-3">
+                <CalendarDaysIcon className="mt-0.5 size-4 text-muted-foreground" />
+                <div className="min-w-0 space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Inspection Date & Time</p>
+                  <Input
+                    id="inspectionCompletedAt"
+                    type="datetime-local"
+                    value={values.inspectionCompletedAt}
+                    onChange={(e) => updateField("inspectionCompletedAt", e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
+            <div className="rounded-xl border bg-muted/15 p-4">
+              <div className="flex items-start gap-3">
+                <UserRoundIcon className="mt-0.5 size-4 text-muted-foreground" />
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Seller Contact</p>
+                  <p className="text-sm font-medium text-foreground">{lead.contactNumber}</p>
+                  <p className="text-xs text-muted-foreground">{lead.email ?? "No email on file"}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border bg-muted/15 p-4">
+              <div className="flex items-start gap-3">
+                <MapPinIcon className="mt-0.5 size-4 text-muted-foreground" />
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Lead Context</p>
+                  <p className="text-sm font-medium text-foreground">{lead.region ?? "Region not set"}</p>
+                  <p className="text-xs text-muted-foreground">{lead.inquirySource ?? "Source not set"}</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-xl border bg-muted/15 p-4">
+              <div className="flex items-start gap-3">
+                <ShieldCheckIcon className="mt-0.5 size-4 text-muted-foreground" />
+                <div className="space-y-2">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Workflow</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={getStatusBadgeVariant(lead.status)}>{lead.status}</Badge>
+                    <Badge variant={getDecisionBadgeVariant(lead.decision)}>{lead.decision ?? "Pending"}</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {dirty ? "You have unsaved changes in Inspection." : "Inspection is up to date."}
-          </p>
-          <SubmitButton type="button" onClick={() => void onSave()} pending={pending} pendingLabel="Saving inspection">
-            Save Inspection
-          </SubmitButton>
-        </div>
-      </CardContent>
-    </Card>
+          <Field>
+            <FieldLabel htmlFor="inspectionNotes">Overall First Impression</FieldLabel>
+            <Textarea
+              id="inspectionNotes"
+              rows={3}
+              value={values.inspectionNotes}
+              onChange={(e) => updateField("inspectionNotes", e.target.value)}
+              placeholder="Well-maintained overall. Clean interior and engine bay. Minor exterior blemishes."
+            />
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader className="border-b">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <CardTitle className="text-base">Vehicle Condition Checklist</CardTitle>
+              <CardDescription>Rate each component and leave short professional notes for costing and negotiation.</CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              {SELLER_LEAD_INSPECTION_RATINGS.map((rating) => (
+                <div key={rating} className="flex items-center gap-2 rounded-full border px-3 py-1">
+                  <span className={`size-2 rounded-full ${getInspectionRatingColor(rating)}`} />
+                  <span className="capitalize">{rating}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {INSPECTION_KEYS.map((key) => (
+              <Card key={key} className="border-border/70 shadow-none">
+                <CardContent className="flex flex-col gap-4 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">{formatInspectionLabel(key)}</p>
+                      <p className="text-xs text-muted-foreground">Condition rating and inspection remark</p>
+                    </div>
+                    <span className={`mt-1 size-2.5 rounded-full ${getInspectionRatingColor(values.inspectionFindings[key].rating)}`} />
+                  </div>
+
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    size="sm"
+                    spacing={0}
+                    value={values.inspectionFindings[key].rating}
+                    onValueChange={(value) => {
+                      if (value) {
+                        updateInspectionField(key, "rating", value)
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    {SELLER_LEAD_INSPECTION_RATINGS.map((rating) => (
+                      <ToggleGroupItem
+                        key={rating}
+                        value={rating}
+                        className="flex-1 capitalize"
+                        aria-label={`${formatInspectionLabel(key)} ${rating}`}
+                      >
+                        {rating.charAt(0).toUpperCase()}
+                      </ToggleGroupItem>
+                    ))}
+                  </ToggleGroup>
+
+                  <Input
+                    value={values.inspectionFindings[key].notes}
+                    onChange={(event) => updateInspectionField(key, "notes", event.target.value)}
+                    placeholder="Add inspection note"
+                  />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader className="border-b">
+          <CardTitle className="text-base">Detailed Findings</CardTitle>
+          <CardDescription>Summarized insights based on the condition checklist recorded above.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 pt-6 md:grid-cols-2">
+          <div className="rounded-xl border bg-muted/15 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangleIcon className="mt-0.5 size-4 text-rose-500" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">Major Defects Found</p>
+                {poorCount > 0 ? (
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    {breakdown.poor.map((key) => (
+                      <li key={key}>
+                        <span className="font-medium text-foreground">{formatInspectionLabel(key)}:</span>{" "}
+                        {values.inspectionFindings[key].notes || "Requires immediate review."}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No major defects recorded during inspection.</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border bg-muted/15 p-4">
+            <div className="flex items-start gap-3">
+              <WrenchIcon className="mt-0.5 size-4 text-amber-500" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">Immediate Repair Needs</p>
+                {fairCount > 0 ? (
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    {breakdown.fair.map((key) => (
+                      <li key={key}>
+                        <span className="font-medium text-foreground">{formatInspectionLabel(key)}:</span>{" "}
+                        {values.inspectionFindings[key].notes || "Allocate repair allowance during costing."}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No moderate issues flagged for immediate costing attention.</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border bg-muted/15 p-4">
+            <div className="flex items-start gap-3">
+              <SparklesIcon className="mt-0.5 size-4 text-emerald-500" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">Strong Condition Areas</p>
+                {strongCount > 0 ? (
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                    {breakdown.strong.slice(0, 5).map((key) => (
+                      <li key={key}>
+                        <span className="font-medium text-foreground">{formatInspectionLabel(key)}:</span>{" "}
+                        {values.inspectionFindings[key].notes || "Condition supports a positive buy case."}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No strong-condition highlights recorded yet.</p>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl border bg-muted/15 p-4">
+            <div className="flex items-start gap-3">
+              <MessageSquareTextIcon className="mt-0.5 size-4 text-blue-500" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-foreground">Recommended Next Steps</p>
+                <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                  <li>Proceed to costing using the recorded inspection notes and ratings.</li>
+                  <li>Use fair and poor components as the basis for repair and reconditioning assumptions.</li>
+                  <li>Finalize acquisition decision only after estimated costs align with target margin.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader className="border-b">
+          <CardTitle className="text-base">Visual Inspection Summary</CardTitle>
+          <CardDescription>A quick operational view of condition quality and readiness for costing.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Overall Inspection Score</p>
+              <div className="mt-3 flex items-end gap-2">
+                <span className="text-4xl font-semibold text-foreground">{score}</span>
+                <span className="pb-1 text-sm text-muted-foreground">/100</span>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">{score >= 75 ? "Good condition" : score >= 55 ? "Mixed condition" : "High review required"}</p>
+            </div>
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Poor Components</p>
+              <p className="mt-3 text-4xl font-semibold text-rose-500">{poorCount}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Out of {INSPECTION_KEYS.length} inspected areas</p>
+            </div>
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Fair Components</p>
+              <p className="mt-3 text-4xl font-semibold text-amber-500">{fairCount}</p>
+              <p className="mt-2 text-sm text-muted-foreground">Items likely to affect reconditioning budget</p>
+            </div>
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Readiness</p>
+              <p className="mt-3 text-2xl font-semibold text-foreground">{readiness.label}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{readiness.description}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="rounded-xl border bg-background p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-foreground">Inspection Readiness</p>
+                <span className="text-sm font-medium text-muted-foreground">{readiness.progress}%</span>
+              </div>
+              <Progress value={readiness.progress} />
+            </div>
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertTriangleIcon className="text-amber-500" />
+              <AlertTitle>Attention</AlertTitle>
+              <AlertDescription>
+                {poorCount > 0
+                  ? "Critical issues were recorded. Review the inspection before moving to decision."
+                  : fairCount > 0
+                    ? "No critical issues detected, but moderate reconditioning should be reflected in costing."
+                    : "No material condition blockers detected. This unit appears clean enough to proceed to costing."}
+              </AlertDescription>
+            </Alert>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          {dirty ? "You have unsaved changes in Inspection." : "Inspection is up to date."}
+        </p>
+        <SubmitButton type="button" onClick={() => void onSave()} pending={pending} pendingLabel="Saving inspection">
+          Save Inspection
+        </SubmitButton>
+      </div>
+    </div>
   )
 }
 
@@ -768,6 +1089,14 @@ function DecisionTab({
 }
 
 function SummaryRail({ lead }: { lead: SellerLead }) {
+  const inspectionScore = getInspectionScore(getInspectionFormValues(lead).inspectionFindings)
+  const readinessProgress = [
+    Boolean(lead.inspectionCompletedAt),
+    Boolean(lead.targetBuyPrice && lead.expectedResalePrice),
+    Boolean(lead.decision),
+    lead.status === "Approved to Buy",
+  ].filter(Boolean).length * 25
+
   const readinessItems = [
     {
       complete: Boolean(lead.inspectionCompletedAt),
@@ -795,8 +1124,8 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
     <div className="space-y-4">
       <Card className="border-border/70 shadow-xs">
         <CardHeader className="border-b">
-          <CardTitle className="text-base">Acquisition Summary</CardTitle>
-          <CardDescription>Decision dashboard for this seller lead.</CardDescription>
+          <CardTitle className="text-base">Financial Summary</CardTitle>
+          <CardDescription>Acquisition economics and current buy-side posture.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-1">
@@ -836,9 +1165,41 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
               <span className="text-muted-foreground">Profit margin</span>
               <span className="font-medium">{formatPercent(lead.estimatedProfitMargin)}</span>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Recommendation</span>
-              <span className="font-medium">{lead.recommendedAction ?? "—"}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader className="border-b">
+          <CardTitle className="text-base">System Recommendation</CardTitle>
+          <CardDescription>Operational guidance based on inspection and costing inputs.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6">
+          <Alert className="border-border bg-muted/30">
+            <InfoIcon />
+            <AlertTitle>{lead.recommendedAction ?? "Awaiting evaluation data"}</AlertTitle>
+            <AlertDescription>
+              {lead.recommendedAction
+                ? "Use this as a guide only. Final acquisition approval should still come from staff or admin."
+                : "Complete inspection and costing assumptions so the system can surface a clearer recommendation."}
+            </AlertDescription>
+          </Alert>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Inspection Score</p>
+              <div className="mt-2 flex items-end gap-2">
+                <span className="text-3xl font-semibold text-foreground">{inspectionScore}</span>
+                <span className="pb-1 text-sm text-muted-foreground">/100</span>
+              </div>
+            </div>
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Approval State</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">
+                {lead.approvedToBuyAt ? "Approved to Buy" : "Not approved"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {lead.approvedToBuyAt ? format(new Date(lead.approvedToBuyAt), "MMM d, yyyy h:mm a") : "Approval is still pending."}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -846,9 +1207,19 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
 
       <Card className="border-border/70 shadow-xs">
         <CardHeader className="border-b">
-          <CardTitle className="text-base">Readiness</CardTitle>
+          <CardTitle className="text-base">Conversion Readiness</CardTitle>
+          <CardDescription>How close this lead is to becoming an inventory unit.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 pt-6">
+        <CardContent className="space-y-5 pt-6">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-foreground">
+                {lead.status === "Approved to Buy" ? "Ready to convert" : "Still in evaluation"}
+              </p>
+              <span className="text-sm font-medium text-muted-foreground">{readinessProgress}%</span>
+            </div>
+            <Progress value={readinessProgress} />
+          </div>
           {readinessItems.map((item, index) => (
             <React.Fragment key={item.title}>
               <div className="flex items-start gap-3">
@@ -867,6 +1238,46 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
               {index < readinessItems.length - 1 ? <Separator /> : null}
             </React.Fragment>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader className="border-b">
+          <CardTitle className="text-base">Lead Information</CardTitle>
+          <CardDescription>Reference details for acquisition coordination.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6 text-sm">
+          <div className="flex items-start gap-3">
+            <UserRoundIcon className="mt-0.5 size-4 text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="text-muted-foreground">Seller Contact</p>
+              <p className="font-medium text-foreground">{lead.contactNumber}</p>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-start gap-3">
+            <MapPinIcon className="mt-0.5 size-4 text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="text-muted-foreground">Region</p>
+              <p className="font-medium text-foreground">{lead.region ?? "Not set"}</p>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-start gap-3">
+            <FileTextIcon className="mt-0.5 size-4 text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="text-muted-foreground">Inquiry Source</p>
+              <p className="font-medium text-foreground">{lead.inquirySource ?? "Not set"}</p>
+            </div>
+          </div>
+          <Separator />
+          <div className="flex items-start gap-3">
+            <GaugeIcon className="mt-0.5 size-4 text-muted-foreground" />
+            <div className="space-y-1">
+              <p className="text-muted-foreground">Current Status</p>
+              <p className="font-medium text-foreground">{lead.status}</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -1026,6 +1437,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
 
             <TabsContent value="inspection">
               <InspectionTab
+                lead={lead}
                 values={inspectionValues}
                 onChange={setInspectionValues}
                 onSave={() => saveSection(buildInspectionPayload(inspectionValues), "Inspection updated")}

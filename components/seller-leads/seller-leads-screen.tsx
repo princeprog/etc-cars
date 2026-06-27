@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format, formatDistanceToNow } from "date-fns"
 import {
@@ -27,7 +28,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -729,7 +729,7 @@ function EditSellerLeadDialogForm({
 }: {
   leadId: string
   mutation: ReturnType<typeof useUpdateSellerLeadMutation>
-  onClose: () => void
+  onClose?: () => void
 }) {
   const leadQuery = useSellerLeadQuery(leadId)
   const lead = leadQuery.data?.sellerLead
@@ -760,22 +760,24 @@ function EditSellerLeadDialogForm({
 
   if (leadQuery.isPending || !lead || !values) {
     return (
-      <>
-        <DialogHeader>
-          <DialogTitle>Loading seller lead</DialogTitle>
-          <DialogDescription>Preparing the acquisition evaluation workspace.</DialogDescription>
-        </DialogHeader>
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold text-foreground">Loading seller lead</h3>
+          <p className="text-sm text-muted-foreground">Preparing the acquisition evaluation workspace.</p>
+        </div>
         <ModuleLoadingState label="Loading seller lead" />
-      </>
+      </div>
     )
   }
 
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Edit Seller Lead</DialogTitle>
-        <DialogDescription>Review the unit, update the economics, and approve the lead only when the deal is ready.</DialogDescription>
-      </DialogHeader>
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold text-foreground">Edit Seller Lead</h3>
+        <p className="text-sm text-muted-foreground">
+          Review the unit, update the economics, and approve the lead only when the deal is ready.
+        </p>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-6">
         <ApiErrorAlert title="Unable to update seller lead" message={getApiErrorMessage(mutation.error ?? leadQuery.error, "")} />
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
@@ -810,16 +812,22 @@ function EditSellerLeadDialogForm({
             </Card>
           </div>
         </div>
-        <DialogFooter className="sm:justify-between">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Close
-          </Button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {onClose ? (
+            <Button type="button" variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" asChild>
+              <Link href="/seller-leads">Back to seller leads</Link>
+            </Button>
+          )}
           <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Saving changes">
             Save Changes
           </SubmitButton>
-        </DialogFooter>
+        </div>
       </form>
-    </>
+    </div>
   )
 }
 
@@ -834,7 +842,6 @@ export function SellerLeadsScreen() {
   const [page, setPage] = React.useState(1)
   const [createOpen, setCreateOpen] = React.useState(false)
   const [viewLead, setViewLead] = React.useState<SellerLead | null>(null)
-  const [editLeadId, setEditLeadId] = React.useState<string | null>(null)
   const [createForm, setCreateForm] = React.useState<SellerLeadFormValues>(getEmptySellerLeadFormValues)
 
   const filters = React.useMemo<SellerLeadListFilters>(
@@ -1025,7 +1032,7 @@ export function SellerLeadsScreen() {
                               <EyeIcon />
                               View
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setEditLeadId(lead.id)}>
+                            <DropdownMenuItem onClick={() => router.push(`/seller-leads/${lead.id}`)}>
                               <PencilIcon />
                               Open evaluation
                             </DropdownMenuItem>
@@ -1133,17 +1140,35 @@ export function SellerLeadsScreen() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={Boolean(editLeadId)} onOpenChange={(open) => !open && setEditLeadId(null)}>
-          <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto">
-            {editLeadId ? (
-              <EditSellerLeadDialogForm
-                leadId={editLeadId}
-                mutation={updateMutation}
-                onClose={() => setEditLeadId(null)}
-              />
-            ) : null}
-          </DialogContent>
-        </Dialog>
+      </div>
+    </AuthenticatedAppShell>
+  )
+}
+
+export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
+  const updateMutation = useUpdateSellerLeadMutation()
+
+  return (
+    <AuthenticatedAppShell
+      title="Seller Lead Evaluation"
+      breadcrumbs={[
+        { label: "Seller Leads", href: "/seller-leads" },
+        { label: "Evaluation" },
+      ]}
+    >
+      <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        <section className="space-y-1">
+          <h2 className="text-2xl font-semibold tracking-tight">Seller Lead Evaluation</h2>
+          <p className="text-sm text-muted-foreground">
+            Review the inspection, economics, and approval state for this acquisition opportunity.
+          </p>
+        </section>
+
+        <Card className="border-border/70 shadow-xs">
+          <CardContent className="p-6">
+            <EditSellerLeadDialogForm leadId={leadId} mutation={updateMutation} />
+          </CardContent>
+        </Card>
       </div>
     </AuthenticatedAppShell>
   )

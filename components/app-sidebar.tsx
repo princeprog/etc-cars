@@ -34,11 +34,6 @@ const data = {
       icon: <LayoutDashboardIcon />,
     },
     {
-      title: "Activity History",
-      url: "/activity-history",
-      icon: <ClipboardListIcon />,
-    },
-    {
       title: "Vehicles",
       url: "/vehicles",
       icon: <CarFrontIcon />,
@@ -65,6 +60,11 @@ const data = {
     },
   ],
   adminNav: [
+    {
+      title: "Activity History",
+      url: "/activity-history",
+      icon: <ClipboardListIcon />,
+    },
     {
       title: "Staff",
       url: "/staff",

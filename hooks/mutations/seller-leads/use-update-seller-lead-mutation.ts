@@ -13,9 +13,10 @@ export function useUpdateSellerLeadMutation() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateSellerLeadPayload }) =>
       updateSellerLead(id, payload),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: sellerLeadsQueryKeys.all }),
+        queryClient.invalidateQueries({ queryKey: sellerLeadsQueryKeys.detail(variables.id) }),
         queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.summary }),
       ])
     },

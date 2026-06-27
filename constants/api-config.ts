@@ -23,6 +23,9 @@ export const API_ENDPOINTS = {
     root: "/seller-leads",
     byId: (id: string) => `/seller-leads/${id}`,
     convert: (id: string) => `/seller-leads/${id}/convert`,
+    estimatedCosts: (id: string) => `/seller-leads/${id}/estimated-costs`,
+    estimatedCostById: (id: string, costId: string) =>
+      `/seller-leads/${id}/estimated-costs/${costId}`,
   },
   buyerLeads: {
     root: "/buyer-leads",

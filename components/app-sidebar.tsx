@@ -18,6 +18,7 @@ import {
 import {
   BellRingIcon,
   CarFrontIcon,
+  ChartColumnIcon,
   HandCoinsIcon,
   LayoutDashboardIcon,
   ScanSearchIcon,
@@ -56,6 +57,11 @@ const data = {
       title: "Sales",
       url: "/sales",
       icon: <HandCoinsIcon />,
+    },
+    {
+      title: "Reports",
+      url: "/reports",
+      icon: <ChartColumnIcon />,
     },
   ],
   adminNav: [

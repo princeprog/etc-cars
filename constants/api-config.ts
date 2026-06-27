@@ -49,6 +49,14 @@ export const API_ENDPOINTS = {
     summary: "/sales/summary",
     byId: (id: string) => `/sales/${id}`,
   },
+  reports: {
+    overview: "/reports/overview",
+    sales: "/reports/sales",
+    inventory: "/reports/inventory",
+    leads: "/reports/leads",
+    profitability: "/reports/profitability",
+    export: (domain: string) => `/reports/${domain}/export`,
+  },
 } as const
 
 export function buildApiUrl(path: string) {

@@ -74,7 +74,6 @@ import { useFollowUpsQuery } from "@/hooks/queries/follow-ups/use-follow-ups-que
 import { useFollowUpsSummaryQuery } from "@/hooks/queries/follow-ups/use-follow-ups-summary-query"
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query"
 import { getApiErrorMessage } from "@/types/api"
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
 import {
   LEAD_TYPES,
   type FollowUp,
@@ -325,7 +324,6 @@ export function FollowUpsScreen() {
   const [outcomeNotes, setOutcomeNotes] = React.useState<Record<string, string>>({})
 
   const currentUserId = authQuery.data?.user.id
-  const canAssignToCurrentUser = Boolean(currentUserId) && !authQuery.isPending
 
   React.useEffect(() => {
     const handle = setTimeout(() => {
@@ -462,17 +460,12 @@ export function FollowUpsScreen() {
   }
 
   async function handleCreateConfirm() {
-    if (!currentUserId) {
-      toast.error("Your account is still loading. Please wait a moment and try again.")
-      return
-    }
-
     await createMutation.mutateAsync(
       {
         leadType: form.leadType,
         sellerLeadId: form.leadType === "seller" ? form.leadId : undefined,
         buyerLeadId: form.leadType === "buyer" ? form.leadId : undefined,
-        assigneeUserId: currentUserId,
+        assigneeUserId: currentUserId ?? "",
         dueAt: form.dueAt!.toISOString(),
         note: form.note,
       },
@@ -903,7 +896,7 @@ export function FollowUpsScreen() {
                       <Button type="button" variant="outline" onClick={handleCreateClose}>
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={!canAssignToCurrentUser}>
+                      <Button type="submit">
                         Create Follow-Up
                       </Button>
                     </div>
@@ -933,7 +926,6 @@ export function FollowUpsScreen() {
                       type="button"
                       pending={createMutation.isPending}
                       pendingLabel="Creating..."
-                      disabled={!canAssignToCurrentUser}
                       onClick={handleCreateConfirm}
                     >
                       Yes, Create
@@ -1002,7 +994,6 @@ export function FollowUpsScreen() {
                       }
                     />
                   </Field>
-                  <ActivityHistoryPanel entityType="follow_up" entityId={completeTarget.id} />
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setCompleteTarget(null)}>
@@ -1099,7 +1090,6 @@ function EditFollowUpDialogForm({
             required
           />
         </Field>
-        <ActivityHistoryPanel entityType="follow_up" entityId={followUp.id} />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel
@@ -1186,7 +1176,6 @@ function RescheduleFollowUpDialogForm({
             placeholder="Select new date & time"
           />
         </Field>
-        <ActivityHistoryPanel entityType="follow_up" entityId={followUp.id} />
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
             Cancel

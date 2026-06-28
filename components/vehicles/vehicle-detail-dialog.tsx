@@ -9,11 +9,10 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
-import type { Vehicle } from "@/types/vehicles"
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
-import { getVehicleStatusBadgeVariant } from "./vehicles.helpers"
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import type { Vehicle } from "@/types/vehicles";
+import { getVehicleStatusBadgeVariant } from "./vehicles.helpers";
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -167,10 +166,6 @@ export function VehicleDetailDialog({
               </p>
             )}
           </div>
-
-          <Separator />
-
-          <ActivityHistoryPanel entityType="vehicle" entityId={vehicle.id} />
         </div>
       </DialogContent>
     </Dialog>

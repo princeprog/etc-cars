@@ -11,12 +11,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
-import { useSaleQuery } from "@/hooks/queries/sales/use-sale-query"
-import { getApiErrorMessage } from "@/types/api"
-import type { SaleWithDetails } from "@/types/sales"
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { useSaleQuery } from "@/hooks/queries/sales/use-sale-query";
+import { getApiErrorMessage } from "@/types/api";
+import type { SaleWithDetails } from "@/types/sales";
 
 function formatMoney(value?: string | null) {
   if (!value) {
@@ -237,10 +236,6 @@ export function SaleDetailDialog({
                   </div>
                 </div>
               </div>
-
-              <Separator />
-
-              <ActivityHistoryPanel entityType="sale" entityId={sale.id} />
             </div>
           </>
         ) : null}

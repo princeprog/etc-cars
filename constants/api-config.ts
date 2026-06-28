@@ -50,11 +50,6 @@ export const API_ENDPOINTS = {
     byId: (id: string) => `/follow-ups/${id}`,
     complete: (id: string) => `/follow-ups/${id}/complete`,
   },
-  activityHistory: {
-    root: "/activity-history",
-    byEntity: (entityType: string, entityId: string, limit?: number) =>
-      `/activity-history/${entityType}/${entityId}${limit ? `?limit=${limit}` : ""}`,
-  },
   sales: {
     root: "/sales",
     summary: "/sales/summary",

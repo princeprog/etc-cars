@@ -1,11 +1,13 @@
 "use client"
 
-import { TriangleAlertIcon } from "lucide-react"
+import Link from "next/link"
+import { ClipboardListIcon, TriangleAlertIcon } from "lucide-react"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { DashboardQueuePanels } from "@/components/dashboard-queue-panels"
 import { SectionCards } from "@/components/section-cards"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { useDashboardQuery } from "@/hooks/queries/dashboard/use-dashboard-query"
 
@@ -18,12 +20,21 @@ export function DashboardScreen() {
     <AuthenticatedAppShell title="Dashboard">
       <div className="@container/main flex flex-1 flex-col gap-6 py-4 md:py-6">
         <section className="px-4 lg:px-6">
-          <div className="max-w-3xl space-y-2">
-            <p className="text-sm font-medium text-primary">Operations Overview</p>
-            <h2 className="text-2xl font-semibold tracking-tight">Today&apos;s dealership workload</h2>
-            <p className="text-sm text-muted-foreground">
-              Live inventory health, current month sales, overdue follow-ups, and new inquiries.
-            </p>
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-3xl space-y-2">
+              <p className="text-sm font-medium text-primary">Operations Overview</p>
+              <h2 className="text-2xl font-semibold tracking-tight">Today&apos;s dealership workload</h2>
+              <p className="text-sm text-muted-foreground">
+                Live inventory health, current month sales, overdue follow-ups, and new inquiries.
+              </p>
+            </div>
+
+            <Button variant="outline" asChild className="shrink-0">
+              <Link href="/activity-history">
+                <ClipboardListIcon />
+                Activity Logs
+              </Link>
+            </Button>
           </div>
         </section>
 

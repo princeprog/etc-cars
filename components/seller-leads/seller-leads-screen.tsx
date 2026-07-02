@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { format, formatDistanceToNow } from "date-fns"
 import {
+  AlertTriangleIcon,
+  Clock3Icon,
   EyeIcon,
   MoreHorizontalIcon,
   PencilIcon,
@@ -16,6 +17,7 @@ import {
 import { toast } from "sonner"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
 import { ListPagination } from "@/components/operations/list-pagination"
@@ -71,7 +73,6 @@ import {
 } from "@/hooks/mutations/seller-leads/use-seller-lead-estimated-cost-mutations"
 import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation"
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useSellerLeadQuery } from "@/hooks/queries/seller-leads/use-seller-lead-query"
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query"
 import { getApiErrorMessage } from "@/types/api"
 import {
@@ -188,7 +189,7 @@ function mapInspectionFindings(findings: SellerLeadInspectionFindings | null | u
   return next
 }
 
-function getSellerLeadFormValues(lead: SellerLead): SellerLeadFormValues {
+export function getSellerLeadFormValues(lead: SellerLead): SellerLeadFormValues {
   return {
     sellerName: lead.sellerName,
     contactNumber: lead.contactNumber,
@@ -245,7 +246,7 @@ function parseSellerLeadPayload(values: SellerLeadFormValues, assigneeUserId: st
   }
 }
 
-function parseUpdateSellerLeadPayload(values: SellerLeadFormValues): UpdateSellerLeadPayload {
+export function parseUpdateSellerLeadPayload(values: SellerLeadFormValues): UpdateSellerLeadPayload {
   return {
     sellerName: values.sellerName,
     contactNumber: values.contactNumber,
@@ -292,6 +293,112 @@ function buildConvertVehicleHref(lead: SellerLead) {
   if (lead.notes) params.set("notes", lead.notes)
 
   return `/vehicles/new?${params.toString()}`
+}
+
+function getSellerLeadStage(status: SellerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "Intake"
+    case "Contacted":
+      return "Qualified Seller"
+    case "Inspection Scheduled":
+      return "Inspection Queue"
+    case "Evaluated":
+      return "Financial Review"
+    case "Negotiating":
+      return "Negotiation"
+    case "Approved to Buy":
+      return "Approved"
+    case "Purchased":
+      return "Converted"
+    case "Rejected":
+      return "Closed Lost"
+    default:
+      return "Pipeline"
+  }
+}
+
+function getSellerLeadNextAction(lead: SellerLead) {
+  if (lead.status === "Purchased" || lead.status === "Rejected") {
+    return "No immediate action"
+  }
+
+  if (lead.status === "New Inquiry") {
+    return "Make first contact"
+  }
+
+  if (!lead.inspectionCompletedAt && lead.status !== "Contacted") {
+    return "Schedule or complete inspection"
+  }
+
+  if (!lead.decision) {
+    return "Lock buy decision"
+  }
+
+  if (lead.status === "Approved to Buy") {
+    return "Convert to vehicle"
+  }
+
+  return lead.recommendedAction ? `${lead.recommendedAction} with seller` : "Review acquisition economics"
+}
+
+function getSellerLeadNextActionCta(lead: SellerLead) {
+  if (lead.status === "Approved to Buy") {
+    return {
+      label: "Convert to Vehicle",
+      helper: "Move this approved deal into inventory.",
+      action: "convert" as const,
+    }
+  }
+
+  if (lead.status === "Purchased" || lead.status === "Rejected") {
+    return {
+      label: "View Evaluation",
+      helper: "Review the completed acquisition record.",
+      action: "evaluate" as const,
+    }
+  }
+
+  return {
+    label: "Open Evaluation",
+    helper: "Continue inspection, pricing, or decision work.",
+    action: "evaluate" as const,
+  }
+}
+
+function isSellerLeadStale(lead: SellerLead) {
+  const activityAt = lead.latestActivityAt ?? lead.updatedAt
+  const ageMs = Date.now() - new Date(activityAt).getTime()
+  const staleDays = lead.status === "New Inquiry" ? 2 : 5
+  return ageMs > staleDays * 24 * 60 * 60 * 1000 && lead.status !== "Purchased" && lead.status !== "Rejected"
+}
+
+function getSellerLeadBlocker(lead: SellerLead) {
+  if (!lead.inspectionCompletedAt && lead.status !== "New Inquiry" && lead.status !== "Rejected") {
+    return "Inspection details are still incomplete."
+  }
+
+  if (!lead.decision && lead.status !== "New Inquiry" && lead.status !== "Contacted") {
+    return "A buy decision has not been locked yet."
+  }
+
+  if (lead.status === "Approved to Buy" && !lead.approvedToBuyAt) {
+    return "This lead is marked approved but does not have approval timing recorded."
+  }
+
+  return null
+}
+
+function getSellerLeadWarning(lead: SellerLead) {
+  if (isSellerLeadStale(lead)) {
+    return "This seller lead has gone stale and should be reviewed before the opportunity cools off."
+  }
+
+  if (lead.recommendedAction === "Walk Away") {
+    return "The current economics suggest walking away unless new information changes the deal."
+  }
+
+  return null
 }
 
 function getSellerLeadStatusBadgeVariant(status: SellerLeadStatus): "default" | "secondary" | "outline" | "destructive" {
@@ -452,7 +559,7 @@ function SellerLeadForm({
   )
 }
 
-function AcquisitionEvaluationForm({
+export function AcquisitionEvaluationForm({
   values,
   onChange,
 }: {
@@ -567,7 +674,7 @@ function AcquisitionEvaluationForm({
   )
 }
 
-function EstimatedCostsCard({ leadId, lead }: { leadId: string; lead: SellerLead }) {
+export function EstimatedCostsCard({ leadId, lead }: { leadId: string; lead: SellerLead }) {
   const createMutation = useCreateSellerLeadEstimatedCostMutation()
   const deleteMutation = useDeleteSellerLeadEstimatedCostMutation()
   const [category, setCategory] = React.useState<SellerLeadEstimatedCostCategory>("repair")
@@ -723,115 +830,6 @@ function AcquisitionSummaryCard({ lead }: { lead: SellerLead }) {
   )
 }
 
-function EditSellerLeadDialogForm({
-  leadId,
-  mutation,
-  onClose,
-}: {
-  leadId: string
-  mutation: ReturnType<typeof useUpdateSellerLeadMutation>
-  onClose?: () => void
-}) {
-  const leadQuery = useSellerLeadQuery(leadId)
-  const lead = leadQuery.data?.sellerLead
-  const [values, setValues] = React.useState<SellerLeadFormValues | null>(null)
-
-  React.useEffect(() => {
-    if (lead) {
-      setValues(getSellerLeadFormValues(lead))
-    }
-  }, [lead])
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!values) return
-
-    await mutation.mutateAsync(
-      {
-        id: leadId,
-        payload: parseUpdateSellerLeadPayload(values),
-      },
-      {
-        onSuccess: () => {
-          toast.success("Seller lead updated")
-        },
-      },
-    )
-  }
-
-  if (leadQuery.isPending || !lead || !values) {
-    return (
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-foreground">Loading seller lead</h3>
-          <p className="text-sm text-muted-foreground">Preparing the acquisition evaluation workspace.</p>
-        </div>
-        <ModuleLoadingState label="Loading seller lead" />
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1">
-        <h3 className="text-lg font-semibold text-foreground">Edit Seller Lead</h3>
-        <p className="text-sm text-muted-foreground">
-          Review the unit, update the economics, and approve the lead only when the deal is ready.
-        </p>
-      </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <ApiErrorAlert title="Unable to update seller lead" message={getApiErrorMessage(mutation.error ?? leadQuery.error, "")} />
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-          <div className="space-y-6">
-            <SellerLeadForm values={values} onChange={setValues} />
-            <Separator />
-            <AcquisitionEvaluationForm values={values} onChange={setValues} />
-          </div>
-          <div className="space-y-6">
-            <AcquisitionSummaryCard lead={lead} />
-            <Card className="border-border/70 shadow-xs">
-              <CardHeader className="border-b">
-                <CardTitle className="text-base">Workflow</CardTitle>
-                <CardDescription>Approval unlocks conversion into inventory.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-6 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Current status</span>
-                  <Badge variant={getSellerLeadStatusBadgeVariant(lead.status)}>{lead.status}</Badge>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Approved at</span>
-                  <span className="font-medium text-foreground">
-                    {lead.approvedToBuyAt ? format(new Date(lead.approvedToBuyAt), "MMM d, yyyy h:mm a") : "Not approved"}
-                  </span>
-                </div>
-                <p className="rounded-lg border bg-muted/20 px-3 py-3 text-muted-foreground">
-                  Move this lead to <span className="font-medium text-foreground">Approved to Buy</span> when the final buy decision is locked. Only then can it be converted into a vehicle.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          {onClose ? (
-            <Button type="button" variant="outline" onClick={onClose}>
-              Close
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" asChild>
-              <Link href="/seller-leads">Back to seller leads</Link>
-            </Button>
-          )}
-          <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Saving changes">
-            Save Changes
-          </SubmitButton>
-        </div>
-      </form>
-      <EstimatedCostsCard leadId={leadId} lead={lead} />
-    </div>
-  )
-}
-
 export function SellerLeadsScreen() {
   const router = useRouter()
   const authQuery = useAuthenticatedUserQuery()
@@ -860,6 +858,17 @@ export function SellerLeadsScreen() {
   const leads = sellerLeadsQuery.data?.sellerLeads ?? []
   const total = sellerLeadsQuery.data?.total ?? 0
   const totalPages = sellerLeadsQuery.data?.totalPages ?? 1
+
+  function handleNextActionClick(lead: SellerLead) {
+    const cta = getSellerLeadNextActionCta(lead)
+
+    if (cta.action === "convert") {
+      router.push(buildConvertVehicleHref(lead))
+      return
+    }
+
+    router.push(`/seller-leads/${lead.id}`)
+  }
 
   async function handleStatusChange(lead: SellerLead, nextStatus: SellerLeadStatus) {
     if (lead.status === nextStatus) return
@@ -975,6 +984,8 @@ export function SellerLeadsScreen() {
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Investment</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Expected Resale</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Margin</TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Stage</TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Next Action</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Decision</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Approval</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
@@ -984,7 +995,10 @@ export function SellerLeadsScreen() {
                 </TableHeader>
                 <TableBody>
                   {leads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-muted/15">
+                    <TableRow
+                      key={lead.id}
+                      className={isSellerLeadStale(lead) ? "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30" : "hover:bg-muted/15"}
+                    >
                       <TableCell className="px-4 py-3">
                         <div className="space-y-1">
                           <p className="font-medium text-foreground">{lead.sellerName}</p>
@@ -1001,6 +1015,26 @@ export function SellerLeadsScreen() {
                       <TableCell className="px-4 py-3 font-medium tabular-nums">{formatVehicleMoney(lead.estimatedTotalInvestment)}</TableCell>
                       <TableCell className="px-4 py-3 font-medium tabular-nums">{formatVehicleMoney(lead.expectedResalePrice)}</TableCell>
                       <TableCell className="px-4 py-3 font-medium tabular-nums">{formatPercent(lead.estimatedProfitMargin)}</TableCell>
+                      <TableCell className="px-4 py-3">
+                        <Badge variant={getSellerLeadStatusBadgeVariant(lead.status)}>{getSellerLeadStage(lead.status)}</Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">{getSellerLeadNextAction(lead)}</p>
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="h-auto px-0 text-sm"
+                            onClick={() => handleNextActionClick(lead)}
+                          >
+                            {getSellerLeadNextActionCta(lead).label}
+                          </Button>
+                          <p className="text-xs text-muted-foreground">{getSellerLeadNextActionCta(lead).helper}</p>
+                          {getSellerLeadWarning(lead) ? (
+                            <p className="text-xs text-amber-700 dark:text-amber-300">Needs attention</p>
+                          ) : null}
+                        </div>
+                      </TableCell>
                       <TableCell className="px-4 py-3">
                         <Badge variant={getDecisionBadgeVariant(lead.decision)}>{lead.decision ?? "Pending"}</Badge>
                       </TableCell>
@@ -1129,13 +1163,34 @@ export function SellerLeadsScreen() {
                     </CardHeader>
                     <CardContent className="space-y-3 pt-6 text-sm">
                       <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Contact</span><span>{viewLead.contactNumber}</span></div>
-                      <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Status</span><span>{viewLead.status}</span></div>
+                      <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Stage</span><span>{getSellerLeadStage(viewLead.status)}</span></div>
                       <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Assignee</span><span>{getAssigneeLabel(viewLead.assigneeUserId, currentUserId)}</span></div>
                       <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Decision</span><span>{viewLead.decision ?? "Pending"}</span></div>
                       <div className="flex items-center justify-between gap-3"><span className="text-muted-foreground">Recommendation</span><span>{viewLead.recommendedAction ?? "—"}</span></div>
                     </CardContent>
                   </Card>
                   <AcquisitionSummaryCard lead={viewLead} />
+                  </div>
+                  <div className="grid gap-3">
+                    <Alert>
+                      <Clock3Icon className="size-4" />
+                      <AlertTitle>Next action</AlertTitle>
+                      <AlertDescription>{getSellerLeadNextAction(viewLead)}</AlertDescription>
+                    </Alert>
+                    {getSellerLeadBlocker(viewLead) ? (
+                      <Alert variant="destructive">
+                        <AlertTriangleIcon className="size-4" />
+                        <AlertTitle>Blocker</AlertTitle>
+                        <AlertDescription>{getSellerLeadBlocker(viewLead)}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                    {getSellerLeadWarning(viewLead) ? (
+                      <Alert>
+                        <AlertTriangleIcon className="size-4" />
+                        <AlertTitle>Warning</AlertTitle>
+                        <AlertDescription>{getSellerLeadWarning(viewLead)}</AlertDescription>
+                      </Alert>
+                    ) : null}
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</p>

@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
 import { ListPagination } from "@/components/operations/list-pagination"
@@ -79,6 +80,7 @@ import {
 import type { Vehicle } from "@/types/vehicles"
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
 import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
+import { AlertTriangleIcon, Clock3Icon } from "lucide-react"
 
 type BuyerLeadFormValues = {
   buyerName: string
@@ -217,6 +219,134 @@ function getBuyerLeadPreviewLabel(values: BuyerLeadFormValues) {
   }
 }
 
+function getBuyerLeadStage(status: BuyerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "Intake"
+    case "Contacted":
+      return "First Contact"
+    case "Interested":
+      return "Qualified Demand"
+    case "Negotiating":
+      return "Active Deal"
+    case "Reserved":
+      return "Reserved Unit"
+    case "Won":
+      return "Closed Won"
+    case "Lost":
+      return "Closed Lost"
+    default:
+      return "Pipeline"
+  }
+}
+
+function getBuyerLeadNextAction(lead: BuyerLead) {
+  if (lead.status === "Won" || lead.status === "Lost") {
+    return "No immediate action"
+  }
+
+  if (lead.status === "New Inquiry") {
+    return "Make first contact"
+  }
+
+  if (lead.status === "Contacted") {
+    return "Qualify budget and preferences"
+  }
+
+  if (lead.vehicles.length === 0) {
+    return "Link matching vehicles"
+  }
+
+  if (lead.status === "Interested") {
+    return "Present best vehicle options"
+  }
+
+  if (lead.status === "Negotiating") {
+    return "Confirm terms and reserve unit"
+  }
+
+  if (lead.status === "Reserved") {
+    return "Finalize sale workflow"
+  }
+
+  return "Review lead status"
+}
+
+function getBuyerLeadNextActionCta(lead: BuyerLead) {
+  if (lead.status === "Won" || lead.status === "Lost") {
+    return {
+      label: "View Details",
+      helper: "Review the completed lead record.",
+      action: "view" as const,
+    }
+  }
+
+  if (lead.status === "New Inquiry" || lead.status === "Contacted") {
+    return {
+      label: "Update Lead",
+      helper: "Capture contact progress and buyer details.",
+      action: "edit" as const,
+    }
+  }
+
+  if (lead.vehicles.length === 0) {
+    return {
+      label: "Match Vehicles",
+      helper: "Link candidate units for this buyer.",
+      action: "vehicles" as const,
+    }
+  }
+
+  if (lead.status === "Reserved") {
+    return {
+      label: "Finalize Workflow",
+      helper: "Review the record before closing the sale.",
+      action: "view" as const,
+    }
+  }
+
+  return {
+    label: "Open Lead",
+    helper: "Review status, notes, and linked units.",
+    action: "view" as const,
+  }
+}
+
+function isBuyerLeadStale(lead: BuyerLead) {
+  const activityAt = lead.latestActivityAt ?? lead.updatedAt
+  const ageMs = Date.now() - new Date(activityAt).getTime()
+  const staleDays = lead.status === "New Inquiry" ? 2 : 5
+  return ageMs > staleDays * 24 * 60 * 60 * 1000 && lead.status !== "Won" && lead.status !== "Lost"
+}
+
+function getBuyerLeadBlocker(lead: BuyerLead) {
+  if (lead.status === "New Inquiry") {
+    return "The inquiry has not been contacted yet."
+  }
+
+  if (lead.vehicles.length === 0 && lead.status !== "Lost" && lead.status !== "Won") {
+    return "No candidate vehicle is linked yet."
+  }
+
+  if (lead.status === "Reserved") {
+    return "The reserved unit still needs to be finalized into a sale."
+  }
+
+  return null
+}
+
+function getBuyerLeadWarning(lead: BuyerLead) {
+  if (isBuyerLeadStale(lead)) {
+    return "This lead has gone stale and needs attention before it drops further."
+  }
+
+  if (lead.status === "Negotiating") {
+    return "Negotiation is active. Keep follow-ups tight so the buyer does not cool off."
+  }
+
+  return null
+}
+
 function BuyerLeadForm({
   values,
   onChange,
@@ -337,6 +467,22 @@ export function BuyerLeadsScreen() {
   const availableVehicles = vehiclesQuery.data?.vehicles ?? []
   const createPreview = getBuyerLeadPreviewLabel(createForm)
 
+  function handleNextActionClick(lead: BuyerLead) {
+    const cta = getBuyerLeadNextActionCta(lead)
+
+    if (cta.action === "edit") {
+      setEditLead(lead)
+      return
+    }
+
+    if (cta.action === "vehicles") {
+      setManageVehiclesLead(lead)
+      return
+    }
+
+    setViewLead(lead)
+  }
+
   async function handleStatusChange(lead: BuyerLead, nextStatus: BuyerLeadStatus) {
     if (lead.status === nextStatus) {
       return
@@ -449,7 +595,8 @@ export function BuyerLeadsScreen() {
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Buyer</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Contact</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Budget</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Stage</TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Next Action</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Linked Vehicles</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Assignee</TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">Updated</TableHead>
@@ -458,7 +605,10 @@ export function BuyerLeadsScreen() {
                 </TableHeader>
                 <TableBody>
                   {leads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-muted/15">
+                    <TableRow
+                      key={lead.id}
+                      className={isBuyerLeadStale(lead) ? "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30" : "hover:bg-muted/15"}
+                    >
                       <TableCell className="px-4 py-3">
                         <div className="space-y-1">
                           <p className="font-medium text-foreground">{lead.buyerName}</p>
@@ -472,8 +622,25 @@ export function BuyerLeadsScreen() {
                           variant={getBuyerLeadStatusBadgeVariant(lead.status)}
                           className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(lead.status)}`}
                         >
-                          {lead.status}
+                          {getBuyerLeadStage(lead.status)}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">{getBuyerLeadNextAction(lead)}</p>
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="h-auto px-0 text-sm"
+                            onClick={() => handleNextActionClick(lead)}
+                          >
+                            {getBuyerLeadNextActionCta(lead).label}
+                          </Button>
+                          <p className="text-xs text-muted-foreground">{getBuyerLeadNextActionCta(lead).helper}</p>
+                          {getBuyerLeadWarning(lead) ? (
+                            <p className="text-xs text-amber-700 dark:text-amber-300">Needs follow-up</p>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell className="px-4 py-3">
                         <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground">
@@ -642,15 +809,36 @@ export function BuyerLeadsScreen() {
                   <DialogTitle>{viewLead.buyerName}</DialogTitle>
                   <DialogDescription>{viewLead.contactNumber}</DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-6">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-6">
+                    <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Desired Budget</p><p className="text-sm text-foreground">{formatVehicleMoney(viewLead.desiredBudget)}</p></div>
-                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p><p className="text-sm text-foreground">{viewLead.status}</p></div>
+                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Stage</p><p className="text-sm text-foreground">{getBuyerLeadStage(viewLead.status)}</p></div>
                     <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Assignee</p><p className="text-sm text-foreground">{getAssigneeLabel(viewLead.assigneeUserId, currentUserId)}</p></div>
                     <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Vehicles</p><p className="text-sm text-foreground">{viewLead.vehicles.length}</p></div>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Vehicle Matches</p>
+                    </div>
+                    <div className="grid gap-3">
+                      <Alert>
+                        <Clock3Icon className="size-4" />
+                        <AlertTitle>Next action</AlertTitle>
+                        <AlertDescription>{getBuyerLeadNextAction(viewLead)}</AlertDescription>
+                      </Alert>
+                      {getBuyerLeadBlocker(viewLead) ? (
+                        <Alert variant="destructive">
+                          <AlertTriangleIcon className="size-4" />
+                          <AlertTitle>Blocker</AlertTitle>
+                          <AlertDescription>{getBuyerLeadBlocker(viewLead)}</AlertDescription>
+                        </Alert>
+                      ) : null}
+                      {getBuyerLeadWarning(viewLead) ? (
+                        <Alert>
+                          <AlertTriangleIcon className="size-4" />
+                          <AlertTitle>Warning</AlertTitle>
+                          <AlertDescription>{getBuyerLeadWarning(viewLead)}</AlertDescription>
+                        </Alert>
+                      ) : null}
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Vehicle Matches</p>
                     {viewLead.vehicles.length ? (
                       <div className="space-y-2">
                         {viewLead.vehicles.map((vehicle) => (

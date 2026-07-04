@@ -1,4 +1,5 @@
 import type { PaginatedResponseMeta } from "@/types/api"
+import type { LeadPipelineState } from "@/types/lead-pipeline"
 
 export const SELLER_LEAD_STATUSES = [
   "New Inquiry",
@@ -94,6 +95,7 @@ export interface SellerLead {
   estimatedGrossProfit: string | null
   estimatedProfitMargin: string | null
   recommendedAction: SellerLeadDecision | null
+  pipeline?: LeadPipelineState | null
   createdAt: string
   updatedAt: string
 }

@@ -14,7 +14,6 @@ import {
 import { toast } from "sonner"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
 import { ListPagination } from "@/components/operations/list-pagination"
@@ -68,6 +67,8 @@ import { useUpdateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-up
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
+import { LeadPipelineSummary } from "@/components/operations/lead-pipeline-summary"
+import { buildBuyerLeadPipelineState } from "@/services/lead-pipeline"
 import { getApiErrorMessage } from "@/types/api"
 import {
   BUYER_LEAD_STATUSES,
@@ -80,7 +81,6 @@ import {
 import type { Vehicle } from "@/types/vehicles"
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
 import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
-import { AlertTriangleIcon, Clock3Icon } from "lucide-react"
 
 type BuyerLeadFormValues = {
   buyerName: string
@@ -219,60 +219,9 @@ function getBuyerLeadPreviewLabel(values: BuyerLeadFormValues) {
   }
 }
 
-function getBuyerLeadStage(status: BuyerLeadStatus) {
-  switch (status) {
-    case "New Inquiry":
-      return "Intake"
-    case "Contacted":
-      return "First Contact"
-    case "Interested":
-      return "Qualified Demand"
-    case "Negotiating":
-      return "Active Deal"
-    case "Reserved":
-      return "Reserved Unit"
-    case "Won":
-      return "Closed Won"
-    case "Lost":
-      return "Closed Lost"
-    default:
-      return "Pipeline"
-  }
-}
-
-function getBuyerLeadNextAction(lead: BuyerLead) {
-  if (lead.status === "Won" || lead.status === "Lost") {
-    return "No immediate action"
-  }
-
-  if (lead.status === "New Inquiry") {
-    return "Make first contact"
-  }
-
-  if (lead.status === "Contacted") {
-    return "Qualify budget and preferences"
-  }
-
-  if (lead.vehicles.length === 0) {
-    return "Link matching vehicles"
-  }
-
-  if (lead.status === "Interested") {
-    return "Present best vehicle options"
-  }
-
-  if (lead.status === "Negotiating") {
-    return "Confirm terms and reserve unit"
-  }
-
-  if (lead.status === "Reserved") {
-    return "Finalize sale workflow"
-  }
-
-  return "Review lead status"
-}
-
 function getBuyerLeadNextActionCta(lead: BuyerLead) {
+  const pipeline = buildBuyerLeadPipelineState(lead)
+
   if (lead.status === "Won" || lead.status === "Lost") {
     return {
       label: "View Details",
@@ -289,7 +238,7 @@ function getBuyerLeadNextActionCta(lead: BuyerLead) {
     }
   }
 
-  if (lead.vehicles.length === 0) {
+  if (pipeline.nextAction?.target === "vehicle_link") {
     return {
       label: "Match Vehicles",
       helper: "Link candidate units for this buyer.",
@@ -297,7 +246,7 @@ function getBuyerLeadNextActionCta(lead: BuyerLead) {
     }
   }
 
-  if (lead.status === "Reserved") {
+  if (pipeline.nextAction?.target === "sale_finalization") {
     return {
       label: "Finalize Workflow",
       helper: "Review the record before closing the sale.",
@@ -310,41 +259,6 @@ function getBuyerLeadNextActionCta(lead: BuyerLead) {
     helper: "Review status, notes, and linked units.",
     action: "view" as const,
   }
-}
-
-function isBuyerLeadStale(lead: BuyerLead) {
-  const activityAt = lead.latestActivityAt ?? lead.updatedAt
-  const ageMs = Date.now() - new Date(activityAt).getTime()
-  const staleDays = lead.status === "New Inquiry" ? 2 : 5
-  return ageMs > staleDays * 24 * 60 * 60 * 1000 && lead.status !== "Won" && lead.status !== "Lost"
-}
-
-function getBuyerLeadBlocker(lead: BuyerLead) {
-  if (lead.status === "New Inquiry") {
-    return "The inquiry has not been contacted yet."
-  }
-
-  if (lead.vehicles.length === 0 && lead.status !== "Lost" && lead.status !== "Won") {
-    return "No candidate vehicle is linked yet."
-  }
-
-  if (lead.status === "Reserved") {
-    return "The reserved unit still needs to be finalized into a sale."
-  }
-
-  return null
-}
-
-function getBuyerLeadWarning(lead: BuyerLead) {
-  if (isBuyerLeadStale(lead)) {
-    return "This lead has gone stale and needs attention before it drops further."
-  }
-
-  if (lead.status === "Negotiating") {
-    return "Negotiation is active. Keep follow-ups tight so the buyer does not cool off."
-  }
-
-  return null
 }
 
 function BuyerLeadForm({
@@ -604,10 +518,14 @@ export function BuyerLeadsScreen() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leads.map((lead) => (
+                  {leads.map((lead) => {
+                    const pipeline = buildBuyerLeadPipelineState(lead)
+                    const nextActionCta = getBuyerLeadNextActionCta(lead)
+
+                    return (
                     <TableRow
                       key={lead.id}
-                      className={isBuyerLeadStale(lead) ? "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30" : "hover:bg-muted/15"}
+                      className={pipeline.isStale ? "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30" : "hover:bg-muted/15"}
                     >
                       <TableCell className="px-4 py-3">
                         <div className="space-y-1">
@@ -622,23 +540,28 @@ export function BuyerLeadsScreen() {
                           variant={getBuyerLeadStatusBadgeVariant(lead.status)}
                           className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(lead.status)}`}
                         >
-                          {getBuyerLeadStage(lead.status)}
+                          {pipeline.stageLabel}
                         </Badge>
                       </TableCell>
                       <TableCell className="px-4 py-3">
                         <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{getBuyerLeadNextAction(lead)}</p>
+                          {pipeline.nextAction?.label !== nextActionCta.label ? (
+                            <p className="text-sm font-medium text-foreground">{pipeline.nextAction?.label ?? "No immediate action"}</p>
+                          ) : null}
                           <Button
                             type="button"
                             variant="link"
                             className="h-auto px-0 text-sm"
                             onClick={() => handleNextActionClick(lead)}
                           >
-                            {getBuyerLeadNextActionCta(lead).label}
+                            {nextActionCta.label}
                           </Button>
-                          <p className="text-xs text-muted-foreground">{getBuyerLeadNextActionCta(lead).helper}</p>
-                          {getBuyerLeadWarning(lead) ? (
-                            <p className="text-xs text-amber-700 dark:text-amber-300">Needs follow-up</p>
+                          <p className="text-xs text-muted-foreground">{nextActionCta.helper}</p>
+                          {pipeline.blockers[0] ? (
+                            <p className="text-xs text-rose-700 dark:text-rose-300">{pipeline.blockers[0].label}</p>
+                          ) : null}
+                          {pipeline.warnings[0] ? (
+                            <p className="text-xs text-amber-700 dark:text-amber-300">{pipeline.warnings[0].label}</p>
                           ) : null}
                         </div>
                       </TableCell>
@@ -700,7 +623,8 @@ export function BuyerLeadsScreen() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    )
+                  })}
                 </TableBody>
               </Table>
             ) : (
@@ -812,31 +736,11 @@ export function BuyerLeadsScreen() {
                   <div className="grid gap-6">
                     <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Desired Budget</p><p className="text-sm text-foreground">{formatVehicleMoney(viewLead.desiredBudget)}</p></div>
-                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Stage</p><p className="text-sm text-foreground">{getBuyerLeadStage(viewLead.status)}</p></div>
+                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Stage</p><p className="text-sm text-foreground">{buildBuyerLeadPipelineState(viewLead).stageLabel}</p></div>
                     <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Assignee</p><p className="text-sm text-foreground">{getAssigneeLabel(viewLead.assigneeUserId, currentUserId)}</p></div>
                     <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Vehicles</p><p className="text-sm text-foreground">{viewLead.vehicles.length}</p></div>
                     </div>
-                    <div className="grid gap-3">
-                      <Alert>
-                        <Clock3Icon className="size-4" />
-                        <AlertTitle>Next action</AlertTitle>
-                        <AlertDescription>{getBuyerLeadNextAction(viewLead)}</AlertDescription>
-                      </Alert>
-                      {getBuyerLeadBlocker(viewLead) ? (
-                        <Alert variant="destructive">
-                          <AlertTriangleIcon className="size-4" />
-                          <AlertTitle>Blocker</AlertTitle>
-                          <AlertDescription>{getBuyerLeadBlocker(viewLead)}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                      {getBuyerLeadWarning(viewLead) ? (
-                        <Alert>
-                          <AlertTriangleIcon className="size-4" />
-                          <AlertTitle>Warning</AlertTitle>
-                          <AlertDescription>{getBuyerLeadWarning(viewLead)}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                    </div>
+                    <LeadPipelineSummary pipeline={buildBuyerLeadPipelineState(viewLead)} />
                     <div className="space-y-2">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Vehicle Matches</p>
                     {viewLead.vehicles.length ? (

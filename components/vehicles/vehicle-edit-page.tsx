@@ -33,6 +33,7 @@ import {
   type VehicleFormValues,
 } from "./vehicles.helpers";
 import { VehicleForm } from "./vehicle-form";
+import { VehicleQualityPanel } from "./vehicle-quality-panel";
 import { VehicleTrackedCostsCard } from "./vehicle-tracked-costs-card";
 
 function ReadinessItem({
@@ -184,9 +185,15 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
       </div>
 
       <div className="space-y-4">
+        <VehicleQualityPanel
+          quality={vehicle.qualityScore}
+          status={vehicle.status}
+          className="border-border/70 shadow-xs"
+        />
+
         <Card className="border-border/70 shadow-xs">
           <CardHeader>
-            <CardTitle className="text-base">Inventory Readiness</CardTitle>
+            <CardTitle className="text-base">Available eligibility</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <ReadinessItem

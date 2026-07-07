@@ -1,3 +1,23 @@
+import type {
+  VehicleQualityGrade,
+  VehicleQualityIssueSeverity,
+} from "./vehicles"
+
+export interface DashboardInventoryQualityIssue {
+  code: string
+  label: string
+  severity: VehicleQualityIssueSeverity
+  count: number
+}
+
+export interface DashboardInventoryQuality {
+  averageScore: number
+  totalActiveVehicles: number
+  gradeCounts: Record<VehicleQualityGrade, number>
+  topIssues: DashboardInventoryQualityIssue[]
+  lastEvaluatedAt: string
+}
+
 export interface DashboardMetrics {
   availableVehicles: number
   reservedVehicles: number
@@ -5,6 +25,7 @@ export interface DashboardMetrics {
   monthlySales: number
   monthlyRevenue: string
   monthlyProfit: string
+  inventoryQuality: DashboardInventoryQuality
 }
 
 export interface DashboardFollowUpQueueItem {

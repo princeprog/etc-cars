@@ -4,7 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { CheckCircle2Icon, CircleIcon, InfoIcon } from "lucide-react"
+import { InfoIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
@@ -14,39 +14,18 @@ import { resolveApiAssetUrl } from "@/constants/api-config"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { useConvertSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-convert-seller-lead-mutation"
 import { useCreateVehicleMutation } from "@/hooks/mutations/vehicles/use-create-vehicle-mutation"
 import { getApiErrorMessage } from "@/types/api"
 import type { VehicleStatus } from "@/types/vehicles"
-import { buildCreateVehiclePayload, getEmptyVehicleFormValues, type VehicleFormValues } from "./vehicles.helpers"
+import {
+  buildCreateVehiclePayload,
+  getEmptyVehicleFormValues,
+  previewQualityFromFormValues,
+  type VehicleFormValues,
+} from "./vehicles.helpers"
 import { VehicleForm } from "./vehicle-form"
-
-function ReadinessItem({
-  complete,
-  title,
-  description,
-}: {
-  complete: boolean
-  title: string
-  description: string
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="mt-0.5 shrink-0 text-muted-foreground">
-        {complete ? (
-          <CheckCircle2Icon className="size-4 text-emerald-600" />
-        ) : (
-          <CircleIcon className="size-4" />
-        )}
-      </span>
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  )
-}
+import { VehicleQualityPanel } from "./vehicle-quality-panel"
 
 type VehicleCreatePageSearchParams = Record<string, string | string[] | undefined>
 
@@ -114,11 +93,15 @@ function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreat
   const isSellerLeadConversion = Boolean(conversionDefaults.sellerLeadId)
   const [values, setValues] = React.useState<VehicleFormValues>(conversionDefaults.values)
 
-  const hasTargetPrice = Boolean(values.targetSellingPrice.trim())
-  const hasMinimumPrice = Boolean(values.minimumAcceptablePrice.trim())
-  const hasPhoto = values.photos.length > 0
-  const eligibleForAvailable = hasTargetPrice && hasMinimumPrice && hasPhoto
   const previewPhoto = values.photos[0]
+  const livePreviewQuality = React.useMemo(
+    () =>
+      previewQualityFromFormValues(values, {
+        stockNumberPlaceholder: true,
+        sellerLeadId: conversionDefaults.sellerLeadId,
+      }),
+    [values, conversionDefaults.sellerLeadId],
+  )
   const brandModelLabel = [values.brand || "Brand", values.model || "Model"].join(" ")
   const stockNumberPreview = "Generated automatically"
 
@@ -212,36 +195,11 @@ function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreat
           </Card>
 
           <div className="space-y-4">
-            <Card className="border-border/70 shadow-xs">
-              <CardHeader>
-                <CardTitle className="text-base">Inventory Readiness</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ReadinessItem
-                  complete={hasTargetPrice}
-                  title="Target selling price added"
-                  description="Required to set pricing expectations."
-                />
-                <Separator />
-                <ReadinessItem
-                  complete={hasMinimumPrice}
-                  title="Minimum acceptable price added"
-                  description="Helps define negotiation limits."
-                />
-                <Separator />
-                <ReadinessItem
-                  complete={hasPhoto}
-                  title="At least one photo added"
-                  description="Include at least one exterior shot."
-                />
-                <Separator />
-                <ReadinessItem
-                  complete={eligibleForAvailable}
-                  title="Eligible for Available status"
-                  description="Complete all requirements before marking the unit available."
-                />
-              </CardContent>
-            </Card>
+            <VehicleQualityPanel
+              quality={livePreviewQuality}
+              status={values.status}
+              className="border-border/70 shadow-xs"
+            />
 
             <Card className="border-border/70 shadow-xs">
               <CardContent className="space-y-3 p-4">

@@ -1,5 +1,7 @@
 import type { CreateVehiclePayload, UpdateVehiclePayload, Vehicle, VehicleStatus } from "@/types/vehicles"
 
+import { previewVehicleQuality } from "./vehicle-quality-evaluator"
+
 export const VEHICLE_FILTERS = [
   { label: "All Vehicles", value: "all" },
   { label: "Available", value: "Available" },
@@ -161,6 +163,38 @@ export function getVehicleStatusBadgeVariant(status: VehicleStatus): "default" |
     default:
       return "outline"
   }
+}
+
+export function previewQualityFromFormValues(values: VehicleFormValues, options?: {
+  stockNumberPlaceholder?: boolean
+  trackedCostsCount?: number
+  sellerLeadId?: string | null
+}) {
+  const yearNumber = Number(values.year)
+  const mileageNumber = Number(values.mileage)
+
+  return previewVehicleQuality({
+    stockNumber: options?.stockNumberPlaceholder ? "preview" : null,
+    brand: values.brand,
+    model: values.model,
+    year: Number.isFinite(yearNumber) && yearNumber > 0 ? yearNumber : null,
+    variant: values.variant,
+    mileage:
+      values.mileage && Number.isFinite(mileageNumber) && mileageNumber >= 0
+        ? mileageNumber
+        : null,
+    transmission: values.transmission,
+    fuelType: values.fuelType,
+    color: values.color,
+    purchasePrice: values.purchasePrice || null,
+    targetSellingPrice: values.targetSellingPrice || null,
+    minimumAcceptablePrice: values.minimumAcceptablePrice || null,
+    sellerLeadId: options?.sellerLeadId ?? null,
+    status: values.status,
+    photoCount: values.photos.length,
+    trackedCostsCount: options?.trackedCostsCount ?? 0,
+    createdAt: new Date(),
+  })
 }
 
 export function getVehicleStatusClassName(status: VehicleStatus) {

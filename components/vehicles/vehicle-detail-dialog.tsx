@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import type { Vehicle } from "@/types/vehicles"
 import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
 import { getVehicleStatusBadgeVariant } from "./vehicles.helpers"
+import { VehicleQualityPanel } from "./vehicle-quality-panel"
 
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
@@ -61,6 +62,11 @@ export function VehicleDetailDialog({
         </DialogHeader>
 
         <div className="grid gap-6">
+          <VehicleQualityPanel
+            quality={vehicle.qualityScore}
+            status={vehicle.status}
+          />
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <DetailRow
               label="Target price"

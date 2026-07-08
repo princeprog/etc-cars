@@ -41,11 +41,13 @@ import {
   getVehicleStatusBadgeVariant,
   getVehicleStatusClassName,
 } from "./vehicles.helpers"
+import { VehicleQualityBadge } from "./vehicle-quality-badge"
 
 export type VisibleVehicleColumns = {
   stockNumber: boolean
   year: boolean
   status: boolean
+  quality: boolean
   targetPrice: boolean
   minimumPrice: boolean
   mileage: boolean
@@ -57,6 +59,7 @@ export const DEFAULT_VISIBLE_VEHICLE_COLUMNS: VisibleVehicleColumns = {
   stockNumber: true,
   year: true,
   status: true,
+  quality: true,
   targetPrice: true,
   minimumPrice: true,
   mileage: true,
@@ -92,6 +95,13 @@ export const VEHICLE_COLUMN_OPTIONS: VehicleColumnOption[] = [
     key: "status",
     label: "Status",
     description: "Operational availability and sale readiness.",
+    toggleable: true,
+  },
+  {
+    id: "quality",
+    key: "quality",
+    label: "Quality",
+    description: "Inventory readiness score and grade.",
     toggleable: true,
   },
   {
@@ -225,6 +235,9 @@ export function VehiclesTable({
           {visibleColumns.status ? (
             <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
           ) : null}
+          {visibleColumns.quality ? (
+            <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">Quality</TableHead>
+          ) : null}
           {visibleColumns.targetPrice ? (
             <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">Target Price</TableHead>
           ) : null}
@@ -307,6 +320,11 @@ export function VehiclesTable({
                 >
                   {vehicle.status}
                 </Badge>
+              </TableCell>
+            ) : null}
+            {visibleColumns.quality ? (
+              <TableCell className="px-4 py-3">
+                <VehicleQualityBadge quality={vehicle.qualityScore} />
               </TableCell>
             ) : null}
             {visibleColumns.targetPrice ? (

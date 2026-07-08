@@ -34,6 +34,34 @@ export interface VehiclePhoto {
   sortOrder?: number;
 }
 
+export const VEHICLE_QUALITY_GRADES = [
+  "excellent",
+  "good",
+  "needs_attention",
+  "incomplete",
+] as const;
+
+export type VehicleQualityGrade = (typeof VEHICLE_QUALITY_GRADES)[number];
+
+export type VehicleQualityIssueSeverity = "critical" | "warning" | "info";
+
+export interface VehicleQualityIssue {
+  code: string;
+  label: string;
+  description: string;
+  severity: VehicleQualityIssueSeverity;
+  field?: string;
+}
+
+export interface VehicleQualityScore {
+  score: number;
+  grade: VehicleQualityGrade;
+  blockingIssues: VehicleQualityIssue[];
+  warnings: VehicleQualityIssue[];
+  suggestions: VehicleQualityIssue[];
+  lastEvaluatedAt: string;
+}
+
 export interface Vehicle {
   id: string;
   stockNumber: string;
@@ -57,6 +85,7 @@ export interface Vehicle {
   photos: VehiclePhoto[];
   trackedCosts: VehicleTrackedCost[];
   trackedCostsTotal: string;
+  qualityScore: VehicleQualityScore;
   createdAt: string;
   updatedAt: string;
 }

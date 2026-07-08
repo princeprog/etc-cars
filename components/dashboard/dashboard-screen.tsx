@@ -9,6 +9,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Spinner } from "@/components/ui/spinner"
 import { useDashboardQuery } from "@/hooks/queries/dashboard/use-dashboard-query"
 
+import { InventoryQualityWidget } from "./inventory-quality-widget"
+
 export function DashboardScreen() {
   const dashboardQuery = useDashboardQuery()
 
@@ -44,6 +46,11 @@ export function DashboardScreen() {
         ) : (
           <>
             <SectionCards metrics={dashboardQuery.data.metrics} />
+            <section className="px-4 lg:px-6">
+              <InventoryQualityWidget
+                summary={dashboardQuery.data.metrics.inventoryQuality}
+              />
+            </section>
             <DashboardQueuePanels queues={dashboardQuery.data.queues} />
           </>
         )}

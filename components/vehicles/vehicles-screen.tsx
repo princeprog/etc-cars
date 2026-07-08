@@ -26,6 +26,10 @@ import {
   type VehicleFilterValue,
 } from "./vehicles.helpers"
 import {
+  VEHICLE_QUALITY_FILTERS,
+  type VehicleQualityFilterValue,
+} from "./vehicle-quality.helpers"
+import {
   DEFAULT_VISIBLE_VEHICLE_COLUMNS,
   VEHICLE_COLUMN_MANAGER_OPTIONS,
   type VisibleVehicleColumns,
@@ -53,6 +57,7 @@ function getStoredVisibleColumns(): VisibleVehicleColumns {
       stockNumber: parsedValue.stockNumber ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.stockNumber,
       year: parsedValue.year ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.year,
       status: parsedValue.status ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.status,
+      quality: parsedValue.quality ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.quality,
       targetPrice: parsedValue.targetPrice ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.targetPrice,
       minimumPrice: parsedValue.minimumPrice ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.minimumPrice,
       mileage: parsedValue.mileage ?? DEFAULT_VISIBLE_VEHICLE_COLUMNS.mileage,
@@ -69,6 +74,7 @@ export function VehiclesScreen() {
   const vehiclesQuery = useVehiclesQuery()
   const [searchTerm, setSearchTerm] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState<VehicleFilterValue>("all")
+  const [qualityFilter, setQualityFilter] = React.useState<VehicleQualityFilterValue>("all")
   const [page, setPage] = React.useState(1)
   const [viewVehicle, setViewVehicle] = React.useState<Vehicle | null>(null)
   const [visibleColumns, setVisibleColumns] = React.useState<VisibleVehicleColumns>(getStoredVisibleColumns)
@@ -76,7 +82,9 @@ export function VehiclesScreen() {
 
   const vehicles = vehiclesQuery.data?.vehicles ?? []
   const counts = getVehicleStatusCounts(vehicles)
-  const filteredVehicles = filterVehicles(vehicles, searchTerm, activeFilter)
+  const filteredVehicles = filterVehicles(vehicles, searchTerm, activeFilter).filter((vehicle) =>
+    qualityFilter === "all" ? true : vehicle.qualityScore?.grade === qualityFilter,
+  )
   const totalFilteredVehicles = filteredVehicles.length
   const totalPages = Math.max(1, Math.ceil(totalFilteredVehicles / VEHICLES_PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -185,11 +193,27 @@ export function VehiclesScreen() {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={qualityFilter} onValueChange={(value) => {
+                setQualityFilter(value as VehicleQualityFilterValue)
+                setPage(1)
+              }}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <SelectValue placeholder="Filter by quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  {VEHICLE_QUALITY_FILTERS.map((filter) => (
+                    <SelectItem key={filter.value} value={filter.value}>
+                      {filter.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 variant="outline"
                 onClick={() => {
                   setSearchTerm("")
                   setActiveFilter("all")
+                  setQualityFilter("all")
                   setPage(1)
                 }}
               >

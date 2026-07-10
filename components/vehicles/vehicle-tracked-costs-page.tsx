@@ -7,7 +7,6 @@ import {
   DollarSignIcon,
   FileQuestionIcon,
   ReceiptTextIcon,
-  TagsIcon,
   TrendingUpIcon,
 } from "lucide-react"
 
@@ -51,29 +50,18 @@ function parseMoney(value?: string | null) {
   return Number.isFinite(numericValue) ? numericValue : null
 }
 
-function getVehicleProfitability(vehicle: Vehicle) {
+function getVehicleInvestment(vehicle: Vehicle) {
   const purchasePrice = parseMoney(vehicle.purchasePrice)
-  const targetSellingPrice = parseMoney(vehicle.targetSellingPrice)
   const trackedCostsTotal = parseMoney(vehicle.trackedCostsTotal)
 
-  if (
-    purchasePrice === null ||
-    targetSellingPrice === null ||
-    trackedCostsTotal === null ||
-    targetSellingPrice <= 0
-  ) {
+  if (purchasePrice === null || trackedCostsTotal === null) {
     return {
-      estimatedGrossProfit: null,
-      estimatedMargin: null,
+      totalInvestment: null,
     }
   }
 
-  const estimatedGrossProfit =
-    targetSellingPrice - purchasePrice - trackedCostsTotal
-
   return {
-    estimatedGrossProfit,
-    estimatedMargin: estimatedGrossProfit / targetSellingPrice,
+    totalInvestment: purchasePrice + trackedCostsTotal,
   }
 }
 
@@ -87,18 +75,6 @@ function formatMoneyValue(value: number | null) {
     currency: "PHP",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(value)
-}
-
-function formatPercentValue(value: number | null) {
-  if (value === null) {
-    return "N/A"
-  }
-
-  return new Intl.NumberFormat("en-PH", {
-    style: "percent",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
   }).format(value)
 }
 
@@ -146,7 +122,7 @@ function VehicleTrackedCostsPageSkeleton() {
 export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
   const vehicleQuery = useVehicleQuery(vehicleId)
   const vehicle = vehicleQuery.data?.vehicle
-  const profitability = vehicle ? getVehicleProfitability(vehicle) : null
+  const investment = vehicle ? getVehicleInvestment(vehicle) : null
 
   return (
     <AuthenticatedAppShell
@@ -214,10 +190,10 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                     <span className="text-muted-foreground [&_svg]:size-5">
                       <CarFrontIcon />
                     </span>
-                    Vehicle Summary
+                    Investment Summary
                   </CardTitle>
                   <CardDescription>
-                    Pricing context for this unit.
+                    Cost position for this unit before setting a target price.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-5">
@@ -273,15 +249,6 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                     </div>
                     <div className="flex items-center justify-between gap-3">
                       <span className="flex items-center gap-3 text-muted-foreground">
-                        <TagsIcon />
-                        Target Selling Price
-                      </span>
-                      <span className="font-medium tabular-nums text-foreground">
-                        {formatVehicleMoney(vehicle.targetSellingPrice)}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex items-center gap-3 text-muted-foreground">
                         <ReceiptTextIcon />
                         Total Tracked Costs
                       </span>
@@ -295,23 +262,11 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                     <div className="flex flex-col gap-4">
                       <div className="flex flex-col gap-1">
                         <span className="text-sm text-muted-foreground">
-                          Estimated Gross Profit
+                          Total Investment
                         </span>
                         <span className="text-2xl font-semibold tabular-nums text-primary">
-                          {formatMoneyValue(
-                            profitability?.estimatedGrossProfit ?? null,
-                          )}
+                          {formatMoneyValue(investment?.totalInvestment ?? null)}
                         </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-sm text-muted-foreground">
-                          Estimated Margin
-                        </span>
-                        <Badge variant="secondary" className="text-sm">
-                          {formatPercentValue(
-                            profitability?.estimatedMargin ?? null,
-                          )}
-                        </Badge>
                       </div>
                     </div>
                   </div>

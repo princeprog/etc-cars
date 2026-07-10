@@ -3,18 +3,28 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { format } from "date-fns"
 import {
   ArrowLeftIcon,
   CameraIcon,
+  CalendarIcon,
+  CheckCircle2Icon,
   CarFrontIcon,
+  CircleDollarSignIcon,
+  ClipboardListIcon,
+  ClockIcon,
   DollarSignIcon,
   EllipsisIcon,
   FileQuestionIcon,
   ImagePlusIcon,
   PencilIcon,
+  PlusCircleIcon,
   ReceiptTextIcon,
+  ShoppingCartIcon,
   TagsIcon,
+  TriangleAlertIcon,
   UploadIcon,
+  UserIcon,
 } from "lucide-react"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
@@ -26,7 +36,6 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -49,16 +58,30 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { useActivityHistoryQuery } from "@/hooks/queries/activity-history/use-activity-history-query"
 import { useVehicleQuery } from "@/hooks/queries/vehicles/use-vehicle-query"
 import { cn } from "@/lib/utils"
 import { getApiErrorMessage } from "@/types/api"
-import type { Vehicle, VehiclePhoto } from "@/types/vehicles"
+import type {
+  Vehicle,
+  VehiclePhoto,
+  VehicleTrackedCost,
+} from "@/types/vehicles"
 import {
   GRADE_BADGE_CLASSES,
   GRADE_LABELS,
   getIssueCount,
 } from "./vehicle-quality.helpers"
 import {
+  formatVehicleMoney,
   getVehicleStatusBadgeVariant,
   getVehicleStatusClassName,
 } from "./vehicles.helpers"
@@ -109,6 +132,22 @@ function formatOptionalValue(value?: string | number | null) {
   }
 
   return String(value)
+}
+
+function formatDate(value: string) {
+  return format(new Date(value), "MMM d, yyyy")
+}
+
+function formatDateTime(value: string) {
+  return format(new Date(value), "MMM d, yyyy h:mm a")
+}
+
+function formatCostCategory(cost: VehicleTrackedCost) {
+  return cost.category.charAt(0).toUpperCase() + cost.category.slice(1)
+}
+
+function getActionLabel(actionType: string) {
+  return actionType.split(".").at(-1)?.replaceAll("_", " ") ?? actionType
 }
 
 function VehicleDetailsPageSkeleton() {
@@ -498,6 +537,364 @@ function VehicleInformationCard({ vehicle }: { vehicle: Vehicle }) {
   )
 }
 
+function SummaryValueRow({
+  icon: Icon,
+  label,
+  value,
+  emphasized = false,
+}: {
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  label: string
+  value: React.ReactNode
+  emphasized?: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-4 text-sm",
+        emphasized ? "rounded-lg border bg-primary/5 px-3 py-3" : "",
+      )}
+    >
+      <span
+        className={cn(
+          "flex min-w-0 items-center gap-3",
+          emphasized ? "font-semibold text-primary" : "text-foreground",
+        )}
+      >
+        <Icon className="shrink-0 text-muted-foreground" />
+        {label}
+      </span>
+      <span
+        className={cn(
+          "text-right font-medium tabular-nums",
+          emphasized ? "text-lg font-semibold text-primary" : "text-foreground",
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function CommercialSummaryCard({ vehicle }: { vehicle: Vehicle }) {
+  const totalInvestment = getTotalInvestment(vehicle)
+  const pricingComplete = Boolean(
+    vehicle.targetSellingPrice && vehicle.minimumAcceptablePrice,
+  )
+
+  return (
+    <Card className="border-border/70 shadow-xs">
+      <CardHeader>
+        <CardTitle>Commercial Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <SummaryValueRow
+            icon={ShoppingCartIcon}
+            label="Purchase Price"
+            value={formatVehicleMoney(vehicle.purchasePrice)}
+          />
+          <SummaryValueRow
+            icon={ClipboardListIcon}
+            label="Total Tracked Costs"
+            value={formatVehicleMoney(vehicle.trackedCostsTotal)}
+          />
+          <Separator />
+          <SummaryValueRow
+            icon={CircleDollarSignIcon}
+            label="Total Investment"
+            value={formatMoneyValue(totalInvestment)}
+            emphasized
+          />
+          <SummaryValueRow
+            icon={TagsIcon}
+            label="Target Selling Price"
+            value={formatVehicleMoney(vehicle.targetSellingPrice)}
+          />
+          <SummaryValueRow
+            icon={DollarSignIcon}
+            label="Minimum Acceptable Price"
+            value={formatVehicleMoney(vehicle.minimumAcceptablePrice)}
+          />
+        </div>
+
+        {pricingComplete ? (
+          <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800">
+            <CheckCircle2Icon />
+            <AlertTitle>Pricing is complete</AlertTitle>
+            <AlertDescription className="text-emerald-700">
+              Vehicle is ready to be marked as Available once all readiness
+              checks pass.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+            <TriangleAlertIcon />
+            <AlertTitle>Pricing needs review</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Set the target and minimum acceptable prices before making this
+              vehicle Available.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ReadinessItem({
+  complete,
+  label,
+}: {
+  complete: boolean
+  label: string
+}) {
+  const Icon = complete ? CheckCircle2Icon : TriangleAlertIcon
+
+  return (
+    <li className="flex items-center gap-3 text-sm">
+      <Icon
+        className={cn(
+          "shrink-0",
+          complete ? "text-emerald-600" : "text-amber-600",
+        )}
+      />
+      <span className="text-foreground">{label}</span>
+    </li>
+  )
+}
+
+function AvailabilityReadinessCard({ vehicle }: { vehicle: Vehicle }) {
+  const checks = [
+    {
+      label: "Target selling price added",
+      complete: Boolean(vehicle.targetSellingPrice),
+    },
+    {
+      label: "Minimum acceptable price added",
+      complete: Boolean(vehicle.minimumAcceptablePrice),
+    },
+    {
+      label: "At least one photo uploaded",
+      complete: vehicle.photos.length > 0,
+    },
+    {
+      label: "Tracked costs reviewed",
+      complete: vehicle.trackedCosts.length > 0,
+    },
+  ]
+  const missingCount = checks.filter((check) => !check.complete).length
+
+  return (
+    <Card className="border-border/70 shadow-xs">
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle>Availability Readiness</CardTitle>
+        {missingCount > 0 ? (
+          <Badge
+            variant="outline"
+            className="rounded-full border-amber-200 bg-amber-50 text-amber-700"
+          >
+            {missingCount} item{missingCount === 1 ? "" : "s"} to review
+          </Badge>
+        ) : (
+          <Badge
+            variant="outline"
+            className="rounded-full border-emerald-200 bg-emerald-50 text-emerald-700"
+          >
+            Ready
+          </Badge>
+        )}
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <ul className="flex flex-col gap-3">
+          {checks.map((check) => (
+            <ReadinessItem
+              key={check.label}
+              complete={check.complete}
+              label={check.label}
+            />
+          ))}
+        </ul>
+
+        {missingCount > 0 ? (
+          <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+            <PlusCircleIcon />
+            <AlertTitle>Missing requirements</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Please complete the items above to mark as Available.
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <Alert className="border-emerald-200 bg-emerald-50 text-emerald-800">
+            <CheckCircle2Icon />
+            <AlertTitle>Availability checks complete</AlertTitle>
+            <AlertDescription className="text-emerald-700">
+              This vehicle has the required pricing and media for availability.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function TrackedCostsPreviewCard({ vehicle }: { vehicle: Vehicle }) {
+  const costs = [...vehicle.trackedCosts]
+    .sort(
+      (first, second) =>
+        new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
+    )
+    .slice(0, 3)
+
+  return (
+    <Card className="border-border/70 shadow-xs">
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle>Tracked Costs</CardTitle>
+        <CardAction className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/vehicles/${vehicle.id}/costs`}>View All Costs</Link>
+          </Button>
+          <Button size="sm" asChild>
+            <Link href={`/vehicles/${vehicle.id}/costs`}>
+              <PlusCircleIcon data-icon="inline-start" />
+              Track Costs
+            </Link>
+          </Button>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="p-0">
+        {costs.length ? (
+          <div className="overflow-x-auto">
+            <Table className="min-w-[780px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">#</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Note</TableHead>
+                  <TableHead>Date Added</TableHead>
+                  <TableHead>Added By</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {costs.map((cost, index) => (
+                  <TableRow key={cost.id}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell className="font-medium">
+                      {formatCostCategory(cost)}
+                    </TableCell>
+                    <TableCell className="font-medium tabular-nums">
+                      {formatVehicleMoney(cost.amount)}
+                    </TableCell>
+                    <TableCell className="max-w-[240px] truncate">
+                      {cost.note}
+                    </TableCell>
+                    <TableCell>{formatDate(cost.createdAt)}</TableCell>
+                    <TableCell>N/A</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow>
+                  <TableCell colSpan={2} className="font-semibold">
+                    Total Tracked Costs
+                  </TableCell>
+                  <TableCell className="font-semibold tabular-nums">
+                    {formatVehicleMoney(vehicle.trackedCostsTotal)}
+                  </TableCell>
+                  <TableCell colSpan={3} />
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <Empty className="border-0">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ReceiptTextIcon />
+              </EmptyMedia>
+              <EmptyTitle>No tracked costs yet</EmptyTitle>
+              <EmptyDescription>
+                Add reconditioning, repair, transport, or document costs for
+                this vehicle.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ActivityTimestampsCard({ vehicle }: { vehicle: Vehicle }) {
+  const activityQuery = useActivityHistoryQuery("vehicle", vehicle.id, 5)
+  const events = activityQuery.data?.events ?? []
+  const latestEvent = events[0]
+
+  return (
+    <Card className="border-border/70 shadow-xs">
+      <CardHeader>
+        <CardTitle>Activity & Timestamps</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 text-sm">
+          <SummaryValueRow
+            icon={CalendarIcon}
+            label="Created"
+            value={formatDateTime(vehicle.createdAt)}
+          />
+          <SummaryValueRow
+            icon={ClockIcon}
+            label="Last Updated"
+            value={formatDateTime(vehicle.updatedAt)}
+          />
+          <SummaryValueRow icon={UserIcon} label="Last Updated By" value="N/A" />
+        </div>
+
+        <Separator />
+
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-medium">Recent Activity</p>
+            <span className="text-xs text-primary">Latest updates</span>
+          </div>
+
+          {activityQuery.isPending ? (
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          ) : activityQuery.error ? (
+            <Alert variant="destructive">
+              <AlertTitle>Unable to load activity</AlertTitle>
+              <AlertDescription>
+                {getApiErrorMessage(activityQuery.error, "")}
+              </AlertDescription>
+            </Alert>
+          ) : latestEvent ? (
+            <div className="flex items-start justify-between gap-4 text-sm">
+              <span className="flex min-w-0 items-start gap-3">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
+                <span className="min-w-0">
+                  <span className="block truncate">{latestEvent.summary}</span>
+                  <span className="text-xs capitalize text-muted-foreground">
+                    {getActionLabel(latestEvent.actionType)}
+                  </span>
+                </span>
+              </span>
+              <span className="shrink-0 text-right text-xs text-muted-foreground">
+                {formatDateTime(latestEvent.timestamp)}
+              </span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No activity has been recorded for this vehicle yet.
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
   const vehicleQuery = useVehicleQuery(vehicleId)
   const vehicle = vehicleQuery.data?.vehicle
@@ -544,21 +941,13 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
               </div>
 
               <div className="flex flex-col gap-5">
-                <Card className="border-border/70 shadow-xs">
-                  <CardHeader>
-                    <CardTitle>Commercial Summary</CardTitle>
-                    <CardDescription>
-                      Pricing and investment details will appear here.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Total investment: {formatMoneyValue(getTotalInvestment(vehicle))}
-                    </p>
-                  </CardContent>
-                </Card>
+                <CommercialSummaryCard vehicle={vehicle} />
+                <AvailabilityReadinessCard vehicle={vehicle} />
+                <ActivityTimestampsCard vehicle={vehicle} />
               </div>
             </div>
+
+            <TrackedCostsPreviewCard vehicle={vehicle} />
           </div>
         )}
       </div>

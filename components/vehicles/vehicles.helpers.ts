@@ -79,8 +79,6 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
     fuelType: values.fuelType || null,
     mileage: values.mileage ? Number(values.mileage) : null,
     purchasePrice: values.purchasePrice || null,
-    targetSellingPrice: values.targetSellingPrice || null,
-    minimumAcceptablePrice: values.minimumAcceptablePrice || null,
     status: values.status,
     photos: values.photos.map((photo, index) => ({
       fileUrl: photo.fileUrl,

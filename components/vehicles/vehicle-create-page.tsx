@@ -75,8 +75,6 @@ function buildConvertPayload(values: VehicleFormValues) {
     color: values.color || null,
     remarks: values.remarks || null,
     purchasePrice: values.purchasePrice || null,
-    targetSellingPrice: values.targetSellingPrice || null,
-    minimumAcceptablePrice: values.minimumAcceptablePrice || null,
     status: values.status as VehicleStatus,
     photos: values.photos.map((photo, index) => ({
       fileUrl: photo.fileUrl,

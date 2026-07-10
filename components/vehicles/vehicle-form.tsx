@@ -194,28 +194,15 @@ export function VehicleForm({
 
       <section className="space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Commercial Details</h3>
+          <h3 className="text-sm font-semibold text-foreground">Acquisition Details</h3>
           <p className="text-sm text-muted-foreground">
-            These values drive margin review and determine whether the unit is ready to move into saleable inventory.
+            Capture the vehicle acquisition cost here. Sale pricing can be set later after tracked costs are complete.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           <Field>
             <FieldLabel htmlFor="purchasePrice">Purchase price</FieldLabel>
             <Input id="purchasePrice" value={values.purchasePrice} onChange={(e) => updateField("purchasePrice", e.target.value)} placeholder="850000" />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="targetSellingPrice">Target selling price</FieldLabel>
-            <Input id="targetSellingPrice" value={values.targetSellingPrice} onChange={(e) => updateField("targetSellingPrice", e.target.value)} placeholder="925000" />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="minimumAcceptablePrice">Minimum acceptable price</FieldLabel>
-            <Input
-              id="minimumAcceptablePrice"
-              value={values.minimumAcceptablePrice}
-              onChange={(e) => updateField("minimumAcceptablePrice", e.target.value)}
-              placeholder="900000"
-            />
           </Field>
         </div>
       </section>

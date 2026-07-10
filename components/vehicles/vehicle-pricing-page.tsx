@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowLeftIcon,
   ChartNoAxesColumnIncreasingIcon,
@@ -295,6 +296,7 @@ function VehicleInvestmentSummary({ vehicle }: { vehicle: Vehicle }) {
 }
 
 function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
+  const router = useRouter()
   const updateMutation = useUpdateVehicleMutation()
   const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [targetSellingPrice, setTargetSellingPrice] = React.useState(
@@ -380,6 +382,13 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
           if (vehicle.photos.length === 0) {
             toast.warning(
               "This vehicle needs at least one photo before it can be marked Available.",
+              {
+                action: {
+                  label: "Upload Photo",
+                  onClick: () =>
+                    router.push(`/vehicles/${vehicle.id}/edit#vehicle-photos`),
+                },
+              },
             )
           }
           setConfirmOpen(false)

@@ -4,26 +4,39 @@ import * as React from "react"
 import Link from "next/link"
 import {
   ArrowLeftIcon,
-  CarFrontIcon,
-  DollarSignIcon,
+  ChartNoAxesColumnIncreasingIcon,
+  CircleDollarSignIcon,
+  ClipboardListIcon,
   FileQuestionIcon,
-  ReceiptTextIcon,
+  InfoIcon,
   SaveIcon,
+  ShoppingCartIcon,
   TagsIcon,
+  TriangleAlertIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { SubmitButton } from "@/components/operations/submit-button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -37,6 +50,7 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -112,29 +126,35 @@ function getSuggestedSellingPrice(totalInvestment: number | null, margin: number
 function VehiclePricingPageSkeleton() {
   return (
     <div
-      className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]"
+      className="grid gap-5 xl:grid-cols-[480px_minmax(0,1fr)]"
       aria-busy="true"
       aria-label="Loading vehicle pricing"
     >
+      <div className="flex flex-col gap-5">
+        <Card className="border-border/70 shadow-xs">
+          <CardHeader className="flex flex-row items-center gap-4 px-7 pt-7">
+            <Skeleton className="size-12 rounded-full" />
+            <Skeleton className="h-6 w-44" />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-8 px-7 pb-7 pt-6">
+            <Skeleton className="h-24 w-full rounded-md" />
+            <Skeleton className="h-px w-full" />
+            <Skeleton className="h-24 w-full rounded-md" />
+            <Skeleton className="h-14 w-full rounded-md" />
+          </CardContent>
+        </Card>
+        <Skeleton className="h-24 w-full rounded-md" />
+      </div>
+
       <Card className="border-border/70 shadow-xs">
-        <CardHeader>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-4 w-72 max-w-full" />
+        <CardHeader className="flex flex-row items-center gap-4">
+          <Skeleton className="size-12 rounded-full" />
+          <Skeleton className="h-6 w-52" />
         </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <Skeleton className="h-20 w-full rounded-md" />
-          <Skeleton className="h-28 w-full rounded-md" />
-        </CardContent>
-      </Card>
-      <Card className="border-border/70 shadow-xs">
-        <CardHeader>
-          <Skeleton className="h-5 w-44" />
-          <Skeleton className="h-4 w-56" />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-28 w-full rounded-md" />
-          <Skeleton className="h-32 w-full rounded-md" />
+        <CardContent className="flex flex-col gap-6">
+          <Skeleton className="h-36 w-full rounded-md" />
+          <Skeleton className="h-44 w-full rounded-md" />
+          <Skeleton className="h-52 w-full rounded-md" />
         </CardContent>
       </Card>
     </div>
@@ -146,40 +166,39 @@ function VehicleInvestmentSummary({ vehicle }: { vehicle: Vehicle }) {
 
   return (
     <Card className="border-border/70 shadow-xs">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-base">
-          <span className="text-muted-foreground [&_svg]:size-5">
-            <CarFrontIcon />
-          </span>
-          Investment Summary
-        </CardTitle>
-        <CardDescription>
-          Review landed cost before setting sale pricing.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center gap-4 px-7 pt-7">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-primary [&_svg]:size-6">
+          <ChartNoAxesColumnIncreasingIcon />
+        </span>
+        <CardTitle className="text-xl">Investment Summary</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm text-muted-foreground">Stock Number</span>
-            <Badge
-              variant="outline"
-              className="h-8 w-fit rounded-md bg-primary px-3 font-mono text-sm text-primary-foreground"
-            >
-              {vehicle.stockNumber}
-            </Badge>
+      <CardContent className="flex flex-col gap-6 px-7 pb-7">
+        <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_180px]">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-muted-foreground">Stock Number</span>
+              <Badge
+                variant="outline"
+                className="h-8 w-fit rounded-md bg-primary px-3 font-mono text-sm text-primary-foreground"
+              >
+                {vehicle.stockNumber}
+              </Badge>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-muted-foreground">Vehicle</span>
+              <p className="text-xl font-semibold text-foreground">
+                {vehicle.year} {vehicle.brand} {vehicle.model}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {[vehicle.brand, vehicle.model, vehicle.variant, vehicle.transmission]
+                  .filter(Boolean)
+                  .join("  •  ")}
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-1">
-            <span className="text-sm text-muted-foreground">Vehicle</span>
-            <p className="text-lg font-semibold text-foreground">
-              {vehicle.year} {vehicle.brand} {vehicle.model}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {vehicle.variant || "No variant"}
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-2 sm:items-start">
             <span className="text-sm text-muted-foreground">Status</span>
             <Badge
               variant={getVehicleStatusBadgeVariant(vehicle.status)}
@@ -193,73 +212,77 @@ function VehicleInvestmentSummary({ vehicle }: { vehicle: Vehicle }) {
         <Separator />
 
         <div className="flex flex-col gap-4 text-sm">
-          <div className="flex items-center justify-between gap-3 max-sm:items-start">
-            <span className="flex items-center gap-3 text-muted-foreground">
-              <DollarSignIcon />
+          <div className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start">
+            <span className="flex items-center gap-4 text-foreground">
+              <ShoppingCartIcon className="text-muted-foreground" />
               Purchase Price
             </span>
             <span className="font-medium tabular-nums text-foreground">
               {formatVehicleMoney(vehicle.purchasePrice)}
             </span>
           </div>
-          <div className="flex items-center justify-between gap-3 max-sm:items-start">
-            <span className="flex items-center gap-3 text-muted-foreground">
-              <ReceiptTextIcon />
+
+          <div className="flex items-center justify-between gap-4 max-sm:flex-col max-sm:items-start">
+            <span className="flex items-center gap-4 text-foreground">
+              <ClipboardListIcon className="text-muted-foreground" />
               Total Tracked Costs
             </span>
-            <span className="font-semibold tabular-nums text-destructive">
+            <span className="font-medium tabular-nums text-foreground">
               {formatVehicleMoney(vehicle.trackedCostsTotal)}
             </span>
           </div>
-        </div>
 
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 max-sm:flex-col max-sm:items-start">
+            <span className="flex items-center gap-4 font-semibold text-primary">
+              <CircleDollarSignIcon />
               Total Investment
             </span>
-            <span className="text-2xl font-semibold tabular-nums text-primary">
+            <span className="text-xl font-semibold tabular-nums text-primary">
               {formatMoneyValue(totalInvestment)}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Purchase price plus all tracked vehicle costs.
             </span>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-lg border border-border/70 p-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 text-muted-foreground [&_svg]:size-4">
-              <TagsIcon />
-            </span>
-            <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium text-foreground">
-                Pricing Guidance
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Suggested sale prices based on margin over total investment.
-              </p>
+        <Card className="border-border/70 shadow-none">
+          <CardHeader>
+            <CardTitle className="text-lg">
+              Pricing Guidance (Suggested Targets)
+            </CardTitle>
+            <CardDescription>
+              Based on total investment and recommended profit margins.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              {PRICING_MARGIN_TIERS.map((margin) => (
+                <div
+                  key={margin}
+                  className="flex min-h-28 flex-col items-center justify-center gap-2 rounded-lg border border-border/70 p-4 text-center"
+                >
+                  <span className="text-sm font-semibold text-primary">
+                    {formatMarginLabel(margin)} Margin
+                  </span>
+                  <span className="text-xl font-semibold tabular-nums text-foreground">
+                    {formatMoneyValue(
+                      getSuggestedSellingPrice(totalInvestment, margin),
+                    )}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Suggested Target
+                  </span>
+                </div>
+              ))}
             </div>
-          </div>
-          <Separator />
-          <div className="flex flex-col gap-3">
-            {PRICING_MARGIN_TIERS.map((margin) => (
-              <div
-                key={margin}
-                className="flex items-center justify-between gap-3 text-sm max-sm:items-start"
-              >
-                <Badge variant="secondary">
-                  {formatMarginLabel(margin)} margin
-                </Badge>
-                <span className="font-medium tabular-nums text-foreground">
-                  {formatMoneyValue(
-                    getSuggestedSellingPrice(totalInvestment, margin),
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <InfoIcon />
+              <span>
+                These are suggested targets only. Adjust based on market
+                conditions.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       </CardContent>
     </Card>
   )
@@ -267,16 +290,76 @@ function VehicleInvestmentSummary({ vehicle }: { vehicle: Vehicle }) {
 
 function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
   const updateMutation = useUpdateVehicleMutation()
+  const [confirmOpen, setConfirmOpen] = React.useState(false)
   const [targetSellingPrice, setTargetSellingPrice] = React.useState(
     vehicle.targetSellingPrice ?? "",
   )
   const [minimumAcceptablePrice, setMinimumAcceptablePrice] = React.useState(
     vehicle.minimumAcceptablePrice ?? "",
   )
+  const totalInvestment = getTotalInvestment(vehicle)
+  const targetPriceValue = parseMoney(targetSellingPrice)
+  const minimumPriceValue = parseMoney(minimumAcceptablePrice)
+  const minimumExceedsTarget =
+    targetPriceValue !== null &&
+    minimumPriceValue !== null &&
+    minimumPriceValue > targetPriceValue
+  const belowInvestmentPrices = [
+    targetPriceValue !== null &&
+    totalInvestment !== null &&
+    targetPriceValue < totalInvestment
+      ? "target selling price"
+      : null,
+    minimumPriceValue !== null &&
+    totalInvestment !== null &&
+    minimumPriceValue < totalInvestment
+      ? "minimum acceptable price"
+      : null,
+  ].filter(Boolean)
+  const hasBelowInvestmentWarning = belowInvestmentPrices.length > 0
+
+  function handleTargetSellingPriceChange(value: string) {
+    setTargetSellingPrice(value)
+
+    const nextTargetPriceValue = parseMoney(value)
+    const currentMinimumPriceValue = parseMoney(minimumAcceptablePrice)
+
+    if (
+      nextTargetPriceValue !== null &&
+      currentMinimumPriceValue !== null &&
+      currentMinimumPriceValue > nextTargetPriceValue
+    ) {
+      setMinimumAcceptablePrice(value)
+    }
+  }
+
+  function handleMinimumAcceptablePriceChange(value: string) {
+    const nextMinimumPriceValue = parseMoney(value)
+
+    if (
+      targetPriceValue !== null &&
+      nextMinimumPriceValue !== null &&
+      nextMinimumPriceValue > targetPriceValue
+    ) {
+      setMinimumAcceptablePrice(targetSellingPrice)
+      return
+    }
+
+    setMinimumAcceptablePrice(value)
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (minimumExceedsTarget) {
+      toast.error("Minimum acceptable price cannot exceed target selling price")
+      return
+    }
+
+    setConfirmOpen(true)
+  }
+
+  async function handleConfirmPricing() {
     await updateMutation.mutateAsync(
       {
         id: vehicle.id,
@@ -288,93 +371,171 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
       {
         onSuccess: () => {
           toast.success("Vehicle pricing updated")
+          setConfirmOpen(false)
         },
       },
     )
   }
 
   return (
-    <Card className="border-border/70 shadow-xs">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-3 text-base">
-          <TagsIcon />
-          Set Sale Pricing
-        </CardTitle>
-        <CardDescription>
-          Set the target and floor prices after reviewing the unit&apos;s total
-          investment.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="flex flex-col gap-5">
-          <ApiErrorAlert
-            title="Unable to update pricing"
-            message={getApiErrorMessage(updateMutation.error, "")}
-          />
+    <>
+      <div className="flex flex-col gap-5">
+        <Card className="border-border/70 shadow-xs">
+          <CardHeader className="flex flex-row items-center gap-4 px-7 pt-7">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-muted text-primary [&_svg]:size-6">
+              <TagsIcon />
+            </span>
+            <CardTitle className="text-xl">Set Sale Pricing</CardTitle>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="flex flex-col gap-8 px-7 pb-7 pt-6">
+              <ApiErrorAlert
+                title="Unable to update pricing"
+                message={getApiErrorMessage(updateMutation.error, "")}
+              />
 
-          <FieldGroup className="gap-5">
-            <Field>
-              <FieldLabel htmlFor="targetSellingPrice">
-                Target selling price
-              </FieldLabel>
-              <InputGroup>
-                <InputGroupAddon>
-                  <InputGroupText>PHP</InputGroupText>
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="targetSellingPrice"
-                  inputMode="decimal"
-                  required
-                  value={targetSellingPrice}
-                  onChange={(event) => setTargetSellingPrice(event.target.value)}
-                  placeholder="925000"
-                />
-              </InputGroup>
-              <FieldDescription>
-                The intended listing or asking price for the vehicle.
-              </FieldDescription>
-            </Field>
+              <FieldGroup className="gap-7">
+                <Field>
+                  <FieldLabel
+                    htmlFor="targetSellingPrice"
+                    className="text-lg font-semibold text-foreground"
+                  >
+                    Target Selling Price
+                  </FieldLabel>
+                  <InputGroup className="h-14">
+                    <InputGroupAddon className="min-w-12 border-r bg-muted/30">
+                      <InputGroupText>₱</InputGroupText>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="targetSellingPrice"
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      required
+                      value={targetSellingPrice}
+                      onChange={(event) =>
+                        handleTargetSellingPriceChange(event.target.value)
+                      }
+                      placeholder="925000"
+                      className="text-lg"
+                    />
+                  </InputGroup>
+                  <FieldDescription>
+                    This is your ideal selling price to achieve your desired
+                    margin.
+                  </FieldDescription>
+                </Field>
 
-            <Field>
-              <FieldLabel htmlFor="minimumAcceptablePrice">
-                Minimum acceptable price
-              </FieldLabel>
-              <InputGroup>
-                <InputGroupAddon>
-                  <InputGroupText>PHP</InputGroupText>
-                </InputGroupAddon>
-                <InputGroupInput
-                  id="minimumAcceptablePrice"
-                  inputMode="decimal"
-                  required
-                  value={minimumAcceptablePrice}
-                  onChange={(event) =>
-                    setMinimumAcceptablePrice(event.target.value)
-                  }
-                  placeholder="900000"
-                />
-              </InputGroup>
-              <FieldDescription>
-                The lowest approved negotiation floor for sales staff.
-              </FieldDescription>
-            </Field>
-          </FieldGroup>
-        </CardContent>
-        <CardFooter className="flex flex-col-reverse gap-3 border-t bg-muted/20 sm:flex-row sm:justify-between">
-          <Button type="button" variant="outline" asChild>
-            <Link href="/vehicles">Back to Vehicles</Link>
-          </Button>
-          <SubmitButton
-            type="submit"
-            pending={updateMutation.isPending}
-            pendingLabel="Saving pricing"
-          >
-            <SaveIcon data-icon="inline-start" />
-            Save Pricing
-          </SubmitButton>
-        </CardFooter>
-      </form>
-    </Card>
+              <Separator />
+
+                <Field data-invalid={minimumExceedsTarget}>
+                  <FieldLabel
+                    htmlFor="minimumAcceptablePrice"
+                    className="text-lg font-semibold text-foreground"
+                  >
+                    Minimum Acceptable Price
+                  </FieldLabel>
+                  <InputGroup className="h-14">
+                    <InputGroupAddon className="min-w-12 border-r bg-muted/30">
+                      <InputGroupText>₱</InputGroupText>
+                    </InputGroupAddon>
+                    <InputGroupInput
+                      id="minimumAcceptablePrice"
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      max={targetPriceValue ?? undefined}
+                      step="0.01"
+                      required
+                      aria-invalid={minimumExceedsTarget}
+                      value={minimumAcceptablePrice}
+                      onChange={(event) =>
+                        handleMinimumAcceptablePriceChange(event.target.value)
+                      }
+                      placeholder="900000"
+                      className="text-lg"
+                    />
+                  </InputGroup>
+                  <FieldDescription>
+                    The lowest price you are willing to accept for this vehicle.
+                  </FieldDescription>
+                  {minimumExceedsTarget ? (
+                    <FieldError>
+                      Minimum acceptable price cannot exceed target selling
+                      price.
+                    </FieldError>
+                  ) : null}
+                </Field>
+              </FieldGroup>
+
+              <SubmitButton
+                type="submit"
+                className="h-14 w-full"
+                pending={updateMutation.isPending}
+                pendingLabel="Saving pricing"
+              >
+                <SaveIcon data-icon="inline-start" />
+                Save Pricing
+              </SubmitButton>
+            </CardContent>
+          </form>
+        </Card>
+
+        <Alert className="items-center border-primary/20 bg-primary/5 text-primary">
+          <InfoIcon />
+          <AlertDescription>
+            Track costs first when possible so pricing reflects the full landed
+            cost of the vehicle.
+          </AlertDescription>
+        </Alert>
+      </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              {hasBelowInvestmentWarning ? <TriangleAlertIcon /> : <TagsIcon />}
+            </AlertDialogMedia>
+            <AlertDialogTitle>
+              {hasBelowInvestmentWarning
+                ? "Pricing is below total investment"
+                : "Confirm pricing update"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will save the target selling price and minimum acceptable
+              price for {vehicle.stockNumber}. Sales staff may use these values
+              for listing and negotiation guidance.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {hasBelowInvestmentWarning ? (
+            <Alert variant="destructive">
+              <TriangleAlertIcon />
+              <AlertTitle>Review before saving</AlertTitle>
+              <AlertDescription>
+                The {belowInvestmentPrices.join(" and ")} is less than the
+                total investment of {formatMoneyValue(totalInvestment)}. Saving
+                this pricing may put the vehicle below cost.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={updateMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={updateMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault()
+                void handleConfirmPricing()
+              }}
+            >
+              {hasBelowInvestmentWarning ? "Save Anyway" : "Confirm Save"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }
 
@@ -393,7 +554,7 @@ export function VehiclePricingPage({ vehicleId }: { vehicleId: string }) {
       <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
         <section className="flex flex-col gap-5 border-b border-border/70 pb-5">
           <div className="flex items-start gap-4">
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-muted text-foreground [&_svg]:size-8">
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-muted text-primary [&_svg]:size-8">
               <TagsIcon />
             </div>
             <div className="flex flex-col gap-1">
@@ -434,18 +595,9 @@ export function VehiclePricingPage({ vehicleId }: { vehicleId: string }) {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
+          <div className="grid gap-5 xl:grid-cols-[480px_minmax(0,1fr)]">
             <VehiclePricingForm vehicle={vehicle} />
-            <div className="flex flex-col gap-4">
-              <VehicleInvestmentSummary vehicle={vehicle} />
-              <Alert className="items-center">
-                <TagsIcon />
-                <AlertDescription>
-                  Track costs first when possible so pricing reflects the full
-                  landed cost of the vehicle.
-                </AlertDescription>
-              </Alert>
-            </div>
+            <VehicleInvestmentSummary vehicle={vehicle} />
           </div>
         )}
       </div>

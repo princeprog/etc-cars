@@ -211,7 +211,8 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                     Investment Summary
                   </CardTitle>
                   <CardDescription>
-                    Cost position for this unit before setting a target price.
+                    Know the full landed cost before setting a target selling
+                    price.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-5">
@@ -256,7 +257,7 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                   <Separator />
 
                   <div className="flex flex-col gap-4 text-sm">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 max-sm:items-start">
                       <span className="flex items-center gap-3 text-muted-foreground">
                         <DollarSignIcon />
                         Purchase Price
@@ -265,7 +266,7 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                         {formatVehicleMoney(vehicle.purchasePrice)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 max-sm:items-start">
                       <span className="flex items-center gap-3 text-muted-foreground">
                         <ReceiptTextIcon />
                         Total Tracked Costs
@@ -285,6 +286,9 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                         <span className="text-2xl font-semibold tabular-nums text-primary">
                           {formatMoneyValue(investment?.totalInvestment ?? null)}
                         </span>
+                        <span className="text-xs text-muted-foreground">
+                          Purchase price plus all tracked vehicle costs.
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -299,7 +303,8 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                           Pricing Guidance
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Suggested selling prices based on total investment.
+                          Suggested selling prices from total investment and
+                          target margin.
                         </p>
                       </div>
                     </div>
@@ -308,7 +313,7 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                       {PRICING_MARGIN_TIERS.map((margin) => (
                         <div
                           key={margin}
-                          className="flex items-center justify-between gap-3 text-sm"
+                          className="flex items-center justify-between gap-3 text-sm max-sm:items-start"
                         >
                           <Badge variant="secondary">
                             {formatMarginLabel(margin)} margin
@@ -331,8 +336,8 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
               <Alert className="items-center">
                 <TrendingUpIcon />
                 <AlertDescription>
-                  Keep tracking costs accurately to maintain healthy profit
-                  margins.
+                  Track costs first, then set a target selling price with a
+                  clear view of the unit&apos;s total investment.
                 </AlertDescription>
               </Alert>
             </div>

@@ -34,7 +34,6 @@ import {
 } from "./vehicles.helpers";
 import { VehicleForm } from "./vehicle-form";
 import { VehicleQualityPanel } from "./vehicle-quality-panel";
-import { VehicleTrackedCostsCard } from "./vehicle-tracked-costs-card";
 
 function ReadinessItem({
   complete,
@@ -114,18 +113,6 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
     getVehicleFormValues(vehicle),
   );
 
-  React.useEffect(() => {
-    if (window.location.hash !== "#tracked-costs") {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      document.getElementById("tracked-costs")?.scrollIntoView({
-        block: "start",
-      });
-    });
-  }, []);
-
   const hasTargetPrice = Boolean(values.targetSellingPrice.trim());
   const hasMinimumPrice = Boolean(values.minimumAcceptablePrice.trim());
   const hasPhoto = Boolean(values.photos.length);
@@ -193,7 +180,6 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
             </form>
           </CardContent>
         </Card>
-        <VehicleTrackedCostsCard vehicle={vehicle} />
       </div>
 
       <div className="space-y-4">

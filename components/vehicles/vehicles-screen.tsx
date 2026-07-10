@@ -330,7 +330,7 @@ export function VehiclesScreen() {
                 onView={setViewVehicle}
                 onEdit={(vehicle) => router.push(`/vehicles/${vehicle.id}/edit`)}
                 onTrackCost={(vehicle) =>
-                  router.push(`/vehicles/${vehicle.id}/edit#tracked-costs`)
+                  router.push(`/vehicles/${vehicle.id}/costs`)
                 }
               />
             ) : (

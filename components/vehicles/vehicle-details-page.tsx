@@ -10,11 +10,11 @@ import {
   CalendarIcon,
   CheckCircle2Icon,
   CarFrontIcon,
+  ChevronDownIcon,
   CircleDollarSignIcon,
   ClipboardListIcon,
   ClockIcon,
   DollarSignIcon,
-  EllipsisIcon,
   FileQuestionIcon,
   ImagePlusIcon,
   PencilIcon,
@@ -203,7 +203,7 @@ function VehicleDetailsHeader({ vehicle }: { vehicle: Vehicle }) {
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
               More actions
-              <EllipsisIcon data-icon="inline-end" />
+              <ChevronDownIcon data-icon="inline-end" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
@@ -943,11 +943,13 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
               <div className="flex flex-col gap-5">
                 <CommercialSummaryCard vehicle={vehicle} />
                 <AvailabilityReadinessCard vehicle={vehicle} />
-                <ActivityTimestampsCard vehicle={vehicle} />
               </div>
             </div>
 
-            <TrackedCostsPreviewCard vehicle={vehicle} />
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
+              <TrackedCostsPreviewCard vehicle={vehicle} />
+              <ActivityTimestampsCard vehicle={vehicle} />
+            </div>
           </div>
         )}
       </div>

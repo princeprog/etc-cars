@@ -1,14 +1,19 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { format, formatDistanceToNow } from "date-fns"
 import {
+  AlertTriangleIcon,
+  CalendarPlusIcon,
   CarFrontIcon,
+  Clock3Icon,
   EyeIcon,
   Link2OffIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
+  ReceiptTextIcon,
   SearchIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -22,7 +27,13 @@ import { ModuleLoadingState } from "@/components/operations/module-loading-state
 import { SubmitButton } from "@/components/operations/submit-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   Dialog,
   DialogContent,
@@ -43,7 +54,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Sheet,
   SheetContent,
@@ -62,9 +79,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
+import { DateTimePicker } from "@/components/ui/date-time-picker"
 import { useCreateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-create-buyer-lead-mutation"
-import { useLinkBuyerLeadVehicleMutation, useUnlinkBuyerLeadVehicleMutation } from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation"
+import {
+  useLinkBuyerLeadVehicleMutation,
+  useUnlinkBuyerLeadVehicleMutation,
+} from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation"
 import { useUpdateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-update-buyer-lead-mutation"
+import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation"
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
@@ -80,7 +102,6 @@ import {
 import type { Vehicle } from "@/types/vehicles"
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
 import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
-import { AlertTriangleIcon, Clock3Icon } from "lucide-react"
 
 type BuyerLeadFormValues = {
   buyerName: string
@@ -91,6 +112,12 @@ type BuyerLeadFormValues = {
   desiredBudget: string
   notes: string
   status: BuyerLeadStatus
+}
+
+type BuyerLeadNextActionCta = {
+  label: string
+  helper: string
+  action: "edit" | "vehicles" | "view" | "follow-up" | "sale"
 }
 
 function getEmptyBuyerLeadFormValues(): BuyerLeadFormValues {
@@ -119,7 +146,10 @@ function getBuyerLeadFormValues(lead: BuyerLead): BuyerLeadFormValues {
   }
 }
 
-function parseBuyerLeadPayload(values: BuyerLeadFormValues, assigneeUserId: string | null): CreateBuyerLeadPayload {
+function parseBuyerLeadPayload(
+  values: BuyerLeadFormValues,
+  assigneeUserId: string | null,
+): CreateBuyerLeadPayload {
   return {
     buyerName: values.buyerName,
     contactNumber: values.contactNumber,
@@ -133,7 +163,9 @@ function parseBuyerLeadPayload(values: BuyerLeadFormValues, assigneeUserId: stri
   }
 }
 
-function parseUpdateBuyerLeadPayload(values: BuyerLeadFormValues): UpdateBuyerLeadPayload {
+function parseUpdateBuyerLeadPayload(
+  values: BuyerLeadFormValues,
+): UpdateBuyerLeadPayload {
   return {
     buyerName: values.buyerName,
     contactNumber: values.contactNumber,
@@ -146,7 +178,9 @@ function parseUpdateBuyerLeadPayload(values: BuyerLeadFormValues): UpdateBuyerLe
   }
 }
 
-function getBuyerLeadStatusBadgeVariant(status: BuyerLeadStatus): "default" | "secondary" | "outline" | "destructive" {
+function getBuyerLeadStatusBadgeVariant(
+  status: BuyerLeadStatus,
+): "default" | "secondary" | "outline" | "destructive" {
   switch (status) {
     case "Won":
       return "secondary"
@@ -199,7 +233,10 @@ function getBuyerLeadStatusTextClassName(status: BuyerLeadStatus) {
   }
 }
 
-function getAssigneeLabel(assigneeUserId: string | null, currentUserId?: string) {
+function getAssigneeLabel(
+  assigneeUserId: string | null,
+  currentUserId?: string,
+) {
   if (!assigneeUserId) {
     return "Unassigned"
   }
@@ -241,6 +278,10 @@ function getBuyerLeadStage(status: BuyerLeadStatus) {
 }
 
 function getBuyerLeadNextAction(lead: BuyerLead) {
+  if (lead.pipeline?.nextAction) {
+    return lead.pipeline.nextAction.label
+  }
+
   if (lead.status === "Won" || lead.status === "Lost") {
     return "No immediate action"
   }
@@ -272,7 +313,47 @@ function getBuyerLeadNextAction(lead: BuyerLead) {
   return "Review lead status"
 }
 
-function getBuyerLeadNextActionCta(lead: BuyerLead) {
+function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
+  if (lead.pipeline?.nextAction) {
+    if (lead.pipeline.nextAction.target === "vehicle_link") {
+      return {
+        label: "Match Vehicles",
+        helper: lead.pipeline.nextAction.description,
+        action: "vehicles" as const,
+      }
+    }
+
+    if (lead.pipeline.nextAction.target === "follow_up") {
+      return {
+        label: "Schedule Follow-Up",
+        helper: "Create a dated task so the next contact is clear.",
+        action: "follow-up" as const,
+      }
+    }
+
+    if (lead.pipeline.nextAction.target === "lead_edit") {
+      return {
+        label: "Update Lead",
+        helper: lead.pipeline.nextAction.description,
+        action: "edit" as const,
+      }
+    }
+
+    if (lead.pipeline.nextAction.target === "sale_finalization") {
+      return {
+        label: "Finalize Sale",
+        helper: lead.pipeline.nextAction.description,
+        action: "sale" as const,
+      }
+    }
+
+    return {
+      label: "Open Lead",
+      helper: lead.pipeline.nextAction.description,
+      action: "view" as const,
+    }
+  }
+
   if (lead.status === "Won" || lead.status === "Lost") {
     return {
       label: "View Details",
@@ -312,19 +393,58 @@ function getBuyerLeadNextActionCta(lead: BuyerLead) {
   }
 }
 
+function BuyerLeadNextActionIcon({
+  action,
+}: {
+  action: BuyerLeadNextActionCta["action"]
+}) {
+  if (action === "follow-up") return <CalendarPlusIcon />
+  if (action === "vehicles") return <CarFrontIcon />
+  if (action === "edit") return <PencilIcon />
+  if (action === "sale") return <ReceiptTextIcon />
+  return <EyeIcon />
+}
+
+function getDefaultFollowUpDueAt() {
+  const dueAt = new Date()
+  dueAt.setDate(dueAt.getDate() + 1)
+  dueAt.setHours(9, 0, 0, 0)
+  return dueAt
+}
+
+function getDefaultBuyerFollowUpNote(lead: BuyerLead) {
+  return `Follow up with ${lead.buyerName} about their buyer lead.`
+}
+
 function isBuyerLeadStale(lead: BuyerLead) {
+  if (typeof lead.pipeline?.isStale === "boolean") {
+    return lead.pipeline.isStale
+  }
+
   const activityAt = lead.latestActivityAt ?? lead.updatedAt
   const ageMs = Date.now() - new Date(activityAt).getTime()
   const staleDays = lead.status === "New Inquiry" ? 2 : 5
-  return ageMs > staleDays * 24 * 60 * 60 * 1000 && lead.status !== "Won" && lead.status !== "Lost"
+  return (
+    ageMs > staleDays * 24 * 60 * 60 * 1000 &&
+    lead.status !== "Won" &&
+    lead.status !== "Lost"
+  )
 }
 
 function getBuyerLeadBlocker(lead: BuyerLead) {
+  if (lead.pipeline?.blockers.length) {
+    return lead.pipeline.blockers[0]?.description ?? null
+  }
+
   if (lead.status === "New Inquiry") {
     return "The inquiry has not been contacted yet."
   }
 
-  if (lead.vehicles.length === 0 && lead.status !== "Lost" && lead.status !== "Won") {
+  if (
+    lead.vehicles.length === 0 &&
+    lead.status !== "Lost" &&
+    lead.status !== "Won"
+  ) {
     return "No candidate vehicle is linked yet."
   }
 
@@ -336,6 +456,10 @@ function getBuyerLeadBlocker(lead: BuyerLead) {
 }
 
 function getBuyerLeadWarning(lead: BuyerLead) {
+  if (lead.pipeline?.warnings.length) {
+    return lead.pipeline.warnings[0]?.description ?? null
+  }
+
   if (isBuyerLeadStale(lead)) {
     return "This lead has gone stale and needs attention before it drops further."
   }
@@ -354,7 +478,10 @@ function BuyerLeadForm({
   values: BuyerLeadFormValues
   onChange: (values: BuyerLeadFormValues) => void
 }) {
-  function updateField<K extends keyof BuyerLeadFormValues>(key: K, value: BuyerLeadFormValues[K]) {
+  function updateField<K extends keyof BuyerLeadFormValues>(
+    key: K,
+    value: BuyerLeadFormValues[K],
+  ) {
     onChange({ ...values, [key]: value })
   }
 
@@ -362,7 +489,9 @@ function BuyerLeadForm({
     <FieldGroup className="gap-6">
       <section className="space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Buyer Details</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Buyer Details
+          </h3>
           <p className="text-sm text-muted-foreground">
             Capture the core contact information for the buyer inquiry.
           </p>
@@ -370,21 +499,44 @@ function BuyerLeadForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="buyerName">Buyer name</FieldLabel>
-            <Input id="buyerName" value={values.buyerName} onChange={(e) => updateField("buyerName", e.target.value)} placeholder="Maria Santos" required />
+            <Input
+              id="buyerName"
+              value={values.buyerName}
+              onChange={(e) => updateField("buyerName", e.target.value)}
+              placeholder="Maria Santos"
+              required
+            />
           </Field>
           <Field>
             <FieldLabel htmlFor="buyerContactNumber">Contact number</FieldLabel>
-            <Input id="buyerContactNumber" value={values.contactNumber} onChange={(e) => updateField("contactNumber", e.target.value)} placeholder="0917 987 6543" required />
+            <Input
+              id="buyerContactNumber"
+              value={values.contactNumber}
+              onChange={(e) => updateField("contactNumber", e.target.value)}
+              placeholder="0917 987 6543"
+              required
+            />
           </Field>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="buyerEmail">Email</FieldLabel>
-            <Input id="buyerEmail" type="email" value={values.email} onChange={(e) => updateField("email", e.target.value)} placeholder="buyer@example.com" />
+            <Input
+              id="buyerEmail"
+              type="email"
+              value={values.email}
+              onChange={(e) => updateField("email", e.target.value)}
+              placeholder="buyer@example.com"
+            />
           </Field>
           <Field>
             <FieldLabel htmlFor="buyerFacebookName">Facebook name</FieldLabel>
-            <Input id="buyerFacebookName" value={values.facebookName} onChange={(e) => updateField("facebookName", e.target.value)} placeholder="Maria Santos FB" />
+            <Input
+              id="buyerFacebookName"
+              value={values.facebookName}
+              onChange={(e) => updateField("facebookName", e.target.value)}
+              placeholder="Maria Santos FB"
+            />
           </Field>
         </div>
       </section>
@@ -393,24 +545,42 @@ function BuyerLeadForm({
 
       <section className="space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Buyer Intent</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Buyer Intent
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Capture buying context so the team can match this lead with the right inventory.
+            Capture buying context so the team can match this lead with the
+            right inventory.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="buyerInquirySource">Inquiry source</FieldLabel>
-            <Input id="buyerInquirySource" value={values.inquirySource} onChange={(e) => updateField("inquirySource", e.target.value)} placeholder="Facebook Page" />
+            <Input
+              id="buyerInquirySource"
+              value={values.inquirySource}
+              onChange={(e) => updateField("inquirySource", e.target.value)}
+              placeholder="Facebook Page"
+            />
           </Field>
           <Field>
             <FieldLabel htmlFor="desiredBudget">Desired budget</FieldLabel>
-            <Input id="desiredBudget" value={values.desiredBudget} onChange={(e) => updateField("desiredBudget", e.target.value)} placeholder="850000" />
+            <Input
+              id="desiredBudget"
+              value={values.desiredBudget}
+              onChange={(e) => updateField("desiredBudget", e.target.value)}
+              placeholder="850000"
+            />
           </Field>
         </div>
         <Field>
           <FieldLabel htmlFor="buyerStatus">Status</FieldLabel>
-          <Select value={values.status} onValueChange={(value) => updateField("status", value as BuyerLeadStatus)}>
+          <Select
+            value={values.status}
+            onValueChange={(value) =>
+              updateField("status", value as BuyerLeadStatus)
+            }
+          >
             <SelectTrigger id="buyerStatus">
               <SelectValue />
             </SelectTrigger>
@@ -425,7 +595,13 @@ function BuyerLeadForm({
         </Field>
         <Field>
           <FieldLabel htmlFor="buyerNotes">Notes</FieldLabel>
-          <Textarea id="buyerNotes" rows={5} value={values.notes} onChange={(e) => updateField("notes", e.target.value)} placeholder="Buyer prefers an automatic SUV, open to financing, and wants units available for viewing this week." />
+          <Textarea
+            id="buyerNotes"
+            rows={5}
+            value={values.notes}
+            onChange={(e) => updateField("notes", e.target.value)}
+            placeholder="Buyer prefers an automatic SUV, open to financing, and wants units available for viewing this week."
+          />
         </Field>
       </section>
     </FieldGroup>
@@ -433,21 +609,29 @@ function BuyerLeadForm({
 }
 
 export function BuyerLeadsScreen() {
+  const router = useRouter()
   const authQuery = useAuthenticatedUserQuery()
   const vehiclesQuery = useVehiclesQuery({ status: "Available" })
   const createMutation = useCreateBuyerLeadMutation()
   const updateMutation = useUpdateBuyerLeadMutation()
+  const createFollowUpMutation = useCreateFollowUpMutation()
   const linkMutation = useLinkBuyerLeadVehicleMutation()
   const unlinkMutation = useUnlinkBuyerLeadVehicleMutation()
 
   const [searchTerm, setSearchTerm] = React.useState("")
-  const [activeFilter, setActiveFilter] = React.useState<BuyerLeadStatus | "all">("all")
+  const [activeFilter, setActiveFilter] = React.useState<
+    BuyerLeadStatus | "all"
+  >("all")
   const [page, setPage] = React.useState(1)
   const [createOpen, setCreateOpen] = React.useState(false)
   const [viewLead, setViewLead] = React.useState<BuyerLead | null>(null)
   const [editLead, setEditLead] = React.useState<BuyerLead | null>(null)
-  const [manageVehiclesLead, setManageVehiclesLead] = React.useState<BuyerLead | null>(null)
-  const [createForm, setCreateForm] = React.useState<BuyerLeadFormValues>(getEmptyBuyerLeadFormValues)
+  const [followUpLead, setFollowUpLead] = React.useState<BuyerLead | null>(null)
+  const [manageVehiclesLead, setManageVehiclesLead] =
+    React.useState<BuyerLead | null>(null)
+  const [createForm, setCreateForm] = React.useState<BuyerLeadFormValues>(
+    getEmptyBuyerLeadFormValues,
+  )
 
   const filters = React.useMemo<BuyerLeadListFilters>(
     () => ({
@@ -475,15 +659,30 @@ export function BuyerLeadsScreen() {
       return
     }
 
+    if (cta.action === "follow-up") {
+      setFollowUpLead(lead)
+      return
+    }
+
     if (cta.action === "vehicles") {
       setManageVehiclesLead(lead)
+      return
+    }
+
+    if (cta.action === "sale") {
+      router.push(
+        `/sales?action=finalize-sale&buyerLeadId=${encodeURIComponent(lead.id)}`,
+      )
       return
     }
 
     setViewLead(lead)
   }
 
-  async function handleStatusChange(lead: BuyerLead, nextStatus: BuyerLeadStatus) {
+  async function handleStatusChange(
+    lead: BuyerLead,
+    nextStatus: BuyerLeadStatus,
+  ) {
     if (lead.status === nextStatus) {
       return
     }
@@ -498,20 +697,25 @@ export function BuyerLeadsScreen() {
 
       toast.success(`Buyer lead moved to ${nextStatus}`)
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update buyer lead status"))
+      toast.error(
+        getApiErrorMessage(error, "Unable to update buyer lead status"),
+      )
     }
   }
 
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    await createMutation.mutateAsync(parseBuyerLeadPayload(createForm, currentUserId ?? null), {
-      onSuccess: () => {
-        toast.success("Buyer lead created")
-        setCreateOpen(false)
-        setCreateForm(getEmptyBuyerLeadFormValues())
+    await createMutation.mutateAsync(
+      parseBuyerLeadPayload(createForm, currentUserId ?? null),
+      {
+        onSuccess: () => {
+          toast.success("Buyer lead created")
+          setCreateOpen(false)
+          setCreateForm(getEmptyBuyerLeadFormValues())
+        },
       },
-    })
+    )
   }
 
   return (
@@ -520,9 +724,12 @@ export function BuyerLeadsScreen() {
         <section className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="space-y-1">
-              <h2 className="text-2xl font-semibold tracking-tight">Buyer Leads</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">
+                Buyer Leads
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Track buyer demand, review matching context, and manage candidate vehicles from one table-first workspace.
+                Track buyer demand, review matching context, and manage
+                candidate vehicles from one table-first workspace.
               </p>
             </div>
             <Button onClick={() => setCreateOpen(true)}>
@@ -545,10 +752,13 @@ export function BuyerLeadsScreen() {
                   className="pl-9"
                 />
               </div>
-              <Select value={activeFilter} onValueChange={(value) => {
-                setActiveFilter(value as BuyerLeadStatus | "all")
-                setPage(1)
-              }}>
+              <Select
+                value={activeFilter}
+                onValueChange={(value) => {
+                  setActiveFilter(value as BuyerLeadStatus | "all")
+                  setPage(1)
+                }}
+              >
                 <SelectTrigger className="w-full md:w-[220px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -586,126 +796,225 @@ export function BuyerLeadsScreen() {
               </div>
             ) : buyerLeadsQuery.error ? (
               <div className="p-6">
-                <ApiErrorAlert title="Unable to load buyer leads" message={getApiErrorMessage(buyerLeadsQuery.error, "")} />
+                <ApiErrorAlert
+                  title="Unable to load buyer leads"
+                  message={getApiErrorMessage(buyerLeadsQuery.error, "")}
+                />
               </div>
             ) : leads.length ? (
               <Table className="min-w-[1040px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Buyer</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Contact</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Budget</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Stage</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Next Action</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Linked Vehicles</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Assignee</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Updated</TableHead>
-                    <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Buyer
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Contact
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Budget
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Stage
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Next Action
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Linked Vehicles
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Assignee
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Updated
+                    </TableHead>
+                    <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {leads.map((lead) => (
-                    <TableRow
-                      key={lead.id}
-                      className={isBuyerLeadStale(lead) ? "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30" : "hover:bg-muted/15"}
-                    >
-                      <TableCell className="px-4 py-3">
-                        <div className="space-y-1">
-                          <p className="font-medium text-foreground">{lead.buyerName}</p>
-                          <p className="text-sm text-muted-foreground">{lead.email ?? lead.facebookName ?? "No secondary contact"}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-sm text-foreground">{lead.contactNumber}</TableCell>
-                      <TableCell className="px-4 py-3 font-medium tabular-nums text-foreground">{formatVehicleMoney(lead.desiredBudget)}</TableCell>
-                      <TableCell className="px-4 py-3">
-                        <Badge
-                          variant={getBuyerLeadStatusBadgeVariant(lead.status)}
-                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(lead.status)}`}
-                        >
-                          {getBuyerLeadStage(lead.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="px-4 py-3">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{getBuyerLeadNextAction(lead)}</p>
-                          <Button
-                            type="button"
-                            variant="link"
-                            className="h-auto px-0 text-sm"
-                            onClick={() => handleNextActionClick(lead)}
+                  {leads.map((lead) => {
+                    const cta = getBuyerLeadNextActionCta(lead)
+
+                    return (
+                      <TableRow
+                        key={lead.id}
+                        className={
+                          isBuyerLeadStale(lead)
+                            ? "bg-amber-50/60 hover:bg-amber-50 dark:bg-amber-950/20 dark:hover:bg-amber-950/30"
+                            : "hover:bg-muted/15"
+                        }
+                      >
+                        <TableCell className="px-4 py-3">
+                          <div className="space-y-1">
+                            <p className="font-medium text-foreground">
+                              {lead.buyerName}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {lead.email ??
+                                lead.facebookName ??
+                                "No secondary contact"}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm text-foreground">
+                          {lead.contactNumber}
+                        </TableCell>
+                        <TableCell className="px-4 py-3 font-medium tabular-nums text-foreground">
+                          {formatVehicleMoney(lead.desiredBudget)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <Badge
+                            variant={getBuyerLeadStatusBadgeVariant(
+                              lead.status,
+                            )}
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(lead.status)}`}
                           >
-                            {getBuyerLeadNextActionCta(lead).label}
-                          </Button>
-                          <p className="text-xs text-muted-foreground">{getBuyerLeadNextActionCta(lead).helper}</p>
-                          {getBuyerLeadWarning(lead) ? (
-                            <p className="text-xs text-amber-700 dark:text-amber-300">Needs follow-up</p>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-3">
-                        <Badge variant="outline" className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground">
-                          {lead.vehicles.length} vehicle{lead.vehicles.length === 1 ? "" : "s"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-sm text-foreground">{getAssigneeLabel(lead.assigneeUserId, currentUserId)}</TableCell>
-                      <TableCell className="px-4 py-3">
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">
-                            {formatDistanceToNow(new Date(lead.updatedAt), { addSuffix: true })}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{format(new Date(lead.updatedAt), "MMM d, yyyy")}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-4 py-3 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${lead.buyerName}`}>
-                              <MoreHorizontalIcon />
+                            {lead.pipeline?.stageLabel ??
+                              getBuyerLeadStage(lead.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                              {getBuyerLeadNextAction(lead)}
+                            </p>
+                            <Button
+                              type="button"
+                              variant={
+                                cta.action === "follow-up"
+                                  ? "default"
+                                  : "outline"
+                              }
+                              size="sm"
+                              className="mt-1"
+                              onClick={() => handleNextActionClick(lead)}
+                            >
+                              <BuyerLeadNextActionIcon action={cta.action} />
+                              {cta.label}
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuLabel>Lead actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => setViewLead(lead)}>
-                              <EyeIcon />
-                              View
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setEditLead(lead)}>
-                              <PencilIcon />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setManageVehiclesLead(lead)}>
-                              <CarFrontIcon />
-                              Manage Vehicles
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuLabel>Update status</DropdownMenuLabel>
-                            <DropdownMenuRadioGroup value={lead.status}>
-                              {BUYER_LEAD_STATUSES.map((status) => (
-                                <DropdownMenuRadioItem
-                                  key={status}
-                                  value={status}
-                                  className={`font-medium ${getBuyerLeadStatusTextClassName(status)}`}
-                                  disabled={updateMutation.isPending}
-                                  onSelect={(event) => {
-                                    event.preventDefault()
-                                    void handleStatusChange(lead, status)
-                                  }}
+                            <p className="text-xs text-muted-foreground">
+                              {cta.helper}
+                            </p>
+                            {getBuyerLeadWarning(lead) ? (
+                              <p className="text-xs text-amber-700 dark:text-amber-300">
+                                Needs follow-up
+                              </p>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <Badge
+                            variant="outline"
+                            className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground"
+                          >
+                            {lead.vehicles.length} vehicle
+                            {lead.vehicles.length === 1 ? "" : "s"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm text-foreground">
+                          {getAssigneeLabel(lead.assigneeUserId, currentUserId)}
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-foreground">
+                              {formatDistanceToNow(new Date(lead.updatedAt), {
+                                addSuffix: true,
+                              })}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(lead.updatedAt), "MMM d, yyyy")}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Actions for ${lead.buyerName}`}
+                              >
+                                <MoreHorizontalIcon />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuLabel>
+                                Lead actions
+                              </DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() => setViewLead(lead)}
+                              >
+                                <EyeIcon />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setEditLead(lead)}
+                              >
+                                <PencilIcon />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setFollowUpLead(lead)}
+                              >
+                                <CalendarPlusIcon />
+                                Schedule Follow-Up
+                              </DropdownMenuItem>
+                              {cta.action === "sale" ? (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    router.push(
+                                      `/sales?action=finalize-sale&buyerLeadId=${encodeURIComponent(lead.id)}`,
+                                    )
+                                  }
                                 >
-                                  {status}
-                                </DropdownMenuRadioItem>
-                              ))}
-                            </DropdownMenuRadioGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                                  <ReceiptTextIcon />
+                                  Finalize Sale
+                                </DropdownMenuItem>
+                              ) : null}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setManageVehiclesLead(lead)}
+                              >
+                                <CarFrontIcon />
+                                Manage Vehicles
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuLabel>
+                                Update status
+                              </DropdownMenuLabel>
+                              <DropdownMenuRadioGroup value={lead.status}>
+                                {BUYER_LEAD_STATUSES.map((status) => (
+                                  <DropdownMenuRadioItem
+                                    key={status}
+                                    value={status}
+                                    className={`font-medium ${getBuyerLeadStatusTextClassName(status)}`}
+                                    disabled={updateMutation.isPending}
+                                    onSelect={(event) => {
+                                      event.preventDefault()
+                                      void handleStatusChange(lead, status)
+                                    }}
+                                  >
+                                    {status}
+                                  </DropdownMenuRadioItem>
+                                ))}
+                              </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             ) : (
               <div className="p-6">
-                <EmptyState title="No buyer leads yet" description="Add the first buyer lead to start matching demand with inventory." />
+                <EmptyState
+                  title="No buyer leads yet"
+                  description="Add the first buyer lead to start matching demand with inventory."
+                />
               </div>
             )}
           </CardContent>
@@ -728,49 +1037,84 @@ export function BuyerLeadsScreen() {
             <SheetHeader className="border-b px-6 py-5 pr-14">
               <SheetTitle className="text-lg">Add Buyer Lead</SheetTitle>
               <SheetDescription>
-                Capture a new buyer inquiry and assign it to yourself by default.
+                Capture a new buyer inquiry and assign it to yourself by
+                default.
               </SheetDescription>
             </SheetHeader>
-            <form onSubmit={handleCreateSubmit} className="flex min-h-0 flex-1 flex-col">
+            <form
+              onSubmit={handleCreateSubmit}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
                 <div className="min-h-0 overflow-y-auto px-6 py-6">
                   <div className="space-y-5">
-                    <ApiErrorAlert title="Unable to create buyer lead" message={getApiErrorMessage(createMutation.error, "")} />
-                    <BuyerLeadForm values={createForm} onChange={setCreateForm} />
+                    <ApiErrorAlert
+                      title="Unable to create buyer lead"
+                      message={getApiErrorMessage(createMutation.error, "")}
+                    />
+                    <BuyerLeadForm
+                      values={createForm}
+                      onChange={setCreateForm}
+                    />
                   </div>
                 </div>
                 <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
                   <div className="space-y-4">
                     <Card className="border-border/70 py-0 shadow-none">
                       <CardHeader className="border-b py-4">
-                        <CardTitle className="text-base">Lead Summary</CardTitle>
-                        <CardDescription>Live preview of the demand details you&apos;re capturing.</CardDescription>
+                        <CardTitle className="text-base">
+                          Lead Summary
+                        </CardTitle>
+                        <CardDescription>
+                          Live preview of the demand details you&apos;re
+                          capturing.
+                        </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4 py-4">
                         <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Buyer</p>
-                          <p className="text-sm font-medium text-foreground">{createPreview.buyer}</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Buyer
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {createPreview.buyer}
+                          </p>
                         </div>
                         <Separator />
                         <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contact</p>
-                          <p className="text-sm font-medium text-foreground">{createPreview.contact}</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Contact
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {createPreview.contact}
+                          </p>
                         </div>
                         <Separator />
                         <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Inquiry Source</p>
-                          <p className="text-sm font-medium text-foreground">{createPreview.channel}</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Inquiry Source
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {createPreview.channel}
+                          </p>
                         </div>
                         <Separator />
                         <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Desired Budget</p>
-                          <p className="text-sm font-medium text-foreground">{formatVehicleMoney(createForm.desiredBudget)}</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Desired Budget
+                          </p>
+                          <p className="text-sm font-medium text-foreground">
+                            {formatVehicleMoney(createForm.desiredBudget)}
+                          </p>
                         </div>
                         <Separator />
                         <div className="space-y-2">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            Status
+                          </p>
                           <Badge
-                            variant={getBuyerLeadStatusBadgeVariant(createForm.status)}
+                            variant={getBuyerLeadStatusBadgeVariant(
+                              createForm.status,
+                            )}
                             className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(createForm.status)}`}
                           >
                             {createForm.status}
@@ -779,20 +1123,30 @@ export function BuyerLeadsScreen() {
                       </CardContent>
                     </Card>
                     <div className="rounded-xl border border-border/70 bg-background/80 px-4 py-3 text-sm text-muted-foreground">
-                      Use this drawer for quick demand intake. Vehicle matching can be done later from the buyer lead row action.
+                      Use this drawer for quick demand intake. Vehicle matching
+                      can be done later from the buyer lead row action.
                     </div>
                   </div>
                 </aside>
               </div>
               <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  This lead will be assigned to <span className="font-medium text-foreground">you</span>.
+                  This lead will be assigned to{" "}
+                  <span className="font-medium text-foreground">you</span>.
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCreateOpen(false)}
+                  >
                     Cancel
                   </Button>
-                  <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Creating buyer lead">
+                  <SubmitButton
+                    type="submit"
+                    pending={createMutation.isPending}
+                    pendingLabel="Creating buyer lead"
+                  >
                     Create Buyer Lead
                   </SubmitButton>
                 </div>
@@ -801,68 +1155,129 @@ export function BuyerLeadsScreen() {
           </SheetContent>
         </Sheet>
 
-        <Dialog open={Boolean(viewLead)} onOpenChange={(open) => !open && setViewLead(null)}>
+        <Dialog
+          open={Boolean(viewLead)}
+          onOpenChange={(open) => !open && setViewLead(null)}
+        >
           <DialogContent className="max-w-xl">
             {viewLead ? (
               <>
                 <DialogHeader>
                   <DialogTitle>{viewLead.buyerName}</DialogTitle>
-                  <DialogDescription>{viewLead.contactNumber}</DialogDescription>
+                  <DialogDescription>
+                    {viewLead.contactNumber}
+                  </DialogDescription>
                 </DialogHeader>
-                  <div className="grid gap-6">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Desired Budget</p><p className="text-sm text-foreground">{formatVehicleMoney(viewLead.desiredBudget)}</p></div>
-                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Stage</p><p className="text-sm text-foreground">{getBuyerLeadStage(viewLead.status)}</p></div>
-                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Assignee</p><p className="text-sm text-foreground">{getAssigneeLabel(viewLead.assigneeUserId, currentUserId)}</p></div>
-                    <div className="space-y-1"><p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Vehicles</p><p className="text-sm text-foreground">{viewLead.vehicles.length}</p></div>
+                <div className="grid gap-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Desired Budget
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {formatVehicleMoney(viewLead.desiredBudget)}
+                      </p>
                     </div>
-                    <div className="grid gap-3">
-                      <Alert>
-                        <Clock3Icon className="size-4" />
-                        <AlertTitle>Next action</AlertTitle>
-                        <AlertDescription>{getBuyerLeadNextAction(viewLead)}</AlertDescription>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Stage
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {viewLead.pipeline?.stageLabel ??
+                          getBuyerLeadStage(viewLead.status)}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Assignee
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {getAssigneeLabel(
+                          viewLead.assigneeUserId,
+                          currentUserId,
+                        )}
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Linked Vehicles
+                      </p>
+                      <p className="text-sm text-foreground">
+                        {viewLead.vehicles.length}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3">
+                    <Alert>
+                      <Clock3Icon className="size-4" />
+                      <AlertTitle>Next action</AlertTitle>
+                      <AlertDescription>
+                        {getBuyerLeadNextAction(viewLead)}
+                      </AlertDescription>
+                    </Alert>
+                    {getBuyerLeadBlocker(viewLead) ? (
+                      <Alert variant="destructive">
+                        <AlertTriangleIcon className="size-4" />
+                        <AlertTitle>Blocker</AlertTitle>
+                        <AlertDescription>
+                          {getBuyerLeadBlocker(viewLead)}
+                        </AlertDescription>
                       </Alert>
-                      {getBuyerLeadBlocker(viewLead) ? (
-                        <Alert variant="destructive">
-                          <AlertTriangleIcon className="size-4" />
-                          <AlertTitle>Blocker</AlertTitle>
-                          <AlertDescription>{getBuyerLeadBlocker(viewLead)}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                      {getBuyerLeadWarning(viewLead) ? (
-                        <Alert>
-                          <AlertTriangleIcon className="size-4" />
-                          <AlertTitle>Warning</AlertTitle>
-                          <AlertDescription>{getBuyerLeadWarning(viewLead)}</AlertDescription>
-                        </Alert>
-                      ) : null}
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Linked Vehicle Matches</p>
+                    ) : null}
+                    {getBuyerLeadWarning(viewLead) ? (
+                      <Alert>
+                        <AlertTriangleIcon className="size-4" />
+                        <AlertTitle>Warning</AlertTitle>
+                        <AlertDescription>
+                          {getBuyerLeadWarning(viewLead)}
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Linked Vehicle Matches
+                    </p>
                     {viewLead.vehicles.length ? (
                       <div className="space-y-2">
                         {viewLead.vehicles.map((vehicle) => (
-                          <div key={vehicle.id} className="rounded-md border bg-muted/20 px-3 py-2 text-sm text-foreground">
-                            {vehicle.stockNumber} • {vehicle.brand} {vehicle.model} • {vehicle.status}
+                          <div
+                            key={vehicle.id}
+                            className="rounded-md border bg-muted/20 px-3 py-2 text-sm text-foreground"
+                          >
+                            {vehicle.stockNumber} • {vehicle.brand}{" "}
+                            {vehicle.model} • {vehicle.status}
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-muted-foreground">No vehicles linked.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No vehicles linked.
+                      </p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Notes</p>
-                    <p className="text-sm text-foreground">{viewLead.notes ?? "No notes recorded."}</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Notes
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {viewLead.notes ?? "No notes recorded."}
+                    </p>
                   </div>
-                  <ActivityHistoryPanel entityType="buyer_lead" entityId={viewLead.id} />
+                  <ActivityHistoryPanel
+                    entityType="buyer_lead"
+                    entityId={viewLead.id}
+                  />
                 </div>
               </>
             ) : null}
           </DialogContent>
         </Dialog>
 
-        <Dialog open={Boolean(editLead)} onOpenChange={(open) => !open && setEditLead(null)}>
+        <Dialog
+          open={Boolean(editLead)}
+          onOpenChange={(open) => !open && setEditLead(null)}
+        >
           <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             {editLead ? (
               <EditBuyerLeadDialogForm
@@ -875,7 +1290,27 @@ export function BuyerLeadsScreen() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={Boolean(manageVehiclesLead)} onOpenChange={(open) => !open && setManageVehiclesLead(null)}>
+        <Dialog
+          open={Boolean(followUpLead)}
+          onOpenChange={(open) => !open && setFollowUpLead(null)}
+        >
+          <DialogContent className="max-w-xl">
+            {followUpLead ? (
+              <ScheduleBuyerFollowUpDialogForm
+                key={followUpLead.id}
+                lead={followUpLead}
+                currentUserId={currentUserId}
+                mutation={createFollowUpMutation}
+                onClose={() => setFollowUpLead(null)}
+              />
+            ) : null}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={Boolean(manageVehiclesLead)}
+          onOpenChange={(open) => !open && setManageVehiclesLead(null)}
+        >
           <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
             {manageVehiclesLead ? (
               <ManageBuyerLeadVehiclesDialog
@@ -902,7 +1337,9 @@ function EditBuyerLeadDialogForm({
   mutation: ReturnType<typeof useUpdateBuyerLeadMutation>
   onClose: () => void
 }) {
-  const [values, setValues] = React.useState<BuyerLeadFormValues>(() => getBuyerLeadFormValues(lead))
+  const [values, setValues] = React.useState<BuyerLeadFormValues>(() =>
+    getBuyerLeadFormValues(lead),
+  )
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -925,14 +1362,124 @@ function EditBuyerLeadDialogForm({
     <>
       <DialogHeader>
         <DialogTitle>Edit Buyer Lead</DialogTitle>
-        <DialogDescription>Update buyer details, demand context, and pipeline status.</DialogDescription>
+        <DialogDescription>
+          Update buyer details, demand context, and pipeline status.
+        </DialogDescription>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <ApiErrorAlert title="Unable to update buyer lead" message={getApiErrorMessage(mutation.error, "")} />
+        <ApiErrorAlert
+          title="Unable to update buyer lead"
+          message={getApiErrorMessage(mutation.error, "")}
+        />
         <BuyerLeadForm values={values} onChange={setValues} />
         <DialogFooter>
-          <SubmitButton type="submit" pending={mutation.isPending} pendingLabel="Saving changes">
+          <SubmitButton
+            type="submit"
+            pending={mutation.isPending}
+            pendingLabel="Saving changes"
+          >
             Save Changes
+          </SubmitButton>
+        </DialogFooter>
+      </form>
+    </>
+  )
+}
+
+function ScheduleBuyerFollowUpDialogForm({
+  lead,
+  currentUserId,
+  mutation,
+  onClose,
+}: {
+  lead: BuyerLead
+  currentUserId?: string
+  mutation: ReturnType<typeof useCreateFollowUpMutation>
+  onClose: () => void
+}) {
+  const assigneeUserId = currentUserId ?? lead.assigneeUserId ?? ""
+  const [dueAt, setDueAt] = React.useState<Date | undefined>(() =>
+    getDefaultFollowUpDueAt(),
+  )
+  const [note, setNote] = React.useState(() =>
+    getDefaultBuyerFollowUpNote(lead),
+  )
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!assigneeUserId || !dueAt || !note.trim()) {
+      return
+    }
+
+    await mutation.mutateAsync(
+      {
+        leadType: "buyer",
+        buyerLeadId: lead.id,
+        assigneeUserId,
+        dueAt: dueAt.toISOString(),
+        note: note.trim(),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Follow-up scheduled")
+          onClose()
+        },
+      },
+    )
+  }
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Schedule Follow-Up</DialogTitle>
+        <DialogDescription>
+          Create the next contact task for {lead.buyerName}.
+        </DialogDescription>
+      </DialogHeader>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <ApiErrorAlert
+          title="Unable to schedule follow-up"
+          message={getApiErrorMessage(mutation.error, "")}
+        />
+        <div className="rounded-md border bg-muted/20 px-3 py-3 text-sm">
+          <p className="font-medium text-foreground">{lead.buyerName}</p>
+          <p className="text-muted-foreground">{lead.contactNumber}</p>
+        </div>
+        <FieldGroup className="gap-4">
+          <Field>
+            <FieldLabel htmlFor="buyerFollowUpDueAt">Due at</FieldLabel>
+            <DateTimePicker
+              id="buyerFollowUpDueAt"
+              value={dueAt}
+              onChange={setDueAt}
+              minDate={new Date()}
+              placeholder="Select due date and time"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="buyerFollowUpNote">Follow-up note</FieldLabel>
+            <Textarea
+              id="buyerFollowUpNote"
+              rows={4}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              required
+            />
+          </Field>
+        </FieldGroup>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <SubmitButton
+            type="submit"
+            pending={mutation.isPending}
+            pendingLabel="Scheduling follow-up"
+            disabled={!assigneeUserId || !dueAt || !note.trim()}
+          >
+            <CalendarPlusIcon />
+            Schedule Follow-Up
           </SubmitButton>
         </DialogFooter>
       </form>
@@ -953,22 +1500,38 @@ function ManageBuyerLeadVehiclesDialog({
 }) {
   const [selectedVehicleId, setSelectedVehicleId] = React.useState("")
 
-  const candidateVehicles = availableVehicles.filter((vehicle) => !lead.vehicles.some((linked) => linked.id === vehicle.id))
+  const candidateVehicles = availableVehicles.filter(
+    (vehicle) => !lead.vehicles.some((linked) => linked.id === vehicle.id),
+  )
 
   return (
     <>
       <DialogHeader>
         <DialogTitle>Manage Linked Vehicles</DialogTitle>
-        <DialogDescription>Link candidate inventory or remove matches for {lead.buyerName}.</DialogDescription>
+        <DialogDescription>
+          Link candidate inventory or remove matches for {lead.buyerName}.
+        </DialogDescription>
       </DialogHeader>
       <div className="space-y-4">
-        <ApiErrorAlert title="Buyer lead action failed" message={getApiErrorMessage(linkMutation.error ?? unlinkMutation.error, "")} />
+        <ApiErrorAlert
+          title="Buyer lead action failed"
+          message={getApiErrorMessage(
+            linkMutation.error ?? unlinkMutation.error,
+            "",
+          )}
+        />
         <div className="space-y-3">
           <p className="text-sm font-medium">Linked vehicles</p>
           {lead.vehicles.length ? (
             lead.vehicles.map((vehicle) => (
-              <div key={vehicle.id} className="flex items-center justify-between gap-3 rounded-lg border px-3 py-3 text-sm">
-                <span className="text-foreground">{vehicle.stockNumber} • {vehicle.brand} {vehicle.model} • {vehicle.status}</span>
+              <div
+                key={vehicle.id}
+                className="flex items-center justify-between gap-3 rounded-lg border px-3 py-3 text-sm"
+              >
+                <span className="text-foreground">
+                  {vehicle.stockNumber} • {vehicle.brand} {vehicle.model} •{" "}
+                  {vehicle.status}
+                </span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -986,12 +1549,18 @@ function ManageBuyerLeadVehiclesDialog({
               </div>
             ))
           ) : (
-            <EmptyState title="No vehicles linked" description="Link at least one vehicle before finalizing a sale." />
+            <EmptyState
+              title="No vehicles linked"
+              description="Link at least one vehicle before finalizing a sale."
+            />
           )}
         </div>
 
         <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-          <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+          <Select
+            value={selectedVehicleId}
+            onValueChange={setSelectedVehicleId}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select a vehicle to link" />
             </SelectTrigger>

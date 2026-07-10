@@ -1,4 +1,5 @@
 import type { PaginatedResponseMeta } from "@/types/api"
+import type { LeadPipelineState } from "@/types/lead-pipeline"
 
 export const BUYER_LEAD_STATUSES = [
   "New Inquiry",
@@ -37,6 +38,7 @@ export interface BuyerLead {
   createdAt: string
   updatedAt: string
   vehicles: BuyerLeadVehicleSummary[]
+  pipeline: LeadPipelineState | null
 }
 
 export interface CreateBuyerLeadPayload {
@@ -67,6 +69,7 @@ export interface BuyerLeadListFilters {
   pageSize?: number
   search?: string
   eligibleForSale?: boolean
+  pipelineState?: "blocked" | "stale" | "ready" | "ready_to_progress"
   status?: BuyerLeadStatus | "all"
   sortBy?: "updatedAt" | "createdAt" | "buyerName" | "status" | "desiredBudget"
   sortOrder?: "asc" | "desc"

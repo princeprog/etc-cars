@@ -378,10 +378,9 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
       },
       {
         onSuccess: () => {
-          toast.success("Vehicle pricing updated")
           if (vehicle.photos.length === 0) {
-            toast.warning(
-              "This vehicle needs at least one photo before it can be marked Available.",
+            toast.success(
+              "Pricing saved. Add a vehicle photo before marking it Available.",
               {
                 action: {
                   label: "Upload Photo",
@@ -390,6 +389,8 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
                 },
               },
             )
+          } else {
+            toast.success("Vehicle pricing updated")
           }
           setConfirmOpen(false)
         },

@@ -4,7 +4,9 @@ import type {
   CreateVehiclePayload,
   UpdateVehiclePayload,
   VehicleResponse,
+  VehicleTrackedCostListFilters,
   VehicleTrackedCostPayload,
+  VehicleTrackedCostsResponse,
   VehiclesResponse,
 } from "@/types/vehicles";
 
@@ -29,6 +31,28 @@ export function getVehicles(filters?: GetVehiclesFilters) {
 
 export function getVehicle(id: string) {
   return apiRequest<VehicleResponse>(API_ENDPOINTS.vehicles.byId(id));
+}
+
+export function getVehicleTrackedCosts(
+  id: string,
+  filters: VehicleTrackedCostListFilters = {},
+) {
+  const searchParams = new URLSearchParams();
+
+  if (filters.page) {
+    searchParams.set("page", String(filters.page));
+  }
+
+  if (filters.pageSize) {
+    searchParams.set("pageSize", String(filters.pageSize));
+  }
+
+  const queryString = searchParams.toString();
+  const endpoint = queryString
+    ? `${API_ENDPOINTS.vehicles.trackedCosts(id)}?${queryString}`
+    : API_ENDPOINTS.vehicles.trackedCosts(id);
+
+  return apiRequest<VehicleTrackedCostsResponse>(endpoint);
 }
 
 export function createVehicle(payload: CreateVehiclePayload) {

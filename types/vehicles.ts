@@ -119,10 +119,23 @@ export interface VehicleTrackedCostPayload {
   note: string;
 }
 
+export interface VehicleTrackedCostListFilters {
+  page?: number;
+  pageSize?: number;
+}
+
 export interface VehicleResponse {
   vehicle: Vehicle;
 }
 
 export interface VehiclesResponse {
   vehicles: Vehicle[];
+}
+
+export interface VehicleTrackedCostsResponse {
+  trackedCosts: VehicleTrackedCost[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
 }

@@ -4,4 +4,6 @@ export const vehiclesQueryKeys = {
   filteredList: (filters: Record<string, string | undefined>) =>
     [...vehiclesQueryKeys.all, "list", "filtered", filters] as const,
   detail: (id: string) => [...vehiclesQueryKeys.all, "detail", id] as const,
+  trackedCosts: (id: string, filters: { page?: number; pageSize?: number }) =>
+    [...vehiclesQueryKeys.detail(id), "tracked-costs", filters] as const,
 }

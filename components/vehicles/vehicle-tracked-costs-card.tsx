@@ -21,6 +21,7 @@ import {
   CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -53,6 +54,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -127,7 +129,43 @@ function formatCostDate(cost: VehicleTrackedCost) {
   }).format(new Date(cost.createdAt));
 }
 
-export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
+const BASE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+
+function getPageSizeOptions(total: number, currentPageSize: number) {
+  if (total <= 0) {
+    return [currentPageSize];
+  }
+
+  const options = BASE_PAGE_SIZE_OPTIONS.filter((option, index) => {
+    const previousOption = BASE_PAGE_SIZE_OPTIONS[index - 1] ?? 0;
+
+    return option <= total || previousOption < total;
+  });
+
+  return Array.from(new Set([...options, currentPageSize])).sort(
+    (a, b) => a - b,
+  );
+}
+
+export function VehicleTrackedCostsCard({
+  vehicle,
+  trackedCosts,
+  pagination,
+  error,
+}: {
+  vehicle: Vehicle;
+  trackedCosts: VehicleTrackedCost[];
+  error?: unknown;
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    isLoading: boolean;
+    onPageChange: (page: number) => void;
+    onPageSizeChange: (pageSize: number) => void;
+  };
+}) {
   const createMutation = useCreateVehicleTrackedCostMutation();
   const deleteMutation = useDeleteVehicleTrackedCostMutation();
   const [category, setCategory] =
@@ -158,6 +196,19 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
       { onSuccess: () => toast.success("Tracked cost removed") },
     );
   }
+
+  const pageSizeOptions = getPageSizeOptions(
+    pagination.total,
+    pagination.pageSize,
+  );
+  const canGoPrevious = pagination.page > 1;
+  const canGoNext = pagination.page < pagination.totalPages;
+  const rangeStart =
+    pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1;
+  const rangeEnd = Math.min(
+    pagination.page * pagination.pageSize,
+    pagination.total,
+  );
 
   return (
     <Card className="border-border/70 shadow-xs">
@@ -271,12 +322,18 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
         <ApiErrorAlert
           title="Unable to update tracked costs"
           message={getApiErrorMessage(
-            createMutation.error ?? deleteMutation.error,
+            createMutation.error ?? deleteMutation.error ?? error,
             "",
           )}
         />
 
-        {vehicle.trackedCosts.length > 0 ? (
+        {pagination.isLoading ? (
+          <div className="flex flex-col gap-3 py-2">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton key={index} className="h-16 w-full rounded-md" />
+            ))}
+          </div>
+        ) : trackedCosts.length > 0 ? (
           <div className="-mx-(--card-spacing) border-b">
             <Table className="min-w-[820px]">
               <TableHeader className="bg-muted/30">
@@ -289,7 +346,7 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vehicle.trackedCosts.map((cost) => {
+                {trackedCosts.map((cost) => {
                   const meta = CATEGORY_META[cost.category];
                   const Icon = meta.icon;
 
@@ -352,6 +409,60 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
         )}
 
       </CardContent>
+      <CardFooter className="flex flex-col gap-3 border-t md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+          <span>
+            Showing {rangeStart}-{rangeEnd} of {pagination.total} tracked costs
+          </span>
+          <span>
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rows</span>
+            <Select
+              value={String(pagination.pageSize)}
+              onValueChange={(value) =>
+                pagination.onPageSizeChange(Number(value))
+              }
+            >
+              <SelectTrigger className="w-24">
+                <SelectValue placeholder={pagination.pageSize} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {pageSizeOptions.map((pageSize) => (
+                    <SelectItem key={pageSize} value={String(pageSize)}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!canGoPrevious || pagination.isLoading}
+              onClick={() => pagination.onPageChange(pagination.page - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!canGoNext || pagination.isLoading}
+              onClick={() => pagination.onPageChange(pagination.page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      </CardFooter>
     </Card>
   );
 }

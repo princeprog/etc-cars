@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import {
   ArrowLeftIcon,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useVehicleTrackedCostsQuery } from "@/hooks/queries/vehicles/use-vehicle-tracked-costs-query"
 import { useVehicleQuery } from "@/hooks/queries/vehicles/use-vehicle-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { Vehicle } from "@/types/vehicles"
@@ -138,9 +140,21 @@ function VehicleTrackedCostsPageSkeleton() {
 }
 
 export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
+  const [costPage, setCostPage] = React.useState(1)
+  const [costPageSize, setCostPageSize] = React.useState(10)
   const vehicleQuery = useVehicleQuery(vehicleId)
+  const trackedCostsQuery = useVehicleTrackedCostsQuery(vehicleId, {
+    page: costPage,
+    pageSize: costPageSize,
+  })
   const vehicle = vehicleQuery.data?.vehicle
+  const trackedCostsData = trackedCostsQuery.data
   const investment = vehicle ? getVehicleInvestment(vehicle) : null
+
+  function handleCostPageSizeChange(pageSize: number) {
+    setCostPageSize(pageSize)
+    setCostPage(1)
+  }
 
   return (
     <AuthenticatedAppShell
@@ -199,7 +213,20 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
           </Empty>
         ) : (
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
-            <VehicleTrackedCostsCard vehicle={vehicle} />
+            <VehicleTrackedCostsCard
+              vehicle={vehicle}
+              trackedCosts={trackedCostsData?.trackedCosts ?? []}
+              error={trackedCostsQuery.error}
+              pagination={{
+                page: trackedCostsData?.page ?? costPage,
+                pageSize: trackedCostsData?.pageSize ?? costPageSize,
+                total: trackedCostsData?.total ?? 0,
+                totalPages: trackedCostsData?.totalPages ?? 1,
+                isLoading: trackedCostsQuery.isPending,
+                onPageChange: setCostPage,
+                onPageSizeChange: handleCostPageSizeChange,
+              }}
+            />
 
             <div className="flex flex-col gap-4">
               <Card className="border-border/70 shadow-xs">

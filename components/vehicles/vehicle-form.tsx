@@ -209,7 +209,7 @@ export function VehicleForm({
 
       <Separator />
 
-      <section className="space-y-4">
+      <section id="vehicle-photos" className="scroll-mt-24 space-y-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-foreground">Media and Notes</h3>
           <p className="text-sm text-muted-foreground">

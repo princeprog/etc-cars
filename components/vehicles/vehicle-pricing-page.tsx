@@ -8,6 +8,7 @@ import {
   CircleDollarSignIcon,
   ClipboardListIcon,
   FileQuestionIcon,
+  ImagePlusIcon,
   InfoIcon,
   SaveIcon,
   ShoppingCartIcon,
@@ -19,7 +20,12 @@ import { toast } from "sonner"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { SubmitButton } from "@/components/operations/submit-button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -595,9 +601,29 @@ export function VehiclePricingPage({ vehicleId }: { vehicleId: string }) {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[480px_minmax(0,1fr)]">
-            <VehiclePricingForm vehicle={vehicle} />
-            <VehicleInvestmentSummary vehicle={vehicle} />
+          <div className="flex flex-col gap-5">
+            {vehicle.photos.length === 0 ? (
+              <Alert className="border-primary/20 bg-primary/5 text-primary">
+                <ImagePlusIcon />
+                <AlertTitle>Vehicle photo required for Available status</AlertTitle>
+                <AlertDescription>
+                  This vehicle needs at least one photo before it can be marked
+                  Available.
+                </AlertDescription>
+                <AlertAction>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href={`/vehicles/${vehicle.id}/edit#vehicle-photos`}>
+                      <ImagePlusIcon data-icon="inline-start" />
+                      Upload Photo
+                    </Link>
+                  </Button>
+                </AlertAction>
+              </Alert>
+            ) : null}
+            <div className="grid gap-5 xl:grid-cols-[480px_minmax(0,1fr)]">
+              <VehiclePricingForm vehicle={vehicle} />
+              <VehicleInvestmentSummary vehicle={vehicle} />
+            </div>
           </div>
         )}
       </div>

@@ -7,6 +7,7 @@ import {
   DollarSignIcon,
   FileQuestionIcon,
   ReceiptTextIcon,
+  TagsIcon,
   TrendingUpIcon,
 } from "lucide-react"
 
@@ -39,6 +40,8 @@ import {
   getVehicleStatusBadgeVariant,
   getVehicleStatusClassName,
 } from "./vehicles.helpers"
+
+const PRICING_MARGIN_TIERS = [0.1, 0.15, 0.2] as const
 
 function parseMoney(value?: string | null) {
   if (!value) {
@@ -76,6 +79,21 @@ function formatMoneyValue(value: number | null) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+function formatMarginLabel(value: number) {
+  return new Intl.NumberFormat("en-PH", {
+    style: "percent",
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+function getSuggestedSellingPrice(totalInvestment: number | null, margin: number) {
+  if (totalInvestment === null || margin >= 1) {
+    return null
+  }
+
+  return totalInvestment / (1 - margin)
 }
 
 function VehicleTrackedCostsPageSkeleton() {
@@ -268,6 +286,43 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
                           {formatMoneyValue(investment?.totalInvestment ?? null)}
                         </span>
                       </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 rounded-lg border border-border/70 p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 text-muted-foreground [&_svg]:size-4">
+                        <TagsIcon />
+                      </span>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-sm font-medium text-foreground">
+                          Pricing Guidance
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Suggested selling prices based on total investment.
+                        </p>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="flex flex-col gap-3">
+                      {PRICING_MARGIN_TIERS.map((margin) => (
+                        <div
+                          key={margin}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <Badge variant="secondary">
+                            {formatMarginLabel(margin)} margin
+                          </Badge>
+                          <span className="font-medium tabular-nums text-foreground">
+                            {formatMoneyValue(
+                              getSuggestedSellingPrice(
+                                investment?.totalInvestment ?? null,
+                                margin,
+                              ),
+                            )}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>

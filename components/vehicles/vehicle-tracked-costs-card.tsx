@@ -31,6 +31,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
@@ -45,7 +53,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -127,6 +134,7 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
     React.useState<VehicleTrackedCostCategory>("reconditioning");
   const [amount, setAmount] = React.useState("");
   const [note, setNote] = React.useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -137,6 +145,7 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
         onSuccess: () => {
           setAmount("");
           setNote("");
+          setIsAddDialogOpen(false);
           toast.success("Tracked cost added");
         },
       },
@@ -163,13 +172,99 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
           Record vehicle-specific expenses separately from purchase price and
           commission.
         </CardDescription>
-        <CardAction className="text-right max-sm:col-start-1 max-sm:row-start-3 max-sm:justify-self-start max-sm:text-left">
-          <p className="text-xs font-medium text-muted-foreground">
-            Total Tracked Cost
-          </p>
-          <p className="text-2xl font-semibold tabular-nums text-foreground">
-            {formatMoney(vehicle.trackedCostsTotal)}
-          </p>
+        <CardAction className="flex flex-col items-end gap-3 text-right max-sm:col-start-1 max-sm:row-start-3 max-sm:items-start max-sm:text-left">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">
+              Total Tracked Cost
+            </p>
+            <p className="text-2xl font-semibold tabular-nums text-foreground">
+              {formatMoney(vehicle.trackedCostsTotal)}
+            </p>
+          </div>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button type="button" size="sm" className="w-full sm:w-fit">
+                <PlusIcon data-icon="inline-start" />
+                Add Tracked Cost
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add Tracked Cost</DialogTitle>
+                <DialogDescription>
+                  Record a vehicle-specific expense separate from purchase
+                  price and commission.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                <FieldGroup className="gap-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field>
+                      <FieldLabel htmlFor="tracked-cost-category">
+                        Category
+                      </FieldLabel>
+                      <Select
+                        value={category}
+                        onValueChange={(value) =>
+                          setCategory(value as VehicleTrackedCostCategory)
+                        }
+                      >
+                        <SelectTrigger
+                          id="tracked-cost-category"
+                          className="w-full"
+                        >
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {VEHICLE_TRACKED_COST_CATEGORIES.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {formatCategory(option)}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="tracked-cost-amount">
+                        Amount
+                      </FieldLabel>
+                      <InputGroup>
+                        <InputGroupAddon>₱</InputGroupAddon>
+                        <InputGroupInput
+                          id="tracked-cost-amount"
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          required
+                          value={amount}
+                          onChange={(event) => setAmount(event.target.value)}
+                        />
+                      </InputGroup>
+                    </Field>
+                  </div>
+                  <Field>
+                    <FieldLabel htmlFor="tracked-cost-note">Note</FieldLabel>
+                    <Textarea
+                      id="tracked-cost-note"
+                      placeholder="Describe the work, supplier, or reason for this cost."
+                      required
+                      value={note}
+                      onChange={(event) => setNote(event.target.value)}
+                    />
+                  </Field>
+                </FieldGroup>
+                <SubmitButton
+                  className="w-full sm:w-fit sm:self-end"
+                  pending={createMutation.isPending}
+                  pendingLabel="Adding cost"
+                >
+                  <PlusIcon data-icon="inline-start" />
+                  Add Tracked Cost
+                </SubmitButton>
+              </form>
+            </DialogContent>
+          </Dialog>
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-6 pt-0">
@@ -256,78 +351,6 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
           </Empty>
         )}
 
-        <Separator />
-
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          <div className="flex items-center gap-3">
-            <span className="flex size-8 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-primary [&_svg]:size-4">
-              <PlusIcon />
-            </span>
-            <h3 className="text-base font-semibold text-foreground">
-              Add Tracked Cost
-            </h3>
-          </div>
-          <FieldGroup className="gap-4">
-            <div className="grid gap-4 lg:grid-cols-[minmax(180px,0.8fr)_minmax(160px,0.6fr)_minmax(260px,1.2fr)]">
-              <Field>
-                <FieldLabel htmlFor="tracked-cost-category">
-                  Category
-                </FieldLabel>
-                <Select
-                  value={category}
-                  onValueChange={(value) =>
-                    setCategory(value as VehicleTrackedCostCategory)
-                  }
-                >
-                  <SelectTrigger id="tracked-cost-category" className="w-full">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {VEHICLE_TRACKED_COST_CATEGORIES.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {formatCategory(option)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="tracked-cost-amount">Amount</FieldLabel>
-                <InputGroup>
-                  <InputGroupAddon>₱</InputGroupAddon>
-                  <InputGroupInput
-                    id="tracked-cost-amount"
-                    inputMode="decimal"
-                    placeholder="0.00"
-                    required
-                    value={amount}
-                    onChange={(event) => setAmount(event.target.value)}
-                  />
-                </InputGroup>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="tracked-cost-note">Note</FieldLabel>
-                <Textarea
-                  id="tracked-cost-note"
-                  placeholder="Describe the work, supplier, or reason for this cost."
-                  required
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                />
-              </Field>
-            </div>
-          </FieldGroup>
-          <SubmitButton
-            className="w-full sm:w-fit sm:self-end"
-            pending={createMutation.isPending}
-            pendingLabel="Adding cost"
-          >
-            <PlusIcon data-icon="inline-start" />
-            Add Tracked Cost
-          </SubmitButton>
-        </form>
       </CardContent>
     </Card>
   );

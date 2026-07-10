@@ -377,6 +377,11 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
       {
         onSuccess: () => {
           toast.success("Vehicle pricing updated")
+          if (vehicle.photos.length === 0) {
+            toast.warning(
+              "This vehicle needs at least one photo before it can be marked Available.",
+            )
+          }
           setConfirmOpen(false)
         },
       },

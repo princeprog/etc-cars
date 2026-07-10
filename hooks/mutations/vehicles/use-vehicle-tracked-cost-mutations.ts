@@ -7,6 +7,7 @@ import { vehiclesQueryKeys } from "@/hooks/queries/vehicles/vehicles-query-keys"
 import {
   createVehicleTrackedCost,
   deleteVehicleTrackedCost,
+  updateVehicleTrackedCost,
 } from "@/services/vehicles.service";
 import type { VehicleTrackedCostPayload } from "@/types/vehicles";
 
@@ -45,6 +46,23 @@ export function useDeleteVehicleTrackedCostMutation() {
   return useMutation({
     mutationFn: ({ id, costId }: { id: string; costId: string }) =>
       deleteVehicleTrackedCost(id, costId),
+    onSuccess: async (_data, variables) => invalidate(variables.id),
+  });
+}
+
+export function useUpdateVehicleTrackedCostMutation() {
+  const invalidate = useInvalidateProfitabilityQueries();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      costId,
+      payload,
+    }: {
+      id: string;
+      costId: string;
+      payload: VehicleTrackedCostPayload;
+    }) => updateVehicleTrackedCost(id, costId, payload),
     onSuccess: async (_data, variables) => invalidate(variables.id),
   });
 }

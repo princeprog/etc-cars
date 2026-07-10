@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ClipboardListIcon,
   FileTextIcon,
+  PencilIcon,
   PlusIcon,
   ReceiptTextIcon,
   SparklesIcon,
@@ -67,6 +68,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useCreateVehicleTrackedCostMutation,
   useDeleteVehicleTrackedCostMutation,
+  useUpdateVehicleTrackedCostMutation,
 } from "@/hooks/mutations/vehicles/use-vehicle-tracked-cost-mutations";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/types/api";
@@ -167,12 +169,19 @@ export function VehicleTrackedCostsCard({
   };
 }) {
   const createMutation = useCreateVehicleTrackedCostMutation();
+  const updateMutation = useUpdateVehicleTrackedCostMutation();
   const deleteMutation = useDeleteVehicleTrackedCostMutation();
   const [category, setCategory] =
     React.useState<VehicleTrackedCostCategory>("reconditioning");
   const [amount, setAmount] = React.useState("");
   const [note, setNote] = React.useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false);
+  const [editingCost, setEditingCost] =
+    React.useState<VehicleTrackedCost | null>(null);
+  const [editCategory, setEditCategory] =
+    React.useState<VehicleTrackedCostCategory>("reconditioning");
+  const [editAmount, setEditAmount] = React.useState("");
+  const [editNote, setEditNote] = React.useState("");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,6 +194,45 @@ export function VehicleTrackedCostsCard({
           setNote("");
           setIsAddDialogOpen(false);
           toast.success("Tracked cost added");
+        },
+      },
+    );
+  }
+
+  function handleStartEdit(cost: VehicleTrackedCost) {
+    setEditingCost(cost);
+    setEditCategory(cost.category);
+    setEditAmount(cost.amount);
+    setEditNote(cost.note);
+  }
+
+  function handleEditDialogChange(open: boolean) {
+    if (!open) {
+      setEditingCost(null);
+    }
+  }
+
+  async function handleUpdate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editingCost) {
+      return;
+    }
+
+    await updateMutation.mutateAsync(
+      {
+        id: vehicle.id,
+        costId: editingCost.id,
+        payload: {
+          category: editCategory,
+          amount: editAmount,
+          note: editNote,
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditingCost(null);
+          toast.success("Tracked cost updated");
         },
       },
     );
@@ -322,7 +370,10 @@ export function VehicleTrackedCostsCard({
         <ApiErrorAlert
           title="Unable to update tracked costs"
           message={getApiErrorMessage(
-            createMutation.error ?? deleteMutation.error ?? error,
+            createMutation.error ??
+              updateMutation.error ??
+              deleteMutation.error ??
+              error,
             "",
           )}
         />
@@ -377,16 +428,28 @@ export function VehicleTrackedCostsCard({
                         {formatCostDate(cost)}
                       </TableCell>
                       <TableCell className="px-6 text-right">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon-sm"
-                          aria-label={`Remove ${formatCategory(cost.category)} cost`}
-                          disabled={deleteMutation.isPending}
-                          onClick={() => void handleDelete(cost.id)}
-                        >
-                          <Trash2Icon />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            aria-label={`Edit ${formatCategory(cost.category)} cost`}
+                            disabled={updateMutation.isPending}
+                            onClick={() => handleStartEdit(cost)}
+                          >
+                            <PencilIcon />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            aria-label={`Remove ${formatCategory(cost.category)} cost`}
+                            disabled={deleteMutation.isPending}
+                            onClick={() => void handleDelete(cost.id)}
+                          >
+                            <Trash2Icon />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -409,6 +472,83 @@ export function VehicleTrackedCostsCard({
         )}
 
       </CardContent>
+      <Dialog open={Boolean(editingCost)} onOpenChange={handleEditDialogChange}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Tracked Cost</DialogTitle>
+            <DialogDescription>
+              Correct the category, amount, or note for this vehicle-specific
+              expense.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdate} className="flex flex-col gap-5">
+            <FieldGroup className="gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="edit-tracked-cost-category">
+                    Category
+                  </FieldLabel>
+                  <Select
+                    value={editCategory}
+                    onValueChange={(value) =>
+                      setEditCategory(value as VehicleTrackedCostCategory)
+                    }
+                  >
+                    <SelectTrigger
+                      id="edit-tracked-cost-category"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {VEHICLE_TRACKED_COST_CATEGORIES.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {formatCategory(option)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-tracked-cost-amount">
+                    Amount
+                  </FieldLabel>
+                  <InputGroup>
+                    <InputGroupAddon>₱</InputGroupAddon>
+                    <InputGroupInput
+                      id="edit-tracked-cost-amount"
+                      inputMode="decimal"
+                      placeholder="0.00"
+                      required
+                      value={editAmount}
+                      onChange={(event) => setEditAmount(event.target.value)}
+                    />
+                  </InputGroup>
+                </Field>
+              </div>
+              <Field>
+                <FieldLabel htmlFor="edit-tracked-cost-note">Note</FieldLabel>
+                <Textarea
+                  id="edit-tracked-cost-note"
+                  placeholder="Describe the work, supplier, or reason for this cost."
+                  required
+                  value={editNote}
+                  onChange={(event) => setEditNote(event.target.value)}
+                />
+              </Field>
+            </FieldGroup>
+            <SubmitButton
+              className="w-full sm:w-fit sm:self-end"
+              pending={updateMutation.isPending}
+              pendingLabel="Saving cost"
+            >
+              Save Tracked Cost
+            </SubmitButton>
+          </form>
+        </DialogContent>
+      </Dialog>
       <CardFooter className="flex flex-col gap-3 border-t md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-1 text-sm text-muted-foreground">
           <span>

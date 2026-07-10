@@ -85,6 +85,20 @@ export function createVehicleTrackedCost(
   );
 }
 
+export function updateVehicleTrackedCost(
+  id: string,
+  costId: string,
+  payload: VehicleTrackedCostPayload,
+) {
+  return apiRequest<VehicleResponse, VehicleTrackedCostPayload>(
+    API_ENDPOINTS.vehicles.trackedCostById(id, costId),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
 export function deleteVehicleTrackedCost(id: string, costId: string) {
   return apiRequest<VehicleResponse>(
     API_ENDPOINTS.vehicles.trackedCostById(id, costId),

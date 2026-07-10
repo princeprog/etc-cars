@@ -934,8 +934,8 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
             <VehicleDetailsHeader vehicle={vehicle} />
             <VehicleOverviewCard vehicle={vehicle} />
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(330px,0.9fr)]">
+            <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
+              <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(330px,0.9fr)]">
                 <VehiclePhotosCard vehicle={vehicle} />
                 <VehicleInformationCard vehicle={vehicle} />
               </div>
@@ -946,7 +946,7 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
               </div>
             </div>
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
+            <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
               <TrackedCostsPreviewCard vehicle={vehicle} />
               <ActivityTimestampsCard vehicle={vehicle} />
             </div>

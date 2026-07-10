@@ -4,6 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 import { format, formatDistanceToNow } from "date-fns"
 import {
+  CircleDollarSignIcon,
   EyeIcon,
   GripVerticalIcon,
   MoreHorizontalIcon,
@@ -170,11 +171,13 @@ export function VehiclesTable({
   visibleColumns,
   onView,
   onEdit,
+  onTrackCost,
 }: {
   vehicles: Vehicle[]
   visibleColumns: VisibleVehicleColumns
   onView: (vehicle: Vehicle) => void
   onEdit: (vehicle: Vehicle) => void
+  onTrackCost: (vehicle: Vehicle) => void
 }) {
   const updateVehicleMutation = useUpdateVehicleMutation()
   const [selectedVehicleIds, setSelectedVehicleIds] = React.useState<string[]>([])
@@ -382,6 +385,10 @@ export function VehiclesTable({
                   <DropdownMenuItem onClick={() => onEdit(vehicle)}>
                     <PencilIcon />
                     Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onTrackCost(vehicle)}>
+                    <CircleDollarSignIcon />
+                    Track Cost
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Update status</DropdownMenuLabel>

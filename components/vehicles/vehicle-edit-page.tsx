@@ -114,6 +114,18 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
     getVehicleFormValues(vehicle),
   );
 
+  React.useEffect(() => {
+    if (window.location.hash !== "#tracked-costs") {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      document.getElementById("tracked-costs")?.scrollIntoView({
+        block: "start",
+      });
+    });
+  }, []);
+
   const hasTargetPrice = Boolean(values.targetSellingPrice.trim());
   const hasMinimumPrice = Boolean(values.minimumAcceptablePrice.trim());
   const hasPhoto = Boolean(values.photos.length);

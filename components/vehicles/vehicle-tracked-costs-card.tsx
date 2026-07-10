@@ -69,7 +69,7 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
   }
 
   return (
-    <Card className="border-border/70 shadow-xs">
+    <Card id="tracked-costs" className="scroll-mt-24 border-border/70 shadow-xs">
       <CardHeader className="border-b">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">

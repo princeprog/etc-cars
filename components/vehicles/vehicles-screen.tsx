@@ -329,6 +329,9 @@ export function VehiclesScreen() {
                 visibleColumns={visibleColumns}
                 onView={setViewVehicle}
                 onEdit={(vehicle) => router.push(`/vehicles/${vehicle.id}/edit`)}
+                onTrackCost={(vehicle) =>
+                  router.push(`/vehicles/${vehicle.id}/edit#tracked-costs`)
+                }
               />
             ) : (
               <div className="p-6">

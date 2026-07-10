@@ -17,8 +17,6 @@ import { Popover, PopoverContent, PopoverDescription, PopoverHeader, PopoverTitl
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
-import type { Vehicle } from "@/types/vehicles"
-import { VehicleDetailDialog } from "./vehicle-detail-dialog"
 import {
   filterVehicles,
   getVehicleStatusCounts,
@@ -76,7 +74,6 @@ export function VehiclesScreen() {
   const [activeFilter, setActiveFilter] = React.useState<VehicleFilterValue>("all")
   const [qualityFilter, setQualityFilter] = React.useState<VehicleQualityFilterValue>("all")
   const [page, setPage] = React.useState(1)
-  const [viewVehicle, setViewVehicle] = React.useState<Vehicle | null>(null)
   const [visibleColumns, setVisibleColumns] = React.useState<VisibleVehicleColumns>(getStoredVisibleColumns)
   const [columnSearchTerm, setColumnSearchTerm] = React.useState("")
 
@@ -327,7 +324,7 @@ export function VehiclesScreen() {
               <VehiclesTable
                 vehicles={paginatedVehicles}
                 visibleColumns={visibleColumns}
-                onView={setViewVehicle}
+                onView={(vehicle) => router.push(`/vehicles/${vehicle.id}`)}
                 onEdit={(vehicle) => router.push(`/vehicles/${vehicle.id}/edit`)}
                 onTrackCost={(vehicle) =>
                   router.push(`/vehicles/${vehicle.id}/costs`)
@@ -359,8 +356,6 @@ export function VehiclesScreen() {
             />
           ) : null}
         </Card>
-
-        <VehicleDetailDialog open={Boolean(viewVehicle)} onOpenChange={(open) => !open && setViewVehicle(null)} vehicle={viewVehicle} />
       </div>
     </AuthenticatedAppShell>
   )

@@ -5,16 +5,14 @@ import {
   ArrowLeftIcon,
   CarFrontIcon,
   DollarSignIcon,
+  FileQuestionIcon,
   ReceiptTextIcon,
   TagsIcon,
   TrendingUpIcon,
 } from "lucide-react"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { EmptyState } from "@/components/operations/empty-state"
-import { ModuleLoadingState } from "@/components/operations/module-loading-state"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,7 +22,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useVehicleQuery } from "@/hooks/queries/vehicles/use-vehicle-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { Vehicle } from "@/types/vehicles"
@@ -96,6 +102,47 @@ function formatPercentValue(value: number | null) {
   }).format(value)
 }
 
+function VehicleTrackedCostsPageSkeleton() {
+  return (
+    <div
+      className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]"
+      aria-label="Loading vehicle costs"
+      aria-busy="true"
+    >
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader className="border-b">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-72 max-w-full" />
+            </div>
+            <Skeleton className="h-8 w-32" />
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-16 w-full rounded-md" />
+          ))}
+          <Separator />
+          <Skeleton className="h-36 w-full rounded-md" />
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/70 shadow-xs">
+        <CardHeader>
+          <Skeleton className="h-5 w-36" />
+          <Skeleton className="h-4 w-48" />
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <Skeleton className="h-8 w-40" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-28 w-full rounded-md" />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
   const vehicleQuery = useVehicleQuery(vehicleId)
   const vehicle = vehicleQuery.data?.vehicle
@@ -136,17 +183,26 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
         </section>
 
         {vehicleQuery.isPending ? (
-          <ModuleLoadingState label="Loading vehicle costs" />
+          <VehicleTrackedCostsPageSkeleton />
         ) : vehicleQuery.error ? (
-          <ApiErrorAlert
-            title="Unable to load vehicle costs"
-            message={getApiErrorMessage(vehicleQuery.error, "")}
-          />
+          <Alert variant="destructive">
+            <AlertTitle>Unable to load vehicle costs</AlertTitle>
+            <AlertDescription>
+              {getApiErrorMessage(vehicleQuery.error, "")}
+            </AlertDescription>
+          </Alert>
         ) : !vehicle ? (
-          <EmptyState
-            title="Vehicle not found"
-            description="The vehicle record could not be loaded for cost tracking."
-          />
+          <Empty className="border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileQuestionIcon />
+              </EmptyMedia>
+              <EmptyTitle>Vehicle not found</EmptyTitle>
+              <EmptyDescription>
+                The vehicle record could not be loaded for cost tracking.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
             <VehicleTrackedCostsCard vehicle={vehicle} />

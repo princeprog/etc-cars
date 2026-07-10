@@ -163,7 +163,7 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
           Record vehicle-specific expenses separately from purchase price and
           commission.
         </CardDescription>
-        <CardAction className="text-right">
+        <CardAction className="text-right max-sm:col-start-1 max-sm:row-start-3 max-sm:justify-self-start max-sm:text-left">
           <p className="text-xs font-medium text-muted-foreground">
             Total Tracked Cost
           </p>
@@ -183,7 +183,7 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
 
         {vehicle.trackedCosts.length > 0 ? (
           <div className="-mx-(--card-spacing) border-b">
-            <Table>
+            <Table className="min-w-[820px]">
               <TableHeader className="bg-muted/30">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="px-6">Category</TableHead>
@@ -320,7 +320,7 @@ export function VehicleTrackedCostsCard({ vehicle }: { vehicle: Vehicle }) {
             </div>
           </FieldGroup>
           <SubmitButton
-            className="self-end"
+            className="w-full sm:w-fit sm:self-end"
             pending={createMutation.isPending}
             pendingLabel="Adding cost"
           >

@@ -492,11 +492,11 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 
 function VehicleInformationCard({ vehicle }: { vehicle: Vehicle }) {
   return (
-    <Card className="border-border/70 shadow-xs">
+    <Card size="sm" className="border-border/70 shadow-xs">
       <CardHeader>
-        <CardTitle>Vehicle Information</CardTitle>
+        <CardTitle className="text-base">Vehicle Information</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-3.5">
         <div className="flex flex-col gap-3">
           <DetailRow label="Brand" value={vehicle.brand} />
           <DetailRow label="Model" value={vehicle.model} />

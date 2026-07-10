@@ -1,16 +1,33 @@
 "use client"
 
 import Link from "next/link"
+import {
+  ArrowLeftIcon,
+  CarFrontIcon,
+  DollarSignIcon,
+  ReceiptTextIcon,
+  TagsIcon,
+  TrendingUpIcon,
+} from "lucide-react"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { EmptyState } from "@/components/operations/empty-state"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { useVehicleQuery } from "@/hooks/queries/vehicles/use-vehicle-query"
 import { getApiErrorMessage } from "@/types/api"
+import type { Vehicle } from "@/types/vehicles"
 import { VehicleTrackedCostsCard } from "./vehicle-tracked-costs-card"
 import {
   formatVehicleMoney,
@@ -18,9 +35,71 @@ import {
   getVehicleStatusClassName,
 } from "./vehicles.helpers"
 
+function parseMoney(value?: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const numericValue = Number(value)
+
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function getVehicleProfitability(vehicle: Vehicle) {
+  const purchasePrice = parseMoney(vehicle.purchasePrice)
+  const targetSellingPrice = parseMoney(vehicle.targetSellingPrice)
+  const trackedCostsTotal = parseMoney(vehicle.trackedCostsTotal)
+
+  if (
+    purchasePrice === null ||
+    targetSellingPrice === null ||
+    trackedCostsTotal === null ||
+    targetSellingPrice <= 0
+  ) {
+    return {
+      estimatedGrossProfit: null,
+      estimatedMargin: null,
+    }
+  }
+
+  const estimatedGrossProfit =
+    targetSellingPrice - purchasePrice - trackedCostsTotal
+
+  return {
+    estimatedGrossProfit,
+    estimatedMargin: estimatedGrossProfit / targetSellingPrice,
+  }
+}
+
+function formatMoneyValue(value: number | null) {
+  if (value === null) {
+    return "N/A"
+  }
+
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function formatPercentValue(value: number | null) {
+  if (value === null) {
+    return "N/A"
+  }
+
+  return new Intl.NumberFormat("en-PH", {
+    style: "percent",
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value)
+}
+
 export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
   const vehicleQuery = useVehicleQuery(vehicleId)
   const vehicle = vehicleQuery.data?.vehicle
+  const profitability = vehicle ? getVehicleProfitability(vehicle) : null
 
   return (
     <AuthenticatedAppShell
@@ -31,18 +110,28 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
       ]}
     >
       <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
-        <section className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Track Costs
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Add and review vehicle-specific expenses that affect
-              profitability.
-            </p>
+        <section className="flex flex-col gap-5 border-b border-border/70 pb-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-muted text-foreground [&_svg]:size-8">
+                <ReceiptTextIcon />
+              </div>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-3xl font-semibold tracking-tight text-foreground">
+                  Track Costs
+                </h2>
+                <p className="max-w-3xl text-sm text-muted-foreground">
+                  Record and manage all vehicle-specific expenses to maintain
+                  accurate profitability.
+                </p>
+              </div>
+            </div>
           </div>
-          <Button variant="outline" asChild>
-            <Link href="/vehicles">Back to Vehicles</Link>
+          <Button variant="outline" className="w-fit" asChild>
+            <Link href="/vehicles">
+              <ArrowLeftIcon data-icon="inline-start" />
+              Back to Vehicles
+            </Link>
           </Button>
         </section>
 
@@ -59,66 +148,127 @@ export function VehicleTrackedCostsPage({ vehicleId }: { vehicleId: string }) {
             description="The vehicle record could not be loaded for cost tracking."
           />
         ) : (
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_410px]">
             <VehicleTrackedCostsCard vehicle={vehicle} />
 
-            <div className="space-y-4">
+            <div className="flex flex-col gap-4">
               <Card className="border-border/70 shadow-xs">
                 <CardHeader>
-                  <CardTitle className="text-base">Vehicle Summary</CardTitle>
+                  <CardTitle className="flex items-center gap-3 text-base">
+                    <span className="text-muted-foreground [&_svg]:size-5">
+                      <CarFrontIcon />
+                    </span>
+                    Vehicle Summary
+                  </CardTitle>
+                  <CardDescription>
+                    Pricing context for this unit.
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
+                <CardContent className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-muted-foreground">
+                        Stock Number
+                      </span>
                       <Badge
                         variant="outline"
-                        className="rounded-md border-border/70 bg-background px-1.5 py-0 font-mono text-[10px] tracking-wide text-muted-foreground"
+                        className="h-8 w-fit rounded-md bg-primary px-3 font-mono text-sm text-primary-foreground"
                       >
                         {vehicle.stockNumber}
                       </Badge>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-muted-foreground">
+                        Vehicle
+                      </span>
+                      <p className="text-lg font-semibold text-foreground">
+                        {vehicle.year} {vehicle.brand} {vehicle.model}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {vehicle.variant || "No variant"}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-muted-foreground">
+                        Status
+                      </span>
                       <Badge
                         variant={getVehicleStatusBadgeVariant(vehicle.status)}
-                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getVehicleStatusClassName(vehicle.status)}`}
+                        className={`h-8 w-fit rounded-md px-3 text-sm font-medium ${getVehicleStatusClassName(vehicle.status)}`}
                       >
                         {vehicle.status}
                       </Badge>
                     </div>
-                    <p className="text-lg font-semibold text-foreground">
-                      {vehicle.brand} {vehicle.model}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {vehicle.variant || "No variant"}
-                    </p>
                   </div>
 
-                  <div className="grid gap-3 text-sm">
+                  <Separator />
+
+                  <div className="flex flex-col gap-4 text-sm">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">
-                        Purchase price
+                      <span className="flex items-center gap-3 text-muted-foreground">
+                        <DollarSignIcon />
+                        Purchase Price
                       </span>
                       <span className="font-medium tabular-nums text-foreground">
                         {formatVehicleMoney(vehicle.purchasePrice)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-muted-foreground">
-                        Target price
+                      <span className="flex items-center gap-3 text-muted-foreground">
+                        <TagsIcon />
+                        Target Selling Price
                       </span>
                       <span className="font-medium tabular-nums text-foreground">
                         {formatVehicleMoney(vehicle.targetSellingPrice)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3 border-t pt-3">
-                      <span className="font-medium text-foreground">
-                        Tracked total
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-3 text-muted-foreground">
+                        <ReceiptTextIcon />
+                        Total Tracked Costs
                       </span>
-                      <span className="font-semibold tabular-nums text-foreground">
+                      <span className="font-semibold tabular-nums text-destructive">
                         {formatVehicleMoney(vehicle.trackedCostsTotal)}
                       </span>
                     </div>
                   </div>
+
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm text-muted-foreground">
+                          Estimated Gross Profit
+                        </span>
+                        <span className="text-2xl font-semibold tabular-nums text-primary">
+                          {formatMoneyValue(
+                            profitability?.estimatedGrossProfit ?? null,
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm text-muted-foreground">
+                          Estimated Margin
+                        </span>
+                        <Badge variant="secondary" className="text-sm">
+                          {formatPercentValue(
+                            profitability?.estimatedMargin ?? null,
+                          )}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
+              <Alert className="items-center">
+                <TrendingUpIcon />
+                <AlertDescription>
+                  Keep tracking costs accurately to maintain healthy profit
+                  margins.
+                </AlertDescription>
+              </Alert>
             </div>
           </div>
         )}

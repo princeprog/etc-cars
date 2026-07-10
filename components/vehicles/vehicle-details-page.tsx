@@ -935,20 +935,19 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
             <VehicleOverviewCard vehicle={vehicle} />
 
             <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
-              <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(330px,0.9fr)]">
-                <VehiclePhotosCard vehicle={vehicle} />
-                <VehicleInformationCard vehicle={vehicle} />
+              <div className="flex flex-col gap-5">
+                <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(330px,0.9fr)]">
+                  <VehiclePhotosCard vehicle={vehicle} />
+                  <VehicleInformationCard vehicle={vehicle} />
+                </div>
+                <TrackedCostsPreviewCard vehicle={vehicle} />
               </div>
 
               <div className="flex flex-col gap-5">
                 <CommercialSummaryCard vehicle={vehicle} />
                 <AvailabilityReadinessCard vehicle={vehicle} />
+                <ActivityTimestampsCard vehicle={vehicle} />
               </div>
-            </div>
-
-            <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
-              <TrackedCostsPreviewCard vehicle={vehicle} />
-              <ActivityTimestampsCard vehicle={vehicle} />
             </div>
           </div>
         )}

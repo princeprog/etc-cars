@@ -4,7 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2Icon, CircleIcon, InfoIcon } from "lucide-react";
+import { CheckCircle2Icon, CircleIcon, InfoIcon, TagsIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { resolveApiAssetUrl } from "@/constants/api-config";
@@ -19,6 +19,7 @@ import {
   Card,
   CardAction,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -197,13 +198,13 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
             <ReadinessItem
               complete={hasTargetPrice}
               title="Target selling price added"
-              description="Required to set pricing expectations."
+              description="Set this from the dedicated pricing workflow."
             />
             <Separator />
             <ReadinessItem
               complete={hasMinimumPrice}
               title="Minimum acceptable price added"
-              description="Helps define negotiation limits."
+              description="Set this from the dedicated pricing workflow."
             />
             <Separator />
             <ReadinessItem
@@ -218,6 +219,14 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
               description="Complete all requirements before marking the unit available."
             />
           </CardContent>
+          <CardFooter className="border-t bg-muted/20">
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/vehicles/${vehicle.id}/pricing`}>
+                <TagsIcon data-icon="inline-start" />
+                Set Pricing
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
 
         <Card className="border-border/70 shadow-xs">
@@ -227,7 +236,7 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
               <p className="text-sm">
                 Vehicles can only move to{" "}
                 <span className="font-semibold">Available</span> after pricing
-                and photo requirements are complete.
+                is set and photo requirements are complete.
               </p>
             </div>
           </CardContent>

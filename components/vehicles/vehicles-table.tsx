@@ -9,6 +9,7 @@ import {
   GripVerticalIcon,
   MoreHorizontalIcon,
   PencilIcon,
+  TagsIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -160,7 +161,7 @@ export const VEHICLE_COLUMN_MANAGER_OPTIONS = [
   {
     id: "actions",
     label: "Actions",
-    description: "Row-level actions for view and edit.",
+    description: "Row-level actions for view, edit, costs, and pricing.",
     key: undefined,
     alwaysVisible: true,
   },
@@ -172,12 +173,14 @@ export function VehiclesTable({
   onView,
   onEdit,
   onTrackCost,
+  onSetPricing,
 }: {
   vehicles: Vehicle[]
   visibleColumns: VisibleVehicleColumns
   onView: (vehicle: Vehicle) => void
   onEdit: (vehicle: Vehicle) => void
   onTrackCost: (vehicle: Vehicle) => void
+  onSetPricing: (vehicle: Vehicle) => void
 }) {
   const updateVehicleMutation = useUpdateVehicleMutation()
   const [selectedVehicleIds, setSelectedVehicleIds] = React.useState<string[]>([])
@@ -199,6 +202,18 @@ export function VehiclesTable({
 
   async function handleStatusChange(vehicle: Vehicle, nextStatus: VehicleStatus) {
     if (vehicle.status === nextStatus || nextStatus === "Sold") {
+      return
+    }
+
+    if (
+      nextStatus === "Available" &&
+      (!vehicle.targetSellingPrice ||
+        !vehicle.minimumAcceptablePrice ||
+        !vehicle.photos.length)
+    ) {
+      toast.error(
+        "Set pricing and add at least one vehicle photo before moving this unit to Available.",
+      )
       return
     }
 
@@ -389,6 +404,10 @@ export function VehiclesTable({
                   <DropdownMenuItem onClick={() => onTrackCost(vehicle)}>
                     <CircleDollarSignIcon />
                     Track Cost
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onSetPricing(vehicle)}>
+                    <TagsIcon />
+                    Set Pricing
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Update status</DropdownMenuLabel>

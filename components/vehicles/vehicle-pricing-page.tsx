@@ -274,11 +274,6 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
     vehicle.minimumAcceptablePrice ?? "",
   )
 
-  React.useEffect(() => {
-    setTargetSellingPrice(vehicle.targetSellingPrice ?? "")
-    setMinimumAcceptablePrice(vehicle.minimumAcceptablePrice ?? "")
-  }, [vehicle.id, vehicle.targetSellingPrice, vehicle.minimumAcceptablePrice])
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 

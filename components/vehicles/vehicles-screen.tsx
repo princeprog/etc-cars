@@ -332,6 +332,9 @@ export function VehiclesScreen() {
                 onTrackCost={(vehicle) =>
                   router.push(`/vehicles/${vehicle.id}/costs`)
                 }
+                onSetPricing={(vehicle) =>
+                  router.push(`/vehicles/${vehicle.id}/pricing`)
+                }
               />
             ) : (
               <div className="p-6">

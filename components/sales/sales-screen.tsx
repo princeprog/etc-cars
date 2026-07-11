@@ -489,12 +489,15 @@ function SalesForm({
   const [buyerLeadPickerOpen, setBuyerLeadPickerOpen] = React.useState(false);
   const [buyerLeadSearchVisible, setBuyerLeadSearchVisible] =
     React.useState(false);
+  const [vehiclePickerVisible, setVehiclePickerVisible] =
+    React.useState(false);
 
   function updateField<K extends keyof SaleFormValues>(
     key: K,
     value: SaleFormValues[K],
   ) {
     if (key === "buyerLeadId") {
+      setVehiclePickerVisible(false);
       onChange({
         ...values,
         buyerLeadId: value as string,
@@ -505,6 +508,7 @@ function SalesForm({
     }
 
     if (key === "vehicleId") {
+      setVehiclePickerVisible(false);
       onChange({
         ...values,
         vehicleId: value as string,
@@ -741,56 +745,57 @@ function SalesForm({
             <FieldLabel htmlFor="saleVehicleId">Vehicle</FieldLabel>
             <div className="space-y-2">
               {selectedVehicleOption ? (
-                <Select
-                  value={values.vehicleId}
-                  onValueChange={(value) => updateField("vehicleId", value)}
-                >
-                  <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
-                    <div className="flex min-w-0 items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {selectedVehicleOption.summary}
-                          </p>
-                          <Badge
-                            variant={
-                              selectedVehicleOption.relationship === "linked"
-                                ? "secondary"
-                                : "outline"
-                            }
-                            className="shrink-0"
-                          >
-                            {selectedVehicleOption.relationship === "linked"
-                              ? "Linked"
-                              : "Will link"}
-                          </Badge>
-                        </div>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {selectedVehicleOption.details}
+                <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {selectedVehicleOption.summary}
                         </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label="Clear selected vehicle"
-                          onClick={() => updateField("vehicleId", "")}
+                        <Badge
+                          variant={
+                            selectedVehicleOption.relationship === "linked"
+                              ? "secondary"
+                              : "outline"
+                          }
+                          className="shrink-0"
                         >
-                          <XIcon />
-                        </Button>
-                        <SelectTrigger
-                          id="saleVehicleId"
-                          className="h-8 w-auto border-0 bg-transparent px-2 text-xs shadow-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-0"
-                        >
-                          <span>Change</span>
-                        </SelectTrigger>
+                          {selectedVehicleOption.relationship === "linked"
+                            ? "Linked"
+                            : "Will link"}
+                        </Badge>
                       </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {selectedVehicleOption.details}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Clear selected vehicle"
+                        onClick={() => {
+                          updateField("vehicleId", "");
+                          setVehiclePickerVisible(true);
+                        }}
+                      >
+                        <XIcon />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="hidden shrink-0 sm:inline-flex"
+                        onClick={() => setVehiclePickerVisible(true)}
+                      >
+                        Change
+                      </Button>
                     </div>
                   </div>
-                  {vehicleSelectContent}
-                </Select>
-              ) : (
+                </div>
+              ) : null}
+              {!selectedVehicleOption || vehiclePickerVisible ? (
                 <Select
                   value={values.vehicleId}
                   onValueChange={(value) => updateField("vehicleId", value)}
@@ -811,7 +816,7 @@ function SalesForm({
                   </SelectTrigger>
                   {vehicleSelectContent}
                 </Select>
-              )}
+              ) : null}
               {hasSelectedBuyerLead && !hasVehicleOptions ? (
                 <p className="text-xs text-muted-foreground">
                   No available vehicles can be selected for this sale.

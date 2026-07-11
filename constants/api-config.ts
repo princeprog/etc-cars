@@ -59,6 +59,9 @@ export const API_ENDPOINTS = {
     root: "/sales",
     summary: "/sales/summary",
     byId: (id: string) => `/sales/${id}`,
+    drafts: "/sales/drafts",
+    draftById: (id: string) => `/sales/drafts/${id}`,
+    finalizeDraft: (id: string) => `/sales/drafts/${id}/finalize`,
   },
   reports: {
     overview: "/reports/overview",

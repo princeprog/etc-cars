@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   BadgeDollarSignIcon,
   BarChart3Icon,
@@ -18,8 +18,10 @@ import {
   PercentIcon,
   ReceiptTextIcon,
   RotateCcwIcon,
+  SaveIcon,
   SearchIcon,
   TagsIcon,
+  Trash2Icon,
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
@@ -90,6 +92,12 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useLinkBuyerLeadVehicleMutation } from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation";
 import { useCreateSaleMutation } from "@/hooks/mutations/sales/use-create-sale-mutation";
+import {
+  useDeleteSaleDraftMutation,
+  useFinalizeSaleDraftMutation,
+  useSaveSaleDraftMutation,
+  useUpdateSaleDraftMutation,
+} from "@/hooks/mutations/sales/use-sale-draft-mutations";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
 import { useBuyerLeadQuery } from "@/hooks/queries/buyer-leads/use-buyer-lead-query";
 import { useSalesQuery } from "@/hooks/queries/sales/use-sales-query";
@@ -98,11 +106,15 @@ import { useSalesSummaryQuery } from "@/hooks/queries/sales/use-sales-summary-qu
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query";
 import { getApiErrorMessage } from "@/types/api";
 import type { BuyerLead } from "@/types/buyer-leads";
-import type { SaleWithDetails, SalesListFilters } from "@/types/sales";
+import type {
+  SaleDraft,
+  SalesListFilters,
+  SalesListItem,
+} from "@/types/sales";
 import type { Vehicle } from "@/types/vehicles";
 
 type SalesFilterStatus =
-  "all" | "finalized" | "commission_locked" | "needs_review";
+  "all" | "draft" | "finalized" | "commission_locked" | "needs_review";
 type SalesFilterAgent = "all" | "mine";
 type SalesFilterRange = "all" | "this_month" | "last_30_days";
 
@@ -154,6 +166,10 @@ function formatMoney(value?: string | null) {
   }).format(numericValue);
 }
 
+function formatDistanceLabel(value: string) {
+  return formatDistanceToNow(new Date(value), { addSuffix: true });
+}
+
 function parseMoney(value?: string | null) {
   if (!value) {
     return null;
@@ -200,9 +216,11 @@ function getSliderSaleAmountValue(
   return numericAmount;
 }
 
-function getSaleStatus(
-  sale: SaleWithDetails,
-): Exclude<SalesFilterStatus, "all"> {
+function getSaleStatus(sale: SalesListItem): Exclude<SalesFilterStatus, "all"> {
+  if (sale.recordType === "draft") {
+    return "draft";
+  }
+
   if (!sale.commissionLocked) {
     return "needs_review";
   }
@@ -216,6 +234,8 @@ function getSaleStatus(
 
 function getSaleStatusLabel(status: Exclude<SalesFilterStatus, "all">) {
   switch (status) {
+    case "draft":
+      return "Draft";
     case "finalized":
       return "Finalized";
     case "commission_locked":
@@ -229,6 +249,8 @@ function getSaleStatusLabel(status: Exclude<SalesFilterStatus, "all">) {
 
 function getSaleStatusClassName(status: Exclude<SalesFilterStatus, "all">) {
   switch (status) {
+    case "draft":
+      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300";
     case "finalized":
       return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300";
     case "commission_locked":
@@ -1121,6 +1143,10 @@ export function SalesScreen() {
   const authQuery = useAuthenticatedUserQuery();
   const availableVehiclesQuery = useVehiclesQuery({ status: "Available" });
   const createMutation = useCreateSaleMutation();
+  const saveDraftMutation = useSaveSaleDraftMutation();
+  const updateDraftMutation = useUpdateSaleDraftMutation();
+  const deleteDraftMutation = useDeleteSaleDraftMutation();
+  const finalizeDraftMutation = useFinalizeSaleDraftMutation();
   const linkVehicleMutation = useLinkBuyerLeadVehicleMutation();
 
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -1139,6 +1165,7 @@ export function SalesScreen() {
   const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("");
   const [viewSaleId, setViewSaleId] = React.useState<string | null>(null);
   const [reviewSaleOpen, setReviewSaleOpen] = React.useState(false);
+  const [activeDraftId, setActiveDraftId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1208,6 +1235,7 @@ export function SalesScreen() {
   const grossProfitTotal = salesSummaryQuery.data?.totalGrossProfit ?? "0.00";
   const commissionTotal =
     salesSummaryQuery.data?.totalCommissionPayouts ?? "0.00";
+  const totalDrafts = salesSummaryQuery.data?.totalDrafts ?? 0;
 
   const buyerLeadOptions = React.useMemo(() => {
     const options = buyerLeadSearchResults.map((lead) => ({
@@ -1255,6 +1283,12 @@ export function SalesScreen() {
     Boolean(selectedPricingRange) &&
     finalSaleAmountNumber !== null &&
     finalSaleAmountNumber < selectedPricingRange!.minimum;
+  const draftSavePending =
+    saveDraftMutation.isPending || updateDraftMutation.isPending;
+  const finalizationPending =
+    createMutation.isPending ||
+    updateDraftMutation.isPending ||
+    finalizeDraftMutation.isPending;
 
   const resetCreateSaleState = React.useCallback(() => {
     setForm(getEmptySaleFormValues(currentUserName));
@@ -1262,6 +1296,7 @@ export function SalesScreen() {
     setDebouncedBuyerLeadSearch("");
     setInlineLinkVehicleId("");
     setReviewSaleOpen(false);
+    setActiveDraftId(null);
   }, [currentUserName]);
 
   function handleCreateOpenChange(nextOpen: boolean) {
@@ -1292,7 +1327,98 @@ export function SalesScreen() {
     );
   }
 
+  function getDraftPayload() {
+    return {
+      buyerLeadId: form.buyerLeadId,
+      vehicleId: effectiveVehicleId,
+      saleDate: form.saleDate
+        ? new Date(form.saleDate).toISOString()
+        : null,
+      finalSaleAmount: form.finalSaleAmount || null,
+      agentName: form.agentName || currentUserName || null,
+      commissionOverrideAmount: form.commissionOverrideAmount || null,
+      commissionOverrideReason: form.commissionOverrideReason || null,
+      buyerClosingNote: form.buyerClosingNote || null,
+    };
+  }
+
+  function handleContinueDraft(draft: SaleDraft) {
+    setActiveDraftId(draft.id);
+    setForm({
+      buyerLeadId: draft.buyerLeadId,
+      vehicleId: draft.vehicleId,
+      saleDate: draft.saleDate
+        ? format(new Date(draft.saleDate), "yyyy-MM-dd'T'HH:mm")
+        : "",
+      finalSaleAmount: draft.finalSaleAmount ?? "",
+      agentName: draft.agentName ?? currentUserName,
+      commissionOverrideAmount: draft.commissionOverrideAmount ?? "",
+      commissionOverrideReason: draft.commissionOverrideReason ?? "",
+      buyerClosingNote:
+        draft.buyerClosingNote ?? draft.buyerLead.closingNote ?? "",
+    });
+    setBuyerLeadSearch("");
+    setDebouncedBuyerLeadSearch("");
+    setInlineLinkVehicleId("");
+    setReviewSaleOpen(false);
+    setCreateOpen(true);
+  }
+
+  async function handleSaveDraft() {
+    if (!form.buyerLeadId || !effectiveVehicleId) {
+      toast.error("Select a buyer lead and vehicle before saving a draft");
+      return;
+    }
+
+    const payload = getDraftPayload();
+
+    if (activeDraftId) {
+      await updateDraftMutation.mutateAsync(
+        { id: activeDraftId, payload },
+        {
+          onSuccess: () => {
+            toast.success("Sales draft updated");
+            resetCreateSaleState();
+            setCreateOpen(false);
+          },
+        },
+      );
+      return;
+    }
+
+    await saveDraftMutation.mutateAsync(payload, {
+      onSuccess: () => {
+        toast.success("Sales draft saved");
+        resetCreateSaleState();
+        setCreateOpen(false);
+      },
+    });
+  }
+
+  async function handleDeleteDraft(draft: SaleDraft) {
+    await deleteDraftMutation.mutateAsync(draft.id, {
+      onSuccess: () => {
+        toast.success("Sales draft deleted");
+      },
+    });
+  }
+
   async function submitSale() {
+    if (activeDraftId) {
+      await updateDraftMutation.mutateAsync({
+        id: activeDraftId,
+        payload: getDraftPayload(),
+      });
+      await finalizeDraftMutation.mutateAsync(activeDraftId, {
+        onSuccess: () => {
+          toast.success("Sale finalized");
+          resetCreateSaleState();
+          setCreateOpen(false);
+        },
+      });
+      return;
+    }
+
     await createMutation.mutateAsync(
       {
         buyerLeadId: form.buyerLeadId,
@@ -1326,6 +1452,13 @@ export function SalesScreen() {
       caption: "Closed deals",
       icon: ReceiptTextIcon,
       iconWrapClassName: "bg-blue-50 text-blue-600 dark:bg-blue-950/40",
+    },
+    {
+      title: "Drafts",
+      value: totalDrafts.toString(),
+      caption: "Saved in progress",
+      icon: FileTextIcon,
+      iconWrapClassName: "bg-slate-50 text-slate-600 dark:bg-slate-950/40",
     },
     {
       title: "Revenue",
@@ -1400,6 +1533,7 @@ export function SalesScreen() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="finalized">Finalized</SelectItem>
                 <SelectItem value="commission_locked">
                   Commission Locked
@@ -1453,7 +1587,7 @@ export function SalesScreen() {
             </Button>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
             {summaryCards.map((card) => {
               const Icon = card.icon;
 
@@ -1533,16 +1667,26 @@ export function SalesScreen() {
                   {sales.map((sale) => {
                     const status = getSaleStatus(sale);
                     const previewPhoto = sale.vehicle.photos[0];
+                    const recordNumber =
+                      sale.recordType === "draft"
+                        ? sale.draftNumber
+                        : sale.saleNumber;
+                    const saleDate =
+                      sale.recordType === "draft" ? sale.saleDate : sale.saleDate;
+                    const updatedAt =
+                      sale.recordType === "draft" ? sale.updatedAt : sale.updatedAt;
 
                     return (
                       <TableRow key={sale.id} className="hover:bg-muted/15">
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <p className="font-medium text-foreground">
-                              {sale.saleNumber}
+                              {recordNumber}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {sale.agentName ?? "Unassigned agent"}
+                              {sale.recordType === "draft"
+                                ? `Saved ${formatDistanceLabel(updatedAt)}`
+                                : (sale.agentName ?? "Unassigned agent")}
                             </p>
                           </div>
                         </TableCell>
@@ -1593,10 +1737,16 @@ export function SalesScreen() {
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
                             <p className="text-sm font-medium text-foreground">
-                              {format(new Date(sale.saleDate), "MMM d, yyyy")}
+                              {saleDate
+                                ? format(new Date(saleDate), "MMM d, yyyy")
+                                : "Not set"}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {format(new Date(sale.saleDate), "h:mm a")}
+                              {saleDate
+                                ? format(new Date(saleDate), "h:mm a")
+                                : sale.recordType === "draft"
+                                  ? "Draft"
+                                  : "N/A"}
                             </p>
                           </div>
                         </TableCell>
@@ -1604,7 +1754,9 @@ export function SalesScreen() {
                           {formatMoney(sale.finalSaleAmount)}
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top text-sm font-semibold text-emerald-600 dark:text-emerald-300">
-                          {formatMoney(sale.grossProfitAmount)}
+                          {sale.recordType === "draft"
+                            ? "N/A"
+                            : formatMoney(sale.grossProfitAmount)}
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
                           <Badge
@@ -1629,20 +1781,44 @@ export function SalesScreen() {
                               <DropdownMenuLabel>
                                 Sale actions
                               </DropdownMenuLabel>
-                              <DropdownMenuItem
-                                onClick={() => setViewSaleId(sale.id)}
-                              >
-                                View Details
-                              </DropdownMenuItem>
+                              {sale.recordType === "draft" ? (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => handleContinueDraft(sale)}
+                                  >
+                                    <PencilIcon data-icon="inline-start" />
+                                    Continue Draft
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    disabled={deleteDraftMutation.isPending}
+                                    onClick={() => handleDeleteDraft(sale)}
+                                  >
+                                    <Trash2Icon data-icon="inline-start" />
+                                    Delete Draft
+                                  </DropdownMenuItem>
+                                </>
+                              ) : (
+                                <DropdownMenuItem
+                                  onClick={() => setViewSaleId(sale.id)}
+                                >
+                                  View Details
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 onClick={() => {
                                   navigator.clipboard.writeText(
-                                    sale.saleNumber,
+                                    recordNumber,
                                   );
-                                  toast.success("Sale number copied");
+                                  toast.success(
+                                    sale.recordType === "draft"
+                                      ? "Draft number copied"
+                                      : "Sale number copied",
+                                  );
                                 }}
                               >
-                                Copy Sale Number
+                                {sale.recordType === "draft"
+                                  ? "Copy Draft Number"
+                                  : "Copy Sale Number"}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
@@ -1665,8 +1841,8 @@ export function SalesScreen() {
             ) : (
               <div className="p-6">
                 <EmptyState
-                  title="No sales yet"
-                  description="Finalize the first sale to validate the full inventory-to-dashboard workflow."
+                  title="No sales or drafts yet"
+                  description="Finalize a sale or save an in-progress draft to start tracking the sales workflow."
                 />
               </div>
             )}
@@ -1691,10 +1867,13 @@ export function SalesScreen() {
             className="overflow-hidden w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
           >
             <SheetHeader className="border-b px-6 py-5 pr-14">
-              <SheetTitle className="text-lg">Finalize Sale</SheetTitle>
+              <SheetTitle className="text-lg">
+                {activeDraftId ? "Continue Sales Draft" : "Finalize Sale"}
+              </SheetTitle>
               <SheetDescription>
-                Close a deal, lock commission data, and move the linked vehicle
-                into sold inventory.
+                {activeDraftId
+                  ? "Review the saved details, update the draft, or finalize it when ready."
+                  : "Close a deal, save a draft, or move the linked vehicle into sold inventory."}
               </SheetDescription>
             </SheetHeader>
             <form
@@ -1706,7 +1885,24 @@ export function SalesScreen() {
                   <div className="space-y-5">
                     <ApiErrorAlert
                       title="Unable to finalize sale"
-                      message={getApiErrorMessage(createMutation.error, "")}
+                      message={getApiErrorMessage(
+                        createMutation.error ?? finalizeDraftMutation.error,
+                        "",
+                      )}
+                    />
+                    <ApiErrorAlert
+                      title="Unable to save draft"
+                      message={getApiErrorMessage(
+                        saveDraftMutation.error ?? updateDraftMutation.error,
+                        "",
+                      )}
+                    />
+                    <ApiErrorAlert
+                      title="Unable to delete draft"
+                      message={getApiErrorMessage(
+                        deleteDraftMutation.error,
+                        "",
+                      )}
                     />
                     <SalesForm
                       values={{ ...form, vehicleId: effectiveVehicleId }}
@@ -1753,8 +1949,8 @@ export function SalesScreen() {
               </div>
               <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Dashboard metrics and inventory status update immediately
-                  after finalization.
+                  Drafts do not update dashboard metrics or inventory status
+                  until finalization.
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -1765,8 +1961,20 @@ export function SalesScreen() {
                     Cancel
                   </Button>
                   <SubmitButton
+                    type="button"
+                    variant="outline"
+                    pending={draftSavePending}
+                    pendingLabel={
+                      activeDraftId ? "Updating draft" : "Saving draft"
+                    }
+                    onClick={handleSaveDraft}
+                  >
+                    <SaveIcon data-icon="inline-start" />
+                    {activeDraftId ? "Update Draft" : "Save as Draft"}
+                  </SubmitButton>
+                  <SubmitButton
                     type="submit"
-                    pending={createMutation.isPending}
+                    pending={finalizationPending}
                     pendingLabel="Finalizing sale"
                   >
                     Finalize Sale
@@ -1786,7 +1994,7 @@ export function SalesScreen() {
           currentUserName={currentUserName}
           belowMinimum={isFinalSaleBelowMinimum}
           minimumAmount={selectedPricingRange?.minimum ?? null}
-          pending={createMutation.isPending}
+          pending={finalizationPending}
           onConfirm={() => {
             void (async () => {
               try {

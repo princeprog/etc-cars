@@ -24,6 +24,8 @@ export interface Commission {
 
 export interface Sale {
   id: string;
+  recordType: "sale";
+  status: "finalized" | "commission_locked" | "needs_review";
   saleNumber: string;
   vehicleId: string;
   buyerLeadId: string;
@@ -46,6 +48,28 @@ export interface SaleWithDetails extends Sale {
   vehicle: Vehicle;
 }
 
+export interface SaleDraft {
+  id: string;
+  recordType: "draft";
+  status: "draft";
+  draftNumber: string;
+  vehicleId: string;
+  buyerLeadId: string;
+  createdByUserId: string;
+  agentName: string | null;
+  saleDate: string | null;
+  finalSaleAmount: string | null;
+  commissionOverrideAmount: string | null;
+  commissionOverrideReason: string | null;
+  buyerClosingNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+  buyerLead: SaleBuyerLeadSummary;
+  vehicle: Vehicle;
+}
+
+export type SalesListItem = SaleWithDetails | SaleDraft;
+
 export interface CreateSalePayload {
   vehicleId: string;
   buyerLeadId: string;
@@ -63,6 +87,27 @@ export interface CreateSaleResponse {
   vehicle: Vehicle;
 }
 
+export interface SaveSaleDraftPayload {
+  vehicleId: string;
+  buyerLeadId: string;
+  saleDate?: string | null;
+  finalSaleAmount?: string | null;
+  agentName?: string | null;
+  commissionOverrideAmount?: string | null;
+  commissionOverrideReason?: string | null;
+  buyerClosingNote?: string | null;
+}
+
+export type UpdateSaleDraftPayload = Partial<SaveSaleDraftPayload>;
+
+export interface SaleDraftResponse {
+  draft: SaleDraft;
+}
+
+export interface DeleteSaleDraftResponse {
+  id: string;
+}
+
 export interface SaleResponse {
   sale: SaleWithDetails;
 }
@@ -71,7 +116,12 @@ export interface SalesListFilters {
   page?: number;
   pageSize?: number;
   search?: string;
-  status?: "all" | "finalized" | "commission_locked" | "needs_review";
+  status?:
+    | "all"
+    | "draft"
+    | "finalized"
+    | "commission_locked"
+    | "needs_review";
   agentName?: string;
   dateRange?: "all" | "this_month" | "last_30_days";
   sortBy?:
@@ -84,7 +134,7 @@ export interface SalesListFilters {
 }
 
 export interface SalesResponse extends PaginatedResponseMeta {
-  sales: SaleWithDetails[];
+  sales: SalesListItem[];
 }
 
 export interface SalesSummaryResponse {
@@ -93,4 +143,5 @@ export interface SalesSummaryResponse {
   totalGrossProfit: string;
   totalCommissionPayouts: string;
   totalProfitAfterTrackedCosts: string;
+  totalDrafts?: number;
 }

@@ -3,10 +3,14 @@ import { apiRequest } from "@/services/api-service"
 import type {
   CreateSalePayload,
   CreateSaleResponse,
+  DeleteSaleDraftResponse,
   SaleResponse,
+  SaleDraftResponse,
   SalesListFilters,
   SalesSummaryResponse,
   SalesResponse,
+  SaveSaleDraftPayload,
+  UpdateSaleDraftPayload,
 } from "@/types/sales"
 
 export function getSales(filters: SalesListFilters = {}) {
@@ -49,5 +53,31 @@ export function createSale(payload: CreateSalePayload) {
   return apiRequest<CreateSaleResponse, CreateSalePayload>(API_ENDPOINTS.sales.root, {
     method: "POST",
     body: payload,
+  })
+}
+
+export function saveSaleDraft(payload: SaveSaleDraftPayload) {
+  return apiRequest<SaleDraftResponse, SaveSaleDraftPayload>(API_ENDPOINTS.sales.drafts, {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function updateSaleDraft(id: string, payload: UpdateSaleDraftPayload) {
+  return apiRequest<SaleDraftResponse, UpdateSaleDraftPayload>(API_ENDPOINTS.sales.draftById(id), {
+    method: "PATCH",
+    body: payload,
+  })
+}
+
+export function deleteSaleDraft(id: string) {
+  return apiRequest<DeleteSaleDraftResponse>(API_ENDPOINTS.sales.draftById(id), {
+    method: "DELETE",
+  })
+}
+
+export function finalizeSaleDraft(id: string) {
+  return apiRequest<CreateSaleResponse>(API_ENDPOINTS.sales.finalizeDraft(id), {
+    method: "POST",
   })
 }

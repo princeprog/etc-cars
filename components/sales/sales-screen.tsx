@@ -520,8 +520,6 @@ function SalesForm({
   const availableVehicleOptions = vehicleOptions.filter(
     (vehicle) => vehicle.relationship === "available",
   );
-  const shouldAutoLinkSelectedVehicle =
-    selectedVehicleOption?.relationship === "available";
   const vehicleSelectContent = (
     <SelectContent>
       {linkedVehicleOptions.length ? (
@@ -712,11 +710,6 @@ function SalesForm({
                       <p className="truncate text-xs text-muted-foreground">
                         {selectedVehicleOption.details}
                       </p>
-                      {shouldAutoLinkSelectedVehicle ? (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Will be linked to the buyer when saved.
-                        </p>
-                      ) : null}
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       <Badge

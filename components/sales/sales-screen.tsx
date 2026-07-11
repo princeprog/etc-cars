@@ -12,6 +12,7 @@ import {
   ClipboardCheckIcon,
   DollarSignIcon,
   FileTextIcon,
+  Loader2Icon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
@@ -1712,14 +1713,9 @@ export function SalesScreen() {
                 aria-live="polite"
               >
                 <div className="flex items-center gap-2 rounded-full border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
-                  <Image
-                    src="/loading.gif"
-                    alt=""
-                    width={20}
-                    height={20}
-                    unoptimized
+                  <Loader2Icon
+                    className="size-4 animate-spin"
                     aria-hidden="true"
-                    className="size-5 rounded-sm"
                   />
                   <span>Updating results</span>
                 </div>

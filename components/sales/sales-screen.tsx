@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Image from "next/image"
-import { format } from "date-fns"
+import * as React from "react";
+import Image from "next/image";
+import { format } from "date-fns";
 import {
   BadgeDollarSignIcon,
   BarChart3Icon,
@@ -15,18 +15,18 @@ import {
   TagsIcon,
   TriangleAlertIcon,
   XIcon,
-} from "lucide-react"
-import { toast } from "sonner"
+} from "lucide-react";
+import { toast } from "sonner";
 
-import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { EmptyState } from "@/components/operations/empty-state"
-import { ListPagination } from "@/components/operations/list-pagination"
-import { ModuleLoadingState } from "@/components/operations/module-loading-state"
-import { SubmitButton } from "@/components/operations/submit-button"
-import { SaleDetailDialog } from "@/components/sales/sale-detail-dialog"
-import { resolveApiAssetUrl } from "@/constants/api-config"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
+import { EmptyState } from "@/components/operations/empty-state";
+import { ListPagination } from "@/components/operations/list-pagination";
+import { ModuleLoadingState } from "@/components/operations/module-loading-state";
+import { SubmitButton } from "@/components/operations/submit-button";
+import { SaleDetailDialog } from "@/components/sales/sale-detail-dialog";
+import { resolveApiAssetUrl } from "@/constants/api-config";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,22 +37,28 @@ import {
   AlertDialogHeader,
   AlertDialogMedia,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
-import { Slider } from "@/components/ui/slider"
+} from "@/components/ui/dropdown-menu";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import {
   Sheet,
   SheetContent,
@@ -60,7 +66,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -68,40 +74,41 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
-import { useLinkBuyerLeadVehicleMutation } from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation"
-import { useCreateSaleMutation } from "@/hooks/mutations/sales/use-create-sale-mutation"
-import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useBuyerLeadQuery } from "@/hooks/queries/buyer-leads/use-buyer-lead-query"
-import { useSalesQuery } from "@/hooks/queries/sales/use-sales-query"
-import { useSalesBuyerLeadSearchQuery } from "@/hooks/queries/sales/use-sales-buyer-lead-search-query"
-import { useSalesSummaryQuery } from "@/hooks/queries/sales/use-sales-summary-query"
-import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
-import { getApiErrorMessage } from "@/types/api"
-import type { BuyerLead } from "@/types/buyer-leads"
-import type { SaleWithDetails, SalesListFilters } from "@/types/sales"
-import type { Vehicle } from "@/types/vehicles"
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { useLinkBuyerLeadVehicleMutation } from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation";
+import { useCreateSaleMutation } from "@/hooks/mutations/sales/use-create-sale-mutation";
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useBuyerLeadQuery } from "@/hooks/queries/buyer-leads/use-buyer-lead-query";
+import { useSalesQuery } from "@/hooks/queries/sales/use-sales-query";
+import { useSalesBuyerLeadSearchQuery } from "@/hooks/queries/sales/use-sales-buyer-lead-search-query";
+import { useSalesSummaryQuery } from "@/hooks/queries/sales/use-sales-summary-query";
+import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query";
+import { getApiErrorMessage } from "@/types/api";
+import type { BuyerLead } from "@/types/buyer-leads";
+import type { SaleWithDetails, SalesListFilters } from "@/types/sales";
+import type { Vehicle } from "@/types/vehicles";
 
-type SalesFilterStatus = "all" | "finalized" | "commission_locked" | "needs_review"
-type SalesFilterAgent = "all" | "mine"
-type SalesFilterRange = "all" | "this_month" | "last_30_days"
+type SalesFilterStatus =
+  "all" | "finalized" | "commission_locked" | "needs_review";
+type SalesFilterAgent = "all" | "mine";
+type SalesFilterRange = "all" | "this_month" | "last_30_days";
 
 type SaleFormValues = {
-  buyerLeadId: string
-  vehicleId: string
-  saleDate: string
-  finalSaleAmount: string
-  agentName: string
-  commissionOverrideAmount: string
-  commissionOverrideReason: string
-  buyerClosingNote: string
-}
+  buyerLeadId: string;
+  vehicleId: string;
+  saleDate: string;
+  finalSaleAmount: string;
+  agentName: string;
+  commissionOverrideAmount: string;
+  commissionOverrideReason: string;
+  buyerClosingNote: string;
+};
 
 type BuyerLeadOption = {
-  value: string
-  label: string
-}
+  value: string;
+  label: string;
+};
 
 function getEmptySaleFormValues(defaultAgentName = ""): SaleFormValues {
   return {
@@ -113,18 +120,18 @@ function getEmptySaleFormValues(defaultAgentName = ""): SaleFormValues {
     commissionOverrideAmount: "",
     commissionOverrideReason: "",
     buyerClosingNote: "",
-  }
+  };
 }
 
 function formatMoney(value?: string | null) {
   if (!value) {
-    return "N/A"
+    return "N/A";
   }
 
-  const numericValue = Number(value)
+  const numericValue = Number(value);
 
   if (Number.isNaN(numericValue)) {
-    return `PHP ${value}`
+    return `PHP ${value}`;
   }
 
   return new Intl.NumberFormat("en-PH", {
@@ -132,101 +139,109 @@ function formatMoney(value?: string | null) {
     currency: "PHP",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(numericValue)
+  }).format(numericValue);
 }
 
 function parseMoney(value?: string | null) {
   if (!value) {
-    return null
+    return null;
   }
 
-  const numericValue = Number(value)
+  const numericValue = Number(value);
 
-  return Number.isFinite(numericValue) ? numericValue : null
+  return Number.isFinite(numericValue) ? numericValue : null;
 }
 
 function formatAmountInputValue(value: number) {
-  return value.toFixed(2)
+  return value.toFixed(2);
 }
 
 function getVehiclePricingRange(vehicle?: Vehicle) {
-  const minimum = parseMoney(vehicle?.minimumAcceptablePrice)
-  const target = parseMoney(vehicle?.targetSellingPrice)
+  const minimum = parseMoney(vehicle?.minimumAcceptablePrice);
+  const target = parseMoney(vehicle?.targetSellingPrice);
 
   if (minimum === null || target === null || minimum <= 0 || target <= 0) {
-    return null
+    return null;
   }
 
   return {
     minimum: Math.min(minimum, target),
     target: Math.max(minimum, target),
-  }
+  };
 }
 
-function getSliderSaleAmountValue(amount: string, minimum: number, target: number) {
-  const numericAmount = parseMoney(amount)
+function getSliderSaleAmountValue(
+  amount: string,
+  minimum: number,
+  target: number,
+) {
+  const numericAmount = parseMoney(amount);
 
   if (numericAmount === null || numericAmount < minimum) {
-    return minimum
+    return minimum;
   }
 
   if (numericAmount > target) {
-    return target
+    return target;
   }
 
-  return numericAmount
+  return numericAmount;
 }
 
-function getSaleStatus(sale: SaleWithDetails): Exclude<SalesFilterStatus, "all"> {
+function getSaleStatus(
+  sale: SaleWithDetails,
+): Exclude<SalesFilterStatus, "all"> {
   if (!sale.commissionLocked) {
-    return "needs_review"
+    return "needs_review";
   }
 
   if (sale.commission.overrideAmount) {
-    return "commission_locked"
+    return "commission_locked";
   }
 
-  return "finalized"
+  return "finalized";
 }
 
 function getSaleStatusLabel(status: Exclude<SalesFilterStatus, "all">) {
   switch (status) {
     case "finalized":
-      return "Finalized"
+      return "Finalized";
     case "commission_locked":
-      return "Commission Locked"
+      return "Commission Locked";
     case "needs_review":
-      return "Needs Review"
+      return "Needs Review";
     default:
-      return status
+      return status;
   }
 }
 
 function getSaleStatusClassName(status: Exclude<SalesFilterStatus, "all">) {
   switch (status) {
     case "finalized":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300";
     case "commission_locked":
-      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300"
+      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300";
     case "needs_review":
-      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
     default:
-      return ""
+      return "";
   }
 }
 
 function getCommissionPreview(values: SaleFormValues, currentUserName?: string) {
-  const effectiveAgentName = values.agentName.trim() || currentUserName?.trim() || ""
-  const defaultAmount = effectiveAgentName ? "5000.00" : null
-  const overrideAmount = values.commissionOverrideAmount.trim() || null
-  const finalAmount = effectiveAgentName ? overrideAmount ?? defaultAmount ?? "0.00" : "0.00"
+  const effectiveAgentName =
+    values.agentName.trim() || currentUserName?.trim() || "";
+  const defaultAmount = effectiveAgentName ? "5000.00" : null;
+  const overrideAmount = values.commissionOverrideAmount.trim() || null;
+  const finalAmount = effectiveAgentName
+    ? (overrideAmount ?? defaultAmount ?? "0.00")
+    : "0.00";
 
   return {
     defaultAmount,
     overrideAmount,
     finalAmount,
-    needsOverrideReason: Boolean(overrideAmount && !values.commissionOverrideReason.trim()),
-  }
+  };
 }
 
 function FinalSaleAmountInput({
@@ -234,16 +249,16 @@ function FinalSaleAmountInput({
   selectedVehicle,
   onChange,
 }: {
-  value: string
-  selectedVehicle?: Vehicle
-  onChange: (value: string) => void
+  value: string;
+  selectedVehicle?: Vehicle;
+  onChange: (value: string) => void;
 }) {
-  const pricingRange = getVehiclePricingRange(selectedVehicle)
-  const numericAmount = parseMoney(value)
+  const pricingRange = getVehiclePricingRange(selectedVehicle);
+  const numericAmount = parseMoney(value);
   const isBelowMinimum =
     Boolean(pricingRange) &&
     numericAmount !== null &&
-    numericAmount < pricingRange!.minimum
+    numericAmount < pricingRange!.minimum;
 
   return (
     <Field data-invalid={isBelowMinimum ? true : undefined}>
@@ -258,24 +273,7 @@ function FinalSaleAmountInput({
         required
       />
     </Field>
-  )
-}
-
-function PricingMetric({
-  label,
-  value,
-}: {
-  label: string
-  value: React.ReactNode
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-lg border bg-background px-3 py-2">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="truncate text-sm font-medium tabular-nums text-foreground">
-        {value}
-      </span>
-    </div>
-  )
+  );
 }
 
 function FinalSalePricingHelper({
@@ -283,25 +281,27 @@ function FinalSalePricingHelper({
   selectedVehicle,
   onChange,
 }: {
-  value: string
-  selectedVehicle?: Vehicle
-  onChange: (value: string) => void
+  value: string;
+  selectedVehicle?: Vehicle;
+  onChange: (value: string) => void;
 }) {
-  const pricingRange = getVehiclePricingRange(selectedVehicle)
-  const numericAmount = parseMoney(value)
+  const pricingRange = getVehiclePricingRange(selectedVehicle);
+  const numericAmount = parseMoney(value);
   const isBelowMinimum =
     Boolean(pricingRange) &&
     numericAmount !== null &&
-    numericAmount < pricingRange!.minimum
+    numericAmount < pricingRange!.minimum;
   const midpoint = pricingRange
     ? (pricingRange.minimum + pricingRange.target) / 2
-    : null
+    : null;
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-muted/15 p-4">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium text-foreground">Vehicle pricing guide</p>
+          <p className="text-sm font-medium text-foreground">
+            Vehicle pricing guide
+          </p>
           {pricingRange ? (
             <Badge variant="outline" className="rounded-full">
               Slider range
@@ -309,31 +309,13 @@ function FinalSalePricingHelper({
           ) : null}
         </div>
         <p className="text-xs text-muted-foreground">
-          Use these saved pricing values as a guide, then enter the exact negotiated sale amount above.
+          Use these saved pricing values as a guide, then enter the exact
+          negotiated sale amount above.
         </p>
       </div>
 
       {pricingRange ? (
         <>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <PricingMetric
-              label="Minimum"
-              value={formatMoney(selectedVehicle?.minimumAcceptablePrice)}
-            />
-            <PricingMetric
-              label="Target"
-              value={formatMoney(selectedVehicle?.targetSellingPrice)}
-            />
-            <PricingMetric
-              label="Purchase"
-              value={formatMoney(selectedVehicle?.purchasePrice)}
-            />
-            <PricingMetric
-              label="Tracked costs"
-              value={formatMoney(selectedVehicle?.trackedCostsTotal)}
-            />
-          </div>
-
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
             <div className="flex flex-col gap-2">
               <Slider
@@ -349,14 +331,18 @@ function FinalSalePricingHelper({
                 ]}
                 onValueChange={([nextValue]) => {
                   if (typeof nextValue === "number") {
-                    onChange(formatAmountInputValue(nextValue))
+                    onChange(formatAmountInputValue(nextValue));
                   }
                 }}
                 aria-label="Final sale amount pricing range"
               />
               <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                <span>{formatMoney(formatAmountInputValue(pricingRange.minimum))}</span>
-                <span>{formatMoney(formatAmountInputValue(pricingRange.target))}</span>
+                <span>
+                  {formatMoney(formatAmountInputValue(pricingRange.minimum))}
+                </span>
+                <span>
+                  {formatMoney(formatAmountInputValue(pricingRange.target))}
+                </span>
               </div>
             </div>
 
@@ -365,7 +351,9 @@ function FinalSalePricingHelper({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => onChange(formatAmountInputValue(pricingRange.minimum))}
+                onClick={() =>
+                  onChange(formatAmountInputValue(pricingRange.minimum))
+                }
               >
                 Minimum
               </Button>
@@ -375,7 +363,7 @@ function FinalSalePricingHelper({
                 size="sm"
                 onClick={() => {
                   if (midpoint !== null) {
-                    onChange(formatAmountInputValue(midpoint))
+                    onChange(formatAmountInputValue(midpoint));
                   }
                 }}
               >
@@ -385,7 +373,9 @@ function FinalSalePricingHelper({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => onChange(formatAmountInputValue(pricingRange.target))}
+                onClick={() =>
+                  onChange(formatAmountInputValue(pricingRange.target))
+                }
               >
                 Target
               </Button>
@@ -414,7 +404,7 @@ function FinalSalePricingHelper({
         </Alert>
       )}
     </div>
-  )
+  );
 }
 
 function SalesForm({
@@ -436,76 +426,85 @@ function SalesForm({
   linkVehicleError,
   currentUserName,
 }: {
-  values: SaleFormValues
-  onChange: (values: SaleFormValues) => void
-  buyerLeadSearch: string
-  onBuyerLeadSearchChange: (value: string) => void
-  buyerLeadOptions: BuyerLeadOption[]
-  buyerLeadSearchPending: boolean
-  buyerLeadSearchError?: unknown
-  vehicleOptions: { id: string; label: string }[]
-  selectedBuyerLead?: BuyerLead
-  selectedVehicle?: Vehicle
-  availableVehicles: { id: string; label: string }[]
-  inlineLinkVehicleId: string
-  onInlineLinkVehicleIdChange: (value: string) => void
-  onLinkVehicle: () => void
-  linkVehiclePending: boolean
-  linkVehicleError?: unknown
-  currentUserName?: string
+  values: SaleFormValues;
+  onChange: (values: SaleFormValues) => void;
+  buyerLeadSearch: string;
+  onBuyerLeadSearchChange: (value: string) => void;
+  buyerLeadOptions: BuyerLeadOption[];
+  buyerLeadSearchPending: boolean;
+  buyerLeadSearchError?: unknown;
+  vehicleOptions: { id: string; label: string }[];
+  selectedBuyerLead?: BuyerLead;
+  selectedVehicle?: Vehicle;
+  availableVehicles: { id: string; label: string }[];
+  inlineLinkVehicleId: string;
+  onInlineLinkVehicleIdChange: (value: string) => void;
+  onLinkVehicle: () => void;
+  linkVehiclePending: boolean;
+  linkVehicleError?: unknown;
+  currentUserName?: string;
 }) {
-  const inlineVehicleSelectTriggerRef = React.useRef<HTMLButtonElement | null>(null)
-  const buyerLeadInputRef = React.useRef<HTMLInputElement | null>(null)
-  const [buyerLeadPickerOpen, setBuyerLeadPickerOpen] = React.useState(false)
+  const inlineVehicleSelectTriggerRef = React.useRef<HTMLButtonElement | null>(
+    null,
+  );
+  const buyerLeadInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [buyerLeadPickerOpen, setBuyerLeadPickerOpen] = React.useState(false);
 
-  function updateField<K extends keyof SaleFormValues>(key: K, value: SaleFormValues[K]) {
+  function updateField<K extends keyof SaleFormValues>(
+    key: K,
+    value: SaleFormValues[K],
+  ) {
     if (key === "buyerLeadId") {
       onChange({
         ...values,
         buyerLeadId: value as string,
         vehicleId: "",
         finalSaleAmount: "",
-      })
-      return
+      });
+      return;
     }
 
     if (key === "vehicleId") {
       onChange({
         ...values,
         vehicleId: value as string,
-        finalSaleAmount: value === values.vehicleId ? values.finalSaleAmount : "",
-      })
-      return
+        finalSaleAmount:
+          value === values.vehicleId ? values.finalSaleAmount : "",
+      });
+      return;
     }
 
-    onChange({ ...values, [key]: value })
+    onChange({ ...values, [key]: value });
   }
 
-  const hasSelectedBuyerLead = Boolean(values.buyerLeadId)
-  const hasLinkedVehicles = Boolean(selectedBuyerLead?.vehicles.length)
+  const hasSelectedBuyerLead = Boolean(values.buyerLeadId);
+  const hasLinkedVehicles = Boolean(selectedBuyerLead?.vehicles.length);
   const selectedBuyerLeadLabel = selectedBuyerLead
     ? `${selectedBuyerLead.buyerName} • ${selectedBuyerLead.contactNumber} • ${selectedBuyerLead.status}`
-    : ""
+    : "";
 
   React.useEffect(() => {
     if (!hasSelectedBuyerLead || hasLinkedVehicles) {
-      return
+      return;
     }
 
     const timer = window.setTimeout(() => {
-      inlineVehicleSelectTriggerRef.current?.focus()
-    }, 120)
+      inlineVehicleSelectTriggerRef.current?.focus();
+    }, 120);
 
-    return () => window.clearTimeout(timer)
-  }, [hasLinkedVehicles, hasSelectedBuyerLead])
+    return () => window.clearTimeout(timer);
+  }, [hasLinkedVehicles, hasSelectedBuyerLead]);
 
   return (
     <FieldGroup className="gap-6">
       <section className="space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Deal Details</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Deal Details
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Finalize a sale using a buyer lead that is already linked to a vehicle.
+            Finalize a sale using a buyer lead that is already linked to a
+            vehicle.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -532,10 +531,10 @@ function SalesForm({
                     className="shrink-0"
                     aria-label="Clear selected buyer"
                     onClick={() => {
-                      updateField("buyerLeadId", "")
-                      onBuyerLeadSearchChange("")
-                      setBuyerLeadPickerOpen(false)
-                      buyerLeadInputRef.current?.focus()
+                      updateField("buyerLeadId", "");
+                      onBuyerLeadSearchChange("");
+                      setBuyerLeadPickerOpen(false);
+                      buyerLeadInputRef.current?.focus();
                     }}
                   >
                     <XIcon />
@@ -543,67 +542,89 @@ function SalesForm({
                 </div>
               ) : null}
               <div className="relative">
-              <Input
-                id="saleBuyerLeadId"
-                ref={buyerLeadInputRef}
-                value={buyerLeadSearch}
-                placeholder={selectedBuyerLead ? "Search to replace buyer lead" : "Search buyer lead"}
-                onFocus={() => setBuyerLeadPickerOpen(true)}
-                onBlur={() => {
-                  window.setTimeout(() => setBuyerLeadPickerOpen(false), 120)
-                }}
-                onChange={(event) => {
-                  onBuyerLeadSearchChange(event.target.value)
-                  setBuyerLeadPickerOpen(true)
-                }}
-              />
-              {buyerLeadPickerOpen ? (
-                <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-md border bg-popover shadow-md">
-                  <div className="border-b px-3 py-2 text-xs text-muted-foreground">
-                    {buyerLeadSearchPending
-                      ? "Searching buyer leads..."
-                      : buyerLeadSearchError
-                        ? "Unable to load buyer leads"
-                        : selectedBuyerLead
-                          ? "Search by buyer name or contact number to replace the selected buyer"
-                          : "Search by buyer name or contact number"}
-                  </div>
-                  {buyerLeadSearch.trim() && !buyerLeadSearchPending && buyerLeadOptions.length === 0 ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">No buyer leads found.</div>
-                  ) : null}
-                  {!buyerLeadSearch.trim() && !buyerLeadSearchPending ? (
-                    <div className="px-3 py-2 text-sm text-muted-foreground">
-                      {selectedBuyerLead ? "Start typing to replace the selected buyer lead." : "Start typing to search buyer leads."}
+                <Input
+                  id="saleBuyerLeadId"
+                  ref={buyerLeadInputRef}
+                  value={buyerLeadSearch}
+                  placeholder={
+                    selectedBuyerLead
+                      ? "Search to replace buyer lead"
+                      : "Search buyer lead"
+                  }
+                  onFocus={() => setBuyerLeadPickerOpen(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setBuyerLeadPickerOpen(false), 120);
+                  }}
+                  onChange={(event) => {
+                    onBuyerLeadSearchChange(event.target.value);
+                    setBuyerLeadPickerOpen(true);
+                  }}
+                />
+                {buyerLeadPickerOpen ? (
+                  <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-md border bg-popover shadow-md">
+                    <div className="border-b px-3 py-2 text-xs text-muted-foreground">
+                      {buyerLeadSearchPending
+                        ? "Searching buyer leads..."
+                        : buyerLeadSearchError
+                          ? "Unable to load buyer leads"
+                          : selectedBuyerLead
+                            ? "Search by buyer name or contact number to replace the selected buyer"
+                            : "Search by buyer name or contact number"}
                     </div>
-                  ) : null}
-                  <div className="p-1">
-                    {buyerLeadOptions.map((lead) => (
-                      <button
-                        key={lead.value}
-                        type="button"
-                        className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                        onMouseDown={(event) => {
-                          event.preventDefault()
-                          updateField("buyerLeadId", lead.value)
-                          onBuyerLeadSearchChange("")
-                          setBuyerLeadPickerOpen(false)
-                          buyerLeadInputRef.current?.blur()
-                        }}
-                      >
-                        {lead.label}
-                      </button>
-                    ))}
+                    {buyerLeadSearch.trim() &&
+                    !buyerLeadSearchPending &&
+                    buyerLeadOptions.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No buyer leads found.
+                      </div>
+                    ) : null}
+                    {!buyerLeadSearch.trim() && !buyerLeadSearchPending ? (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        {selectedBuyerLead
+                          ? "Start typing to replace the selected buyer lead."
+                          : "Start typing to search buyer leads."}
+                      </div>
+                    ) : null}
+                    <div className="p-1">
+                      {buyerLeadOptions.map((lead) => (
+                        <button
+                          key={lead.value}
+                          type="button"
+                          className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            updateField("buyerLeadId", lead.value);
+                            onBuyerLeadSearchChange("");
+                            setBuyerLeadPickerOpen(false);
+                            buyerLeadInputRef.current?.blur();
+                          }}
+                        >
+                          {lead.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
               </div>
             </div>
-            <ApiErrorAlert title="Unable to search buyer leads" message={getApiErrorMessage(buyerLeadSearchError ?? undefined, "")} />
+            <ApiErrorAlert
+              title="Unable to search buyer leads"
+              message={getApiErrorMessage(
+                buyerLeadSearchError ?? undefined,
+                "",
+              )}
+            />
           </Field>
           <Field>
             <FieldLabel htmlFor="saleVehicleId">Linked vehicle</FieldLabel>
-            <Select value={values.vehicleId} onValueChange={(value) => updateField("vehicleId", value)}>
-              <SelectTrigger id="saleVehicleId" disabled={!hasSelectedBuyerLead || !hasLinkedVehicles}>
+            <Select
+              value={values.vehicleId}
+              onValueChange={(value) => updateField("vehicleId", value)}
+            >
+              <SelectTrigger
+                id="saleVehicleId"
+                disabled={!hasSelectedBuyerLead || !hasLinkedVehicles}
+              >
                 <SelectValue
                   placeholder={
                     !hasSelectedBuyerLead
@@ -629,9 +650,13 @@ function SalesForm({
           <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-4">
             <div className="space-y-4">
               <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-foreground">Link a vehicle to continue</h4>
+                <h4 className="text-sm font-semibold text-foreground">
+                  Link a vehicle to continue
+                </h4>
                 <p className="text-sm text-muted-foreground">
-                  {selectedBuyerLead?.buyerName ?? "This buyer"} has no linked vehicle yet. Link one available unit here and continue finalizing the sale without leaving this screen.
+                  {selectedBuyerLead?.buyerName ?? "This buyer"} has no linked
+                  vehicle yet. Link one available unit here and continue
+                  finalizing the sale without leaving this screen.
                 </p>
               </div>
               <ApiErrorAlert
@@ -639,7 +664,10 @@ function SalesForm({
                 message={getApiErrorMessage(linkVehicleError, "")}
               />
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                <Select value={inlineLinkVehicleId} onValueChange={onInlineLinkVehicleIdChange}>
+                <Select
+                  value={inlineLinkVehicleId}
+                  onValueChange={onInlineLinkVehicleIdChange}
+                >
                   <SelectTrigger ref={inlineVehicleSelectTriggerRef}>
                     <SelectValue placeholder="Select an available vehicle" />
                   </SelectTrigger>
@@ -655,7 +683,9 @@ function SalesForm({
                   type="button"
                   pending={linkVehiclePending}
                   pendingLabel="Linking vehicle"
-                  disabled={!inlineLinkVehicleId || availableVehicles.length === 0}
+                  disabled={
+                    !inlineLinkVehicleId || availableVehicles.length === 0
+                  }
                   onClick={onLinkVehicle}
                 >
                   Link Vehicle
@@ -673,7 +703,13 @@ function SalesForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="saleDate">Sale date</FieldLabel>
-            <Input id="saleDate" type="datetime-local" value={values.saleDate} onChange={(e) => updateField("saleDate", e.target.value)} required />
+            <Input
+              id="saleDate"
+              type="datetime-local"
+              value={values.saleDate}
+              onChange={(e) => updateField("saleDate", e.target.value)}
+              required
+            />
           </Field>
           <FinalSaleAmountInput
             value={values.finalSaleAmount}
@@ -692,62 +728,254 @@ function SalesForm({
 
       <section className="space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">Commission & Closing</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Commission & Closing
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Record the sales agent and any override details required for final commission locking.
+            Record the sales agent and any override details required for final
+            commission locking.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="agentName">Agent name</FieldLabel>
-            <Input id="agentName" value={values.agentName} placeholder={currentUserName ?? "Assigned agent"} onChange={(e) => updateField("agentName", e.target.value)} />
+            <Input
+              id="agentName"
+              value={values.agentName}
+              placeholder={currentUserName ?? "Assigned agent"}
+              onChange={(e) => updateField("agentName", e.target.value)}
+            />
           </Field>
           <Field>
-            <FieldLabel htmlFor="commissionOverrideAmount">Commission override amount</FieldLabel>
-            <Input id="commissionOverrideAmount" value={values.commissionOverrideAmount} onChange={(e) => updateField("commissionOverrideAmount", e.target.value)} placeholder="1500" />
+            <FieldLabel htmlFor="commissionOverrideAmount">
+              Commission override amount
+            </FieldLabel>
+            <Input
+              id="commissionOverrideAmount"
+              value={values.commissionOverrideAmount}
+              onChange={(e) =>
+                updateField("commissionOverrideAmount", e.target.value)
+              }
+              placeholder="1500"
+            />
           </Field>
         </div>
         <Field>
-          <FieldLabel htmlFor="commissionOverrideReason">Commission override reason</FieldLabel>
-          <Input id="commissionOverrideReason" value={values.commissionOverrideReason} onChange={(e) => updateField("commissionOverrideReason", e.target.value)} placeholder="Used only when override amount is entered" />
+          <FieldLabel htmlFor="commissionOverrideReason">
+            Commission override reason
+          </FieldLabel>
+          <Input
+            id="commissionOverrideReason"
+            value={values.commissionOverrideReason}
+            onChange={(e) =>
+              updateField("commissionOverrideReason", e.target.value)
+            }
+            placeholder="Used only when override amount is entered"
+          />
         </Field>
         <Field>
           <FieldLabel htmlFor="buyerClosingNote">Buyer closing note</FieldLabel>
-          <Textarea id="buyerClosingNote" rows={5} value={values.buyerClosingNote} onChange={(e) => updateField("buyerClosingNote", e.target.value)} placeholder="Buyer completed down payment and confirmed release schedule for unit pickup." />
+          <Textarea
+            id="buyerClosingNote"
+            rows={5}
+            value={values.buyerClosingNote}
+            onChange={(e) => updateField("buyerClosingNote", e.target.value)}
+            placeholder="Buyer completed down payment and confirmed release schedule for unit pickup."
+          />
         </Field>
       </section>
     </FieldGroup>
-  )
+  );
+}
+
+function ReviewDetail({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: React.ReactNode;
+  muted?: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1 rounded-lg border bg-muted/15 px-3 py-2">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="break-words text-sm font-medium text-foreground">
+        {value}
+      </span>
+      {muted ? (
+        <span className="break-words text-xs text-muted-foreground">
+          {muted}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function SaleReviewDialog({
+  open,
+  onOpenChange,
+  form,
+  buyerLead,
+  vehicle,
+  currentUserName,
+  belowMinimum,
+  minimumAmount,
+  pending,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  form: SaleFormValues;
+  buyerLead?: BuyerLead;
+  vehicle?: Vehicle;
+  currentUserName: string;
+  belowMinimum: boolean;
+  minimumAmount: number | null;
+  pending: boolean;
+  onConfirm: () => void;
+}) {
+  const commissionPreview = getCommissionPreview(form, currentUserName);
+  const effectiveAgentName =
+    form.agentName.trim() || currentUserName || "Not set";
+  const saleDateLabel = form.saleDate
+    ? format(new Date(form.saleDate), "MMM d, yyyy h:mm a")
+    : "Not set";
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="sm:max-w-2xl">
+        <AlertDialogHeader>
+          <AlertDialogMedia>
+            <ReceiptTextIcon />
+          </AlertDialogMedia>
+          <AlertDialogTitle>Review sale before finalizing</AlertDialogTitle>
+          <AlertDialogDescription>
+            Confirm the buyer, vehicle, amount, commission, and closing details.
+            The sale will only be created after this confirmation.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-1">
+          {belowMinimum ? (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+              <TriangleAlertIcon />
+              <AlertTitle>Final amount is below minimum</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                {formatMoney(form.finalSaleAmount)} is below the vehicle minimum
+                acceptable price of{" "}
+                {minimumAmount === null
+                  ? "N/A"
+                  : formatMoney(formatAmountInputValue(minimumAmount))}
+                . Confirm only if this exception has approval.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ReviewDetail
+              label="Buyer"
+              value={buyerLead?.buyerName ?? "Not selected"}
+              muted={
+                buyerLead
+                  ? `${buyerLead.contactNumber} • ${buyerLead.status}`
+                  : undefined
+              }
+            />
+            <ReviewDetail
+              label="Vehicle"
+              value={
+                vehicle
+                  ? `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`
+                  : "Not selected"
+              }
+              muted={
+                vehicle
+                  ? [
+                      vehicle.year,
+                      vehicle.variant,
+                      vehicle.status,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")
+                  : undefined
+              }
+            />
+            <ReviewDetail label="Sale Date" value={saleDateLabel} />
+            <ReviewDetail
+              label="Final Sale Amount"
+              value={formatMoney(form.finalSaleAmount)}
+              muted={
+                vehicle
+                  ? `Target ${formatMoney(vehicle.targetSellingPrice)} • Minimum ${formatMoney(vehicle.minimumAcceptablePrice)}`
+                  : undefined
+              }
+            />
+            <ReviewDetail label="Agent" value={effectiveAgentName} />
+            <ReviewDetail
+              label="Commission"
+              value={formatMoney(commissionPreview.finalAmount)}
+              muted={`Default ${formatMoney(commissionPreview.defaultAmount)} • Override ${formatMoney(commissionPreview.overrideAmount)}`}
+            />
+          </div>
+
+          <ReviewDetail
+            label="Closing Note"
+            value={form.buyerClosingNote.trim() || "No closing note entered"}
+          />
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>Edit Details</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={pending}
+            onClick={(event) => {
+              event.preventDefault();
+              onConfirm();
+            }}
+          >
+            {belowMinimum ? "Finalize Below Minimum" : "Finalize Sale"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
 
 export function SalesScreen() {
-  const authQuery = useAuthenticatedUserQuery()
-  const availableVehiclesQuery = useVehiclesQuery({ status: "Available" })
-  const createMutation = useCreateSaleMutation()
-  const linkVehicleMutation = useLinkBuyerLeadVehicleMutation()
+  const authQuery = useAuthenticatedUserQuery();
+  const availableVehiclesQuery = useVehiclesQuery({ status: "Available" });
+  const createMutation = useCreateSaleMutation();
+  const linkVehicleMutation = useLinkBuyerLeadVehicleMutation();
 
-  const [createOpen, setCreateOpen] = React.useState(false)
-  const [searchTerm, setSearchTerm] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState<SalesFilterStatus>("all")
-  const [agentFilter, setAgentFilter] = React.useState<SalesFilterAgent>("all")
-  const [rangeFilter, setRangeFilter] = React.useState<SalesFilterRange>("all")
-  const [page, setPage] = React.useState(1)
-  const [form, setForm] = React.useState<SaleFormValues>(() => getEmptySaleFormValues())
-  const [buyerLeadSearch, setBuyerLeadSearch] = React.useState("")
-  const [debouncedBuyerLeadSearch, setDebouncedBuyerLeadSearch] = React.useState("")
-  const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("")
-  const [viewSaleId, setViewSaleId] = React.useState<string | null>(null)
-  const [belowMinimumConfirmOpen, setBelowMinimumConfirmOpen] = React.useState(false)
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [statusFilter, setStatusFilter] =
+    React.useState<SalesFilterStatus>("all");
+  const [agentFilter, setAgentFilter] = React.useState<SalesFilterAgent>("all");
+  const [rangeFilter, setRangeFilter] = React.useState<SalesFilterRange>("all");
+  const [page, setPage] = React.useState(1);
+  const [form, setForm] = React.useState<SaleFormValues>(() =>
+    getEmptySaleFormValues(),
+  );
+  const [buyerLeadSearch, setBuyerLeadSearch] = React.useState("");
+  const [debouncedBuyerLeadSearch, setDebouncedBuyerLeadSearch] =
+    React.useState("");
+  const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("");
+  const [viewSaleId, setViewSaleId] = React.useState<string | null>(null);
+  const [reviewSaleOpen, setReviewSaleOpen] = React.useState(false);
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
-      setDebouncedBuyerLeadSearch(buyerLeadSearch)
-    }, 250)
+      setDebouncedBuyerLeadSearch(buyerLeadSearch);
+    }, 250);
 
-    return () => window.clearTimeout(timer)
-  }, [buyerLeadSearch])
+    return () => window.clearTimeout(timer);
+  }, [buyerLeadSearch]);
 
-  const currentUserName = authQuery.data?.user.fullName ?? ""
+  const currentUserName = authQuery.data?.user.fullName ?? "";
   const salesFilters = React.useMemo<SalesListFilters>(
     () => ({
       page,
@@ -758,8 +986,10 @@ export function SalesScreen() {
       dateRange: rangeFilter,
     }),
     [agentFilter, currentUserName, page, rangeFilter, searchTerm, statusFilter],
-  )
-  const salesSummaryFilters = React.useMemo<Omit<SalesListFilters, "page" | "pageSize">>(
+  );
+  const salesSummaryFilters = React.useMemo<
+    Omit<SalesListFilters, "page" | "pageSize">
+  >(
     () => ({
       search: searchTerm.trim() || undefined,
       status: statusFilter,
@@ -767,44 +997,50 @@ export function SalesScreen() {
       dateRange: rangeFilter,
     }),
     [agentFilter, currentUserName, rangeFilter, searchTerm, statusFilter],
-  )
-  const salesQuery = useSalesQuery(salesFilters)
-  const salesSummaryQuery = useSalesSummaryQuery(salesSummaryFilters)
-  const buyerLeadSearchQuery = useSalesBuyerLeadSearchQuery(debouncedBuyerLeadSearch, createOpen)
-  const selectedBuyerLeadQuery = useBuyerLeadQuery(form.buyerLeadId)
-  const selectedBuyerLead = selectedBuyerLeadQuery.data?.buyerLead
+  );
+  const salesQuery = useSalesQuery(salesFilters);
+  const salesSummaryQuery = useSalesSummaryQuery(salesSummaryFilters);
+  const buyerLeadSearchQuery = useSalesBuyerLeadSearchQuery(
+    debouncedBuyerLeadSearch,
+    createOpen,
+  );
+  const selectedBuyerLeadQuery = useBuyerLeadQuery(form.buyerLeadId);
+  const selectedBuyerLead = selectedBuyerLeadQuery.data?.buyerLead;
   const buyerLeadSearchResults = React.useMemo(
     () => buyerLeadSearchQuery.data?.buyerLeads ?? [],
     [buyerLeadSearchQuery.data?.buyerLeads],
-  )
-  const sales = salesQuery.data?.sales ?? []
-  const total = salesQuery.data?.total ?? 0
-  const totalPages = salesQuery.data?.totalPages ?? 1
+  );
+  const sales = salesQuery.data?.sales ?? [];
+  const total = salesQuery.data?.total ?? 0;
+  const totalPages = salesQuery.data?.totalPages ?? 1;
 
   const effectiveVehicleId = React.useMemo(() => {
     if (!selectedBuyerLead) {
-      return form.vehicleId
+      return form.vehicleId;
     }
 
     if (selectedBuyerLead.vehicles.length === 1) {
-      return selectedBuyerLead.vehicles[0]?.id ?? ""
+      return selectedBuyerLead.vehicles[0]?.id ?? "";
     }
 
-    return selectedBuyerLead.vehicles.some((vehicle) => vehicle.id === form.vehicleId)
+    return selectedBuyerLead.vehicles.some(
+      (vehicle) => vehicle.id === form.vehicleId,
+    )
       ? form.vehicleId
-      : ""
-  }, [form.vehicleId, selectedBuyerLead])
+      : "";
+  }, [form.vehicleId, selectedBuyerLead]);
 
-  const totalSales = salesSummaryQuery.data?.totalSales ?? 0
-  const revenueTotal = salesSummaryQuery.data?.totalRevenue ?? "0.00"
-  const grossProfitTotal = salesSummaryQuery.data?.totalGrossProfit ?? "0.00"
-  const commissionTotal = salesSummaryQuery.data?.totalCommissionPayouts ?? "0.00"
+  const totalSales = salesSummaryQuery.data?.totalSales ?? 0;
+  const revenueTotal = salesSummaryQuery.data?.totalRevenue ?? "0.00";
+  const grossProfitTotal = salesSummaryQuery.data?.totalGrossProfit ?? "0.00";
+  const commissionTotal =
+    salesSummaryQuery.data?.totalCommissionPayouts ?? "0.00";
 
   const buyerLeadOptions = React.useMemo(() => {
     const options = buyerLeadSearchResults.map((lead) => ({
       value: lead.id,
       label: `${lead.buyerName} • ${lead.contactNumber} • ${lead.status}`,
-    }))
+    }));
 
     if (
       selectedBuyerLead &&
@@ -813,79 +1049,59 @@ export function SalesScreen() {
       options.unshift({
         value: selectedBuyerLead.id,
         label: `${selectedBuyerLead.buyerName} • ${selectedBuyerLead.contactNumber} • ${selectedBuyerLead.status}`,
-      })
+      });
     }
 
-    return options
-  }, [buyerLeadSearchResults, selectedBuyerLead])
+    return options;
+  }, [buyerLeadSearchResults, selectedBuyerLead]);
 
   const vehicleOptions =
     selectedBuyerLead?.vehicles.map((vehicle) => ({
       id: vehicle.id,
       label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
-    })) ?? []
+    })) ?? [];
 
   const inlineAvailableVehicleOptions =
     availableVehiclesQuery.data?.vehicles
-      .filter((vehicle) => !selectedBuyerLead?.vehicles.some((linkedVehicle) => linkedVehicle.id === vehicle.id))
+      .filter(
+        (vehicle) =>
+          !selectedBuyerLead?.vehicles.some(
+            (linkedVehicle) => linkedVehicle.id === vehicle.id,
+          ),
+      )
       .map((vehicle) => ({
         id: vehicle.id,
         label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
-      })) ?? []
+      })) ?? [];
   const selectedPricingVehicle = availableVehiclesQuery.data?.vehicles.find(
     (vehicle) => vehicle.id === effectiveVehicleId,
-  )
-  const selectedPricingRange = getVehiclePricingRange(selectedPricingVehicle)
-  const finalSaleAmountNumber = parseMoney(form.finalSaleAmount)
+  );
+  const selectedPricingRange = getVehiclePricingRange(selectedPricingVehicle);
+  const finalSaleAmountNumber = parseMoney(form.finalSaleAmount);
   const isFinalSaleBelowMinimum =
     Boolean(selectedPricingRange) &&
     finalSaleAmountNumber !== null &&
-    finalSaleAmountNumber < selectedPricingRange!.minimum
-
-  const commissionPreview = getCommissionPreview(form, currentUserName)
-  const readinessChecks = [
-    {
-      label: "Buyer lead selected",
-      complete: Boolean(form.buyerLeadId),
-    },
-    {
-      label: "Linked vehicle ready",
-      complete: Boolean(effectiveVehicleId),
-    },
-    {
-      label: "Sale amount entered",
-      complete: Boolean(form.finalSaleAmount.trim()),
-    },
-    {
-      label: "Closing note covered",
-      complete: Boolean(form.buyerClosingNote.trim() || selectedBuyerLead?.closingNote?.trim()),
-    },
-    {
-      label: "Override reason provided",
-      complete: !commissionPreview.needsOverrideReason,
-    },
-  ]
-  const blockingItems = readinessChecks.filter((check) => !check.complete)
+    finalSaleAmountNumber < selectedPricingRange!.minimum;
 
   const resetCreateSaleState = React.useCallback(() => {
-    setForm(getEmptySaleFormValues(currentUserName))
-    setBuyerLeadSearch("")
-    setDebouncedBuyerLeadSearch("")
-    setInlineLinkVehicleId("")
-    setBelowMinimumConfirmOpen(false)
-  }, [currentUserName])
+    setForm(getEmptySaleFormValues(currentUserName));
+    setBuyerLeadSearch("");
+    setDebouncedBuyerLeadSearch("");
+    setInlineLinkVehicleId("");
+    setReviewSaleOpen(false);
+  }, [currentUserName]);
 
   function handleCreateOpenChange(nextOpen: boolean) {
-    setCreateOpen(nextOpen)
+    setCreateOpen(nextOpen);
 
     if (!nextOpen) {
-      resetCreateSaleState()
+      resetCreateSaleState();
     }
   }
 
   async function handleInlineLinkVehicle() {
     if (!selectedBuyerLead || !inlineLinkVehicleId) {
-      return
+      return;
     }
 
     await linkVehicleMutation.mutateAsync(
@@ -895,12 +1111,12 @@ export function SalesScreen() {
           setForm((current) => ({
             ...current,
             vehicleId: inlineLinkVehicleId,
-          }))
-          setInlineLinkVehicleId("")
-          toast.success("Vehicle linked to buyer lead")
+          }));
+          setInlineLinkVehicleId("");
+          toast.success("Vehicle linked to buyer lead");
         },
       },
-    )
+    );
   }
 
   async function submitSale() {
@@ -917,23 +1133,17 @@ export function SalesScreen() {
       },
       {
         onSuccess: () => {
-          toast.success("Sale finalized")
-          resetCreateSaleState()
-          setCreateOpen(false)
+          toast.success("Sale finalized");
+          resetCreateSaleState();
+          setCreateOpen(false);
         },
       },
-    )
+    );
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    if (isFinalSaleBelowMinimum) {
-      setBelowMinimumConfirmOpen(true)
-      return
-    }
-
-    await submitSale()
+    event.preventDefault();
+    setReviewSaleOpen(true);
   }
 
   const summaryCards = [
@@ -949,14 +1159,16 @@ export function SalesScreen() {
       value: formatMoney(revenueTotal),
       caption: "Booked revenue",
       icon: DollarSignIcon,
-      iconWrapClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
+      iconWrapClassName:
+        "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
     },
     {
       title: "Gross Profit",
       value: formatMoney(grossProfitTotal),
       caption: "Closed deals",
       icon: BarChart3Icon,
-      iconWrapClassName: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
+      iconWrapClassName:
+        "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40",
     },
     {
       title: "Commission Payouts",
@@ -965,7 +1177,7 @@ export function SalesScreen() {
       icon: BadgeDollarSignIcon,
       iconWrapClassName: "bg-orange-50 text-orange-600 dark:bg-orange-950/40",
     },
-  ]
+  ];
 
   return (
     <AuthenticatedAppShell title="Sales">
@@ -975,13 +1187,14 @@ export function SalesScreen() {
             <div className="space-y-1">
               <h2 className="text-2xl font-semibold tracking-tight">Sales</h2>
               <p className="text-sm text-muted-foreground">
-                Track finalized deals, review deal value, and monitor commission outcomes across the sales pipeline.
+                Track finalized deals, review deal value, and monitor commission
+                outcomes across the sales pipeline.
               </p>
             </div>
             <Button
               onClick={() => {
-                resetCreateSaleState()
-                setCreateOpen(true)
+                resetCreateSaleState();
+                setCreateOpen(true);
               }}
             >
               <PlusIcon />
@@ -995,31 +1208,39 @@ export function SalesScreen() {
               <Input
                 value={searchTerm}
                 onChange={(event) => {
-                  setSearchTerm(event.target.value)
-                  setPage(1)
+                  setSearchTerm(event.target.value);
+                  setPage(1);
                 }}
                 placeholder="Search sales, buyer, vehicle, or ID..."
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={(value) => {
-              setStatusFilter(value as SalesFilterStatus)
-              setPage(1)
-            }}>
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => {
+                setStatusFilter(value as SalesFilterStatus);
+                setPage(1);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="finalized">Finalized</SelectItem>
-                <SelectItem value="commission_locked">Commission Locked</SelectItem>
+                <SelectItem value="commission_locked">
+                  Commission Locked
+                </SelectItem>
                 <SelectItem value="needs_review">Needs Review</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={agentFilter} onValueChange={(value) => {
-              setAgentFilter(value as SalesFilterAgent)
-              setPage(1)
-            }}>
+            <Select
+              value={agentFilter}
+              onValueChange={(value) => {
+                setAgentFilter(value as SalesFilterAgent);
+                setPage(1);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Agent" />
               </SelectTrigger>
@@ -1028,10 +1249,13 @@ export function SalesScreen() {
                 <SelectItem value="mine">My Sales</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={rangeFilter} onValueChange={(value) => {
-              setRangeFilter(value as SalesFilterRange)
-              setPage(1)
-            }}>
+            <Select
+              value={rangeFilter}
+              onValueChange={(value) => {
+                setRangeFilter(value as SalesFilterRange);
+                setPage(1);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Date range" />
               </SelectTrigger>
@@ -1044,11 +1268,11 @@ export function SalesScreen() {
             <Button
               variant="outline"
               onClick={() => {
-                setSearchTerm("")
-                setStatusFilter("all")
-                setAgentFilter("all")
-                setRangeFilter("all")
-                setPage(1)
+                setSearchTerm("");
+                setStatusFilter("all");
+                setAgentFilter("all");
+                setRangeFilter("all");
+                setPage(1);
               }}
             >
               <RotateCcwIcon />
@@ -1058,22 +1282,33 @@ export function SalesScreen() {
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {summaryCards.map((card) => {
-              const Icon = card.icon
+              const Icon = card.icon;
 
               return (
-                <Card key={card.title} className="border-border/70 py-0 shadow-xs">
+                <Card
+                  key={card.title}
+                  className="border-border/70 py-0 shadow-xs"
+                >
                   <CardContent className="flex items-center gap-4 p-5">
-                    <div className={`flex size-11 items-center justify-center rounded-full ${card.iconWrapClassName}`}>
+                    <div
+                      className={`flex size-11 items-center justify-center rounded-full ${card.iconWrapClassName}`}
+                    >
                       <Icon className="size-5" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-foreground">{card.title}</p>
-                      <p className="text-2xl font-semibold tracking-tight text-foreground">{card.value}</p>
-                      <p className="text-xs text-muted-foreground">{card.caption}</p>
+                      <p className="text-sm font-medium text-foreground">
+                        {card.title}
+                      </p>
+                      <p className="text-2xl font-semibold tracking-tight text-foreground">
+                        {card.value}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {card.caption}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
-              )
+              );
             })}
           </div>
         </section>
@@ -1086,33 +1321,56 @@ export function SalesScreen() {
               </div>
             ) : salesQuery.error ? (
               <div className="p-6">
-                <ApiErrorAlert title="Unable to load sales" message={getApiErrorMessage(salesQuery.error, "")} />
+                <ApiErrorAlert
+                  title="Unable to load sales"
+                  message={getApiErrorMessage(salesQuery.error, "")}
+                />
               </div>
             ) : sales.length ? (
               <Table className="w-full border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Sale</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Vehicle</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Buyer</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Sale Date</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Final Amount</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Gross Profit</TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">Status</TableHead>
-                    <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Sale
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Vehicle
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Buyer
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Sale Date
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Final Amount
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Gross Profit
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Status
+                    </TableHead>
+                    <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">
+                      Actions
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
-                    <TableBody>
+                <TableBody>
                   {sales.map((sale) => {
-                    const status = getSaleStatus(sale)
-                    const previewPhoto = sale.vehicle.photos[0]
+                    const status = getSaleStatus(sale);
+                    const previewPhoto = sale.vehicle.photos[0];
 
                     return (
                       <TableRow key={sale.id} className="hover:bg-muted/15">
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
-                            <p className="font-medium text-foreground">{sale.saleNumber}</p>
-                            <p className="text-xs text-muted-foreground">{sale.agentName ?? "Unassigned agent"}</p>
+                            <p className="font-medium text-foreground">
+                              {sale.saleNumber}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {sale.agentName ?? "Unassigned agent"}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
@@ -1134,25 +1392,39 @@ export function SalesScreen() {
                               )}
                             </div>
                             <div className="space-y-1">
-                              <p className="font-medium text-foreground">{sale.vehicle.stockNumber}</p>
-                              <p className="text-sm text-foreground">{sale.vehicle.brand} {sale.vehicle.model}</p>
+                              <p className="font-medium text-foreground">
+                                {sale.vehicle.stockNumber}
+                              </p>
+                              <p className="text-sm text-foreground">
+                                {sale.vehicle.brand} {sale.vehicle.model}
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 {sale.vehicle.year}
-                                {sale.vehicle.variant ? ` • ${sale.vehicle.variant}` : ""}
+                                {sale.vehicle.variant
+                                  ? ` • ${sale.vehicle.variant}`
+                                  : ""}
                               </p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
-                            <p className="font-medium text-foreground">{sale.buyerLead.buyerName}</p>
-                            <p className="text-xs text-muted-foreground">{sale.buyerLead.contactNumber}</p>
+                            <p className="font-medium text-foreground">
+                              {sale.buyerLead.buyerName}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {sale.buyerLead.contactNumber}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
                           <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">{format(new Date(sale.saleDate), "MMM d, yyyy")}</p>
-                            <p className="text-xs text-muted-foreground">{format(new Date(sale.saleDate), "h:mm a")}</p>
+                            <p className="text-sm font-medium text-foreground">
+                              {format(new Date(sale.saleDate), "MMM d, yyyy")}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(sale.saleDate), "h:mm a")}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top text-sm font-semibold text-foreground">
@@ -1162,34 +1434,49 @@ export function SalesScreen() {
                           {formatMoney(sale.grossProfitAmount)}
                         </TableCell>
                         <TableCell className="px-4 py-3 align-top">
-                          <Badge variant="outline" className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getSaleStatusClassName(status)}`}>
+                          <Badge
+                            variant="outline"
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getSaleStatusClassName(status)}`}
+                          >
                             {getSaleStatusLabel(status)}
                           </Badge>
                         </TableCell>
                         <TableCell className="px-4 py-3 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon-sm" aria-label={`Actions for sale ${sale.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Actions for sale ${sale.id}`}
+                              >
                                 <MoreHorizontalIcon />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
-                              <DropdownMenuLabel>Sale actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => setViewSaleId(sale.id)}>
+                              <DropdownMenuLabel>
+                                Sale actions
+                              </DropdownMenuLabel>
+                              <DropdownMenuItem
+                                onClick={() => setViewSaleId(sale.id)}
+                              >
                                 View Details
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  navigator.clipboard.writeText(sale.saleNumber)
-                                  toast.success("Sale number copied")
+                                  navigator.clipboard.writeText(
+                                    sale.saleNumber,
+                                  );
+                                  toast.success("Sale number copied");
                                 }}
                               >
                                 Copy Sale Number
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  navigator.clipboard.writeText(sale.vehicle.stockNumber)
-                                  toast.success("Vehicle stock number copied")
+                                  navigator.clipboard.writeText(
+                                    sale.vehicle.stockNumber,
+                                  );
+                                  toast.success("Vehicle stock number copied");
                                 }}
                               >
                                 Copy Vehicle Stock
@@ -1198,13 +1485,16 @@ export function SalesScreen() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
             ) : (
               <div className="p-6">
-                <EmptyState title="No sales yet" description="Finalize the first sale to validate the full inventory-to-dashboard workflow." />
+                <EmptyState
+                  title="No sales yet"
+                  description="Finalize the first sale to validate the full inventory-to-dashboard workflow."
+                />
               </div>
             )}
           </CardContent>
@@ -1223,40 +1513,51 @@ export function SalesScreen() {
           <SheetContent
             side="right"
             onOpenAutoFocus={(event) => {
-              event.preventDefault()
+              event.preventDefault();
             }}
             className="overflow-hidden w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
           >
             <SheetHeader className="border-b px-6 py-5 pr-14">
               <SheetTitle className="text-lg">Finalize Sale</SheetTitle>
               <SheetDescription>
-                Close a deal, lock commission data, and move the linked vehicle into sold inventory.
+                Close a deal, lock commission data, and move the linked vehicle
+                into sold inventory.
               </SheetDescription>
             </SheetHeader>
-            <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <form
+              onSubmit={handleSubmit}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <div className="min-h-0 flex-1 overflow-y-auto">
-                <div className="grid min-h-full gap-0 lg:min-h-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
-                  <div className="min-h-0 px-6 py-6 lg:overflow-y-auto">
+                <div className="min-h-full px-6 py-6">
                   <div className="space-y-5">
-                    <ApiErrorAlert title="Unable to finalize sale" message={getApiErrorMessage(createMutation.error, "")} />
+                    <ApiErrorAlert
+                      title="Unable to finalize sale"
+                      message={getApiErrorMessage(createMutation.error, "")}
+                    />
                     <SalesForm
                       values={{ ...form, vehicleId: effectiveVehicleId }}
                       onChange={(nextValues) => {
                         if (nextValues.buyerLeadId !== form.buyerLeadId) {
-                          setInlineLinkVehicleId("")
+                          setInlineLinkVehicleId("");
 
-                          const nextBuyerLead = buyerLeadSearchResults.find((lead) => lead.id === nextValues.buyerLeadId)
-                          if (nextBuyerLead?.closingNote && !nextValues.buyerClosingNote.trim()) {
+                          const nextBuyerLead = buyerLeadSearchResults.find(
+                            (lead) => lead.id === nextValues.buyerLeadId,
+                          );
+                          if (
+                            nextBuyerLead?.closingNote &&
+                            !nextValues.buyerClosingNote.trim()
+                          ) {
                             nextValues = {
                               ...nextValues,
                               buyerClosingNote: nextBuyerLead.closingNote,
-                            }
+                            };
                           }
 
-                          setBuyerLeadSearch("")
+                          setBuyerLeadSearch("");
                         }
 
-                        setForm(nextValues)
+                        setForm(nextValues);
                       }}
                       buyerLeadSearch={buyerLeadSearch}
                       onBuyerLeadSearchChange={setBuyerLeadSearch}
@@ -1275,108 +1576,26 @@ export function SalesScreen() {
                       currentUserName={currentUserName}
                     />
                   </div>
-                  </div>
-                  <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
-                    <div className="space-y-4">
-                      <Card className="border-border/70 py-0 shadow-none">
-                        <CardHeader className="border-b py-4">
-                          <CardTitle className="text-base">Sale Summary</CardTitle>
-                          <CardDescription>Live preview of the finalized sale record you&apos;re creating.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4 py-4">
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Buyer Lead</p>
-                            <p className="text-sm font-medium text-foreground">
-                              {buyerLeadOptions.find((lead) => lead.value === form.buyerLeadId)?.label ?? "No buyer lead selected"}
-                            </p>
-                            {selectedBuyerLead ? (
-                              <p className="text-xs text-muted-foreground">
-                                {selectedBuyerLead.contactNumber}
-                                {selectedBuyerLead.closingNote ? " • Existing closing note on file" : ""}
-                              </p>
-                            ) : null}
-                          </div>
-                          <Separator />
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vehicle</p>
-                            <p className="text-sm font-medium text-foreground">
-                              {vehicleOptions.find((vehicle) => vehicle.id === effectiveVehicleId)?.label ?? "No vehicle selected"}
-                            </p>
-                          </div>
-                          <Separator />
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Final Amount</p>
-                            <p className="text-sm font-medium text-foreground">{formatMoney(form.finalSaleAmount)}</p>
-                          </div>
-                          <Separator />
-                          <div className="space-y-1">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Agent</p>
-                            <p className="text-sm font-medium text-foreground">{form.agentName || currentUserName || "Not set"}</p>
-                          </div>
-                          <Separator />
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Commission Outcome</p>
-                            <div className="space-y-1 rounded-lg border bg-muted/20 px-3 py-3 text-sm">
-                              <p className="flex items-center justify-between gap-3">
-                                <span className="text-muted-foreground">Default commission</span>
-                                <span className="font-medium text-foreground">{formatMoney(commissionPreview.defaultAmount)}</span>
-                              </p>
-                              <p className="flex items-center justify-between gap-3">
-                                <span className="text-muted-foreground">Override commission</span>
-                                <span className="font-medium text-foreground">{formatMoney(commissionPreview.overrideAmount)}</span>
-                              </p>
-                              <p className="flex items-center justify-between gap-3">
-                                <span className="text-muted-foreground">Final payout</span>
-                                <span className="font-medium text-foreground">{formatMoney(commissionPreview.finalAmount)}</span>
-                              </p>
-                            </div>
-                            {commissionPreview.needsOverrideReason ? (
-                              <p className="text-xs text-amber-700 dark:text-amber-300">
-                                Add an override reason before locking a custom commission amount.
-                              </p>
-                            ) : null}
-                          </div>
-                          <Separator />
-                          <div className="space-y-2">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Readiness Checklist</p>
-                            <div className="space-y-2">
-                              {readinessChecks.map((check) => (
-                                <div key={check.label} className="flex items-center justify-between gap-3 rounded-lg border bg-muted/20 px-3 py-2 text-sm">
-                                  <span className="text-foreground">{check.label}</span>
-                                  <Badge
-                                    variant="outline"
-                                    className={check.complete ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"}
-                                  >
-                                    {check.complete ? "Ready" : "Missing"}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
-                            {blockingItems.length ? (
-                              <p className="text-xs text-muted-foreground">
-                                Complete the remaining checklist items before finalizing this deal.
-                              </p>
-                            ) : (
-                              <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                                This deal has the key inputs needed for sale finalization.
-                              </p>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </aside>
                 </div>
               </div>
               <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  Dashboard metrics and inventory status update immediately after finalization.
+                  Dashboard metrics and inventory status update immediately
+                  after finalization.
                 </p>
                 <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setCreateOpen(false)}
+                  >
                     Cancel
                   </Button>
-                  <SubmitButton type="submit" pending={createMutation.isPending} pendingLabel="Finalizing sale">
+                  <SubmitButton
+                    type="submit"
+                    pending={createMutation.isPending}
+                    pendingLabel="Finalizing sale"
+                  >
                     Finalize Sale
                   </SubmitButton>
                 </div>
@@ -1385,53 +1604,35 @@ export function SalesScreen() {
           </SheetContent>
         </Sheet>
 
-        <AlertDialog
-          open={belowMinimumConfirmOpen}
-          onOpenChange={setBelowMinimumConfirmOpen}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogMedia>
-                <TriangleAlertIcon />
-              </AlertDialogMedia>
-              <AlertDialogTitle>Finalize below minimum price?</AlertDialogTitle>
-              <AlertDialogDescription>
-                The final sale amount of {formatMoney(form.finalSaleAmount)} is
-                below the vehicle minimum acceptable price of{" "}
-                {formatMoney(
-                  selectedPricingRange
-                    ? formatAmountInputValue(selectedPricingRange.minimum)
-                    : null,
-                )}
-                . Confirm this exception only if the deal has approval.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={createMutation.isPending}>
-                Review Amount
-              </AlertDialogCancel>
-              <AlertDialogAction
-                disabled={createMutation.isPending}
-                onClick={(event) => {
-                  event.preventDefault()
-                  void (async () => {
-                    try {
-                      await submitSale()
-                      setBelowMinimumConfirmOpen(false)
-                    } catch {
-                      // The sheet-level API error alert renders the mutation error.
-                    }
-                  })()
-                }}
-              >
-                Finalize Anyway
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <SaleReviewDialog
+          open={reviewSaleOpen}
+          onOpenChange={setReviewSaleOpen}
+          form={form}
+          buyerLead={selectedBuyerLead}
+          vehicle={selectedPricingVehicle}
+          currentUserName={currentUserName}
+          belowMinimum={isFinalSaleBelowMinimum}
+          minimumAmount={selectedPricingRange?.minimum ?? null}
+          pending={createMutation.isPending}
+          onConfirm={() => {
+            void (async () => {
+              try {
+                await submitSale();
+                setReviewSaleOpen(false);
+              } catch {
+                // The sheet-level API error alert renders the mutation error.
+                setReviewSaleOpen(false);
+              }
+            })();
+          }}
+        />
 
-        <SaleDetailDialog open={Boolean(viewSaleId)} onOpenChange={(open) => !open && setViewSaleId(null)} saleId={viewSaleId} />
+        <SaleDetailDialog
+          open={Boolean(viewSaleId)}
+          onOpenChange={(open) => !open && setViewSaleId(null)}
+          saleId={viewSaleId}
+        />
       </div>
     </AuthenticatedAppShell>
-  )
+  );
 }

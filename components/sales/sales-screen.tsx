@@ -6,9 +6,16 @@ import { format } from "date-fns";
 import {
   BadgeDollarSignIcon,
   BarChart3Icon,
+  CarFrontIcon,
+  CheckIcon,
+  CircleUserRoundIcon,
+  ClipboardCheckIcon,
   DollarSignIcon,
+  FileTextIcon,
   MoreHorizontalIcon,
+  PencilIcon,
   PlusIcon,
+  PercentIcon,
   ReceiptTextIcon,
   RotateCcwIcon,
   SearchIcon,
@@ -40,7 +47,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -788,32 +800,6 @@ function SalesForm({
   );
 }
 
-function ReviewDetail({
-  label,
-  value,
-  muted,
-}: {
-  label: string;
-  value: React.ReactNode;
-  muted?: React.ReactNode;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-lg border bg-muted/15 px-3 py-2">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      <span className="break-words text-sm font-medium text-foreground">
-        {value}
-      </span>
-      {muted ? (
-        <span className="break-words text-xs text-muted-foreground">
-          {muted}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
 function SaleReviewDialog({
   open,
   onOpenChange,
@@ -843,92 +829,278 @@ function SaleReviewDialog({
   const saleDateLabel = form.saleDate
     ? format(new Date(form.saleDate), "MMM d, yyyy h:mm a")
     : "Not set";
+  const finalSaleAmountNumber = parseMoney(form.finalSaleAmount);
+  const belowMinimumDifference =
+    belowMinimum && minimumAmount !== null && finalSaleAmountNumber !== null
+      ? minimumAmount - finalSaleAmountNumber
+      : null;
+  const targetPriceLabel = vehicle?.targetSellingPrice
+    ? formatMoney(vehicle.targetSellingPrice)
+    : "N/A";
+  const minimumPriceLabel = vehicle?.minimumAcceptablePrice
+    ? formatMoney(vehicle.minimumAcceptablePrice)
+    : "N/A";
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-2xl">
-        <AlertDialogHeader>
-          <AlertDialogMedia>
-            <ReceiptTextIcon />
+      <AlertDialogContent className="max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto p-5 sm:max-w-3xl sm:p-6">
+        <AlertDialogCancel
+          aria-label="Close review"
+          className="absolute right-4 top-4"
+          disabled={pending}
+          size="icon"
+          variant="ghost"
+        >
+          <XIcon />
+        </AlertDialogCancel>
+
+        <AlertDialogHeader className="pr-10">
+          <AlertDialogMedia className="rounded-full bg-primary/10 text-primary">
+            <ClipboardCheckIcon />
           </AlertDialogMedia>
-          <AlertDialogTitle>Review sale before finalizing</AlertDialogTitle>
-          <AlertDialogDescription>
-            Confirm the buyer, vehicle, amount, commission, and closing details.
-            The sale will only be created after this confirmation.
+          <AlertDialogTitle className="text-2xl">
+            Review Sale Before Finalizing
+          </AlertDialogTitle>
+          <AlertDialogDescription className="max-w-md">
+            Confirm the buyer, vehicle, final amount, commission, and closing
+            details before creating this sale.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto pr-1">
-          {belowMinimum ? (
-            <Alert className="border-amber-200 bg-amber-50 text-amber-800">
-              <TriangleAlertIcon />
-              <AlertTitle>Final amount is below minimum</AlertTitle>
-              <AlertDescription className="text-amber-700">
-                {formatMoney(form.finalSaleAmount)} is below the vehicle minimum
-                acceptable price of{" "}
-                {minimumAmount === null
-                  ? "N/A"
-                  : formatMoney(formatAmountInputValue(minimumAmount))}
-                . Confirm only if this exception has approval.
-              </AlertDescription>
-            </Alert>
-          ) : null}
+        <div className="flex flex-col gap-3">
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <CircleUserRoundIcon className="size-4" />
+                </span>
+                1. Buyer Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Buyer Name
+                  </span>
+                  <span className="truncate text-base font-medium">
+                    {buyerLead?.buyerName ?? "Not selected"}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Contact Number
+                  </span>
+                  <span className="truncate text-base font-medium">
+                    {buyerLead?.contactNumber ?? "N/A"}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Lead Status
+                  </span>
+                  <div>
+                    <Badge variant="secondary">
+                      {buyerLead?.status ?? "N/A"}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <ReviewDetail
-              label="Buyer"
-              value={buyerLead?.buyerName ?? "Not selected"}
-              muted={
-                buyerLead
-                  ? `${buyerLead.contactNumber} • ${buyerLead.status}`
-                  : undefined
-              }
-            />
-            <ReviewDetail
-              label="Vehicle"
-              value={
-                vehicle
-                  ? `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`
-                  : "Not selected"
-              }
-              muted={
-                vehicle
-                  ? [
-                      vehicle.year,
-                      vehicle.variant,
-                      vehicle.status,
-                    ]
-                      .filter(Boolean)
-                      .join(" • ")
-                  : undefined
-              }
-            />
-            <ReviewDetail label="Sale Date" value={saleDateLabel} />
-            <ReviewDetail
-              label="Final Sale Amount"
-              value={formatMoney(form.finalSaleAmount)}
-              muted={
-                vehicle
-                  ? `Target ${formatMoney(vehicle.targetSellingPrice)} • Minimum ${formatMoney(vehicle.minimumAcceptablePrice)}`
-                  : undefined
-              }
-            />
-            <ReviewDetail label="Agent" value={effectiveAgentName} />
-            <ReviewDetail
-              label="Commission"
-              value={formatMoney(commissionPreview.finalAmount)}
-              muted={`Default ${formatMoney(commissionPreview.defaultAmount)} • Override ${formatMoney(commissionPreview.overrideAmount)}`}
-            />
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <CarFrontIcon className="size-4" />
+                </span>
+                2. Vehicle Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-[1fr_1.5fr_1fr]">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Stock Number
+                  </span>
+                  <span className="truncate text-base font-medium">
+                    {vehicle?.stockNumber ?? "Not selected"}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Brand / Model
+                  </span>
+                  <span className="truncate text-base font-medium">
+                    {vehicle
+                      ? `${vehicle.brand} ${vehicle.model}`
+                      : "Not selected"}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Year / Variant
+                  </span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-base font-medium">
+                      {vehicle
+                        ? [vehicle.year, vehicle.variant]
+                            .filter(Boolean)
+                            .join(" • ")
+                        : "N/A"}
+                    </span>
+                    {vehicle?.status ? (
+                      <Badge variant="secondary">{vehicle.status}</Badge>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card size="sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <TagsIcon className="size-4" />
+                </span>
+                3. Sale Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="grid gap-4 md:grid-cols-[1.2fr_1.4fr_1fr]">
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Sale Date
+                  </span>
+                  <span className="truncate text-base font-medium">
+                    {saleDateLabel}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    Final Sale Amount
+                  </span>
+                  <span className="truncate text-2xl font-semibold text-primary">
+                    {formatMoney(form.finalSaleAmount)}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-3 md:border-l md:pl-4">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      Target Price
+                    </span>
+                    <span className="truncate text-sm font-medium">
+                      {targetPriceLabel}
+                    </span>
+                  </div>
+                  <Separator />
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      Minimum Acceptable Price
+                    </span>
+                    <span className="truncate text-sm font-medium">
+                      {minimumPriceLabel}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {belowMinimum ? (
+                <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                  <TriangleAlertIcon />
+                  <AlertTitle>
+                    This sale amount is below the minimum acceptable price
+                    {belowMinimumDifference !== null
+                      ? ` by ${formatMoney(formatAmountInputValue(belowMinimumDifference))}`
+                      : ""}
+                    .
+                  </AlertTitle>
+                  <AlertDescription className="text-amber-800 dark:text-amber-300">
+                    Please confirm only if this exception has approval.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <PercentIcon className="size-4" />
+                  </span>
+                  4. Commission
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      Default Commission
+                    </span>
+                    <span className="truncate text-base font-medium">
+                      {formatMoney(commissionPreview.defaultAmount)}
+                    </span>
+                  </div>
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      Override Commission
+                    </span>
+                    <span className="truncate text-base font-medium">
+                      {commissionPreview.overrideAmount
+                        ? formatMoney(commissionPreview.overrideAmount)
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-muted-foreground">
+                    Final Payout
+                  </span>
+                  <span className="truncate text-xl font-semibold text-primary">
+                    {formatMoney(commissionPreview.finalAmount)}
+                  </span>
+                </div>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <span className="text-xs text-muted-foreground">Agent</span>
+                  <span className="truncate text-sm font-medium">
+                    {effectiveAgentName}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                    <FileTextIcon className="size-4" />
+                  </span>
+                  5. Closing Note
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex min-h-28 flex-col gap-2">
+                  <span className="text-xs text-muted-foreground">Note</span>
+                  <p className="text-sm leading-relaxed">
+                    {form.buyerClosingNote.trim() ||
+                      "No closing note entered."}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-
-          <ReviewDetail
-            label="Closing Note"
-            value={form.buyerClosingNote.trim() || "No closing note entered"}
-          />
         </div>
 
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Edit Details</AlertDialogCancel>
+        <AlertDialogFooter className="pt-1">
+          <AlertDialogCancel disabled={pending}>
+            <PencilIcon data-icon="inline-start" />
+            Edit Details
+          </AlertDialogCancel>
           <AlertDialogAction
             disabled={pending}
             onClick={(event) => {
@@ -936,6 +1108,7 @@ function SaleReviewDialog({
               onConfirm();
             }}
           >
+            <CheckIcon data-icon="inline-start" />
             {belowMinimum ? "Finalize Below Minimum" : "Finalize Sale"}
           </AlertDialogAction>
         </AlertDialogFooter>

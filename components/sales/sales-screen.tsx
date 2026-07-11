@@ -229,7 +229,56 @@ function getCommissionPreview(values: SaleFormValues, currentUserName?: string) 
   }
 }
 
-function FinalSaleAmountField({
+function FinalSaleAmountInput({
+  value,
+  selectedVehicle,
+  onChange,
+}: {
+  value: string
+  selectedVehicle?: Vehicle
+  onChange: (value: string) => void
+}) {
+  const pricingRange = getVehiclePricingRange(selectedVehicle)
+  const numericAmount = parseMoney(value)
+  const isBelowMinimum =
+    Boolean(pricingRange) &&
+    numericAmount !== null &&
+    numericAmount < pricingRange!.minimum
+
+  return (
+    <Field data-invalid={isBelowMinimum ? true : undefined}>
+      <FieldLabel htmlFor="finalSaleAmount">Final sale amount</FieldLabel>
+      <Input
+        id="finalSaleAmount"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="1250000"
+        inputMode="decimal"
+        aria-invalid={isBelowMinimum ? true : undefined}
+        required
+      />
+    </Field>
+  )
+}
+
+function PricingMetric({
+  label,
+  value,
+}: {
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1 rounded-lg border bg-background px-3 py-2">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="truncate text-sm font-medium tabular-nums text-foreground">
+        {value}
+      </span>
+    </div>
+  )
+}
+
+function FinalSalePricingHelper({
   value,
   selectedVehicle,
   onChange,
@@ -249,49 +298,44 @@ function FinalSaleAmountField({
     : null
 
   return (
-    <Field data-invalid={isBelowMinimum ? true : undefined}>
-      <FieldLabel htmlFor="finalSaleAmount">Final sale amount</FieldLabel>
-      <Input
-        id="finalSaleAmount"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="1250000"
-        inputMode="decimal"
-        aria-invalid={isBelowMinimum ? true : undefined}
-        required
-      />
+    <div className="flex flex-col gap-4 rounded-xl border border-border/70 bg-muted/15 p-4">
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium text-foreground">Vehicle pricing guide</p>
+          {pricingRange ? (
+            <Badge variant="outline" className="rounded-full">
+              Slider range
+            </Badge>
+          ) : null}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Use these saved pricing values as a guide, then enter the exact negotiated sale amount above.
+        </p>
+      </div>
 
-      <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/15 p-3">
-        {pricingRange ? (
-          <>
-            <div className="grid gap-2 text-sm sm:grid-cols-2">
-              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
-                <span className="text-muted-foreground">Minimum</span>
-                <span className="font-medium tabular-nums">
-                  {formatMoney(selectedVehicle?.minimumAcceptablePrice)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
-                <span className="text-muted-foreground">Target</span>
-                <span className="font-medium tabular-nums">
-                  {formatMoney(selectedVehicle?.targetSellingPrice)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
-                <span className="text-muted-foreground">Purchase</span>
-                <span className="font-medium tabular-nums">
-                  {formatMoney(selectedVehicle?.purchasePrice)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
-                <span className="text-muted-foreground">Tracked costs</span>
-                <span className="font-medium tabular-nums">
-                  {formatMoney(selectedVehicle?.trackedCostsTotal)}
-                </span>
-              </div>
-            </div>
+      {pricingRange ? (
+        <>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <PricingMetric
+              label="Minimum"
+              value={formatMoney(selectedVehicle?.minimumAcceptablePrice)}
+            />
+            <PricingMetric
+              label="Target"
+              value={formatMoney(selectedVehicle?.targetSellingPrice)}
+            />
+            <PricingMetric
+              label="Purchase"
+              value={formatMoney(selectedVehicle?.purchasePrice)}
+            />
+            <PricingMetric
+              label="Tracked costs"
+              value={formatMoney(selectedVehicle?.trackedCostsTotal)}
+            />
+          </div>
 
-            <div className="flex flex-col gap-3">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+            <div className="flex flex-col gap-2">
               <Slider
                 min={pricingRange.minimum}
                 max={pricingRange.target}
@@ -310,20 +354,20 @@ function FinalSaleAmountField({
                 }}
                 aria-label="Final sale amount pricing range"
               />
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
                 <span>{formatMoney(formatAmountInputValue(pricingRange.minimum))}</span>
                 <span>{formatMoney(formatAmountInputValue(pricingRange.target))}</span>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 gap-2 md:w-[320px]">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={() => onChange(formatAmountInputValue(pricingRange.minimum))}
               >
-                Use Minimum
+                Minimum
               </Button>
               <Button
                 type="button"
@@ -335,7 +379,7 @@ function FinalSaleAmountField({
                   }
                 }}
               >
-                Use Midpoint
+                Midpoint
               </Button>
               <Button
                 type="button"
@@ -343,33 +387,33 @@ function FinalSaleAmountField({
                 size="sm"
                 onClick={() => onChange(formatAmountInputValue(pricingRange.target))}
               >
-                Use Target
+                Target
               </Button>
             </div>
+          </div>
 
-            {isBelowMinimum ? (
-              <Alert className="border-amber-200 bg-amber-50 text-amber-800">
-                <TriangleAlertIcon />
-                <AlertTitle>Below minimum acceptable price</AlertTitle>
-                <AlertDescription className="text-amber-700">
-                  This sale amount is below the vehicle minimum. You can still
-                  finalize it after confirming the exception.
-                </AlertDescription>
-              </Alert>
-            ) : null}
-          </>
-        ) : (
-          <Alert>
-            <TagsIcon />
-            <AlertTitle>Pricing range unavailable</AlertTitle>
-            <AlertDescription>
-              Pricing range is unavailable for this vehicle. Enter the final
-              amount manually.
-            </AlertDescription>
-          </Alert>
-        )}
-      </div>
-    </Field>
+          {isBelowMinimum ? (
+            <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+              <TriangleAlertIcon />
+              <AlertTitle>Below minimum acceptable price</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                This sale amount is below the vehicle minimum. You can still
+                finalize it after confirming the exception.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+        </>
+      ) : (
+        <Alert>
+          <TagsIcon />
+          <AlertTitle>Pricing range unavailable</AlertTitle>
+          <AlertDescription>
+            Pricing range is unavailable for this vehicle. Enter the final
+            amount manually.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
   )
 }
 
@@ -631,12 +675,17 @@ function SalesForm({
             <FieldLabel htmlFor="saleDate">Sale date</FieldLabel>
             <Input id="saleDate" type="datetime-local" value={values.saleDate} onChange={(e) => updateField("saleDate", e.target.value)} required />
           </Field>
-          <FinalSaleAmountField
+          <FinalSaleAmountInput
             value={values.finalSaleAmount}
             selectedVehicle={selectedVehicle}
             onChange={(nextValue) => updateField("finalSaleAmount", nextValue)}
           />
         </div>
+        <FinalSalePricingHelper
+          value={values.finalSaleAmount}
+          selectedVehicle={selectedVehicle}
+          onChange={(nextValue) => updateField("finalSaleAmount", nextValue)}
+        />
       </section>
 
       <Separator />

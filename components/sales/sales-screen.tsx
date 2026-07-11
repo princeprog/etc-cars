@@ -676,7 +676,14 @@ function SalesForm({
                   }
                   onFocus={() => setBuyerLeadPickerOpen(true)}
                   onBlur={() => {
-                    window.setTimeout(() => setBuyerLeadPickerOpen(false), 120);
+                    window.setTimeout(() => {
+                      setBuyerLeadPickerOpen(false);
+
+                      if (selectedBuyerLead) {
+                        setBuyerLeadSearchVisible(false);
+                        onBuyerLeadSearchChange("");
+                      }
+                    }, 120);
                   }}
                   onChange={(event) => {
                     onBuyerLeadSearchChange(event.target.value);

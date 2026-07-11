@@ -12,6 +12,8 @@ import {
   ReceiptTextIcon,
   RotateCcwIcon,
   SearchIcon,
+  TagsIcon,
+  TriangleAlertIcon,
   XIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -24,6 +26,18 @@ import { ModuleLoadingState } from "@/components/operations/module-loading-state
 import { SubmitButton } from "@/components/operations/submit-button"
 import { SaleDetailDialog } from "@/components/sales/sale-detail-dialog"
 import { resolveApiAssetUrl } from "@/constants/api-config"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -38,6 +52,7 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Slider } from "@/components/ui/slider"
 import {
   Sheet,
   SheetContent,
@@ -66,6 +81,7 @@ import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { BuyerLead } from "@/types/buyer-leads"
 import type { SaleWithDetails, SalesListFilters } from "@/types/sales"
+import type { Vehicle } from "@/types/vehicles"
 
 type SalesFilterStatus = "all" | "finalized" | "commission_locked" | "needs_review"
 type SalesFilterAgent = "all" | "mine"
@@ -117,6 +133,48 @@ function formatMoney(value?: string | null) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(numericValue)
+}
+
+function parseMoney(value?: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const numericValue = Number(value)
+
+  return Number.isFinite(numericValue) ? numericValue : null
+}
+
+function formatAmountInputValue(value: number) {
+  return value.toFixed(2)
+}
+
+function getVehiclePricingRange(vehicle?: Vehicle) {
+  const minimum = parseMoney(vehicle?.minimumAcceptablePrice)
+  const target = parseMoney(vehicle?.targetSellingPrice)
+
+  if (minimum === null || target === null || minimum <= 0 || target <= 0) {
+    return null
+  }
+
+  return {
+    minimum: Math.min(minimum, target),
+    target: Math.max(minimum, target),
+  }
+}
+
+function getSliderSaleAmountValue(amount: string, minimum: number, target: number) {
+  const numericAmount = parseMoney(amount)
+
+  if (numericAmount === null || numericAmount < minimum) {
+    return minimum
+  }
+
+  if (numericAmount > target) {
+    return target
+  }
+
+  return numericAmount
 }
 
 function getSaleStatus(sale: SaleWithDetails): Exclude<SalesFilterStatus, "all"> {
@@ -171,6 +229,150 @@ function getCommissionPreview(values: SaleFormValues, currentUserName?: string) 
   }
 }
 
+function FinalSaleAmountField({
+  value,
+  selectedVehicle,
+  onChange,
+}: {
+  value: string
+  selectedVehicle?: Vehicle
+  onChange: (value: string) => void
+}) {
+  const pricingRange = getVehiclePricingRange(selectedVehicle)
+  const numericAmount = parseMoney(value)
+  const isBelowMinimum =
+    Boolean(pricingRange) &&
+    numericAmount !== null &&
+    numericAmount < pricingRange!.minimum
+  const midpoint = pricingRange
+    ? (pricingRange.minimum + pricingRange.target) / 2
+    : null
+
+  return (
+    <Field data-invalid={isBelowMinimum ? true : undefined}>
+      <FieldLabel htmlFor="finalSaleAmount">Final sale amount</FieldLabel>
+      <Input
+        id="finalSaleAmount"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="1250000"
+        inputMode="decimal"
+        aria-invalid={isBelowMinimum ? true : undefined}
+        required
+      />
+
+      <div className="flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/15 p-3">
+        {pricingRange ? (
+          <>
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
+                <span className="text-muted-foreground">Minimum</span>
+                <span className="font-medium tabular-nums">
+                  {formatMoney(selectedVehicle?.minimumAcceptablePrice)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
+                <span className="text-muted-foreground">Target</span>
+                <span className="font-medium tabular-nums">
+                  {formatMoney(selectedVehicle?.targetSellingPrice)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
+                <span className="text-muted-foreground">Purchase</span>
+                <span className="font-medium tabular-nums">
+                  {formatMoney(selectedVehicle?.purchasePrice)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2">
+                <span className="text-muted-foreground">Tracked costs</span>
+                <span className="font-medium tabular-nums">
+                  {formatMoney(selectedVehicle?.trackedCostsTotal)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <Slider
+                min={pricingRange.minimum}
+                max={pricingRange.target}
+                step={1000}
+                value={[
+                  getSliderSaleAmountValue(
+                    value,
+                    pricingRange.minimum,
+                    pricingRange.target,
+                  ),
+                ]}
+                onValueChange={([nextValue]) => {
+                  if (typeof nextValue === "number") {
+                    onChange(formatAmountInputValue(nextValue))
+                  }
+                }}
+                aria-label="Final sale amount pricing range"
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>{formatMoney(formatAmountInputValue(pricingRange.minimum))}</span>
+                <span>{formatMoney(formatAmountInputValue(pricingRange.target))}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onChange(formatAmountInputValue(pricingRange.minimum))}
+              >
+                Use Minimum
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (midpoint !== null) {
+                    onChange(formatAmountInputValue(midpoint))
+                  }
+                }}
+              >
+                Use Midpoint
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onChange(formatAmountInputValue(pricingRange.target))}
+              >
+                Use Target
+              </Button>
+            </div>
+
+            {isBelowMinimum ? (
+              <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+                <TriangleAlertIcon />
+                <AlertTitle>Below minimum acceptable price</AlertTitle>
+                <AlertDescription className="text-amber-700">
+                  This sale amount is below the vehicle minimum. You can still
+                  finalize it after confirming the exception.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+          </>
+        ) : (
+          <Alert>
+            <TagsIcon />
+            <AlertTitle>Pricing range unavailable</AlertTitle>
+            <AlertDescription>
+              Pricing range is unavailable for this vehicle. Enter the final
+              amount manually.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+    </Field>
+  )
+}
+
 function SalesForm({
   values,
   onChange,
@@ -181,6 +383,7 @@ function SalesForm({
   buyerLeadSearchError,
   vehicleOptions,
   selectedBuyerLead,
+  selectedVehicle,
   availableVehicles,
   inlineLinkVehicleId,
   onInlineLinkVehicleIdChange,
@@ -198,6 +401,7 @@ function SalesForm({
   buyerLeadSearchError?: unknown
   vehicleOptions: { id: string; label: string }[]
   selectedBuyerLead?: BuyerLead
+  selectedVehicle?: Vehicle
   availableVehicles: { id: string; label: string }[]
   inlineLinkVehicleId: string
   onInlineLinkVehicleIdChange: (value: string) => void
@@ -212,7 +416,21 @@ function SalesForm({
 
   function updateField<K extends keyof SaleFormValues>(key: K, value: SaleFormValues[K]) {
     if (key === "buyerLeadId") {
-      onChange({ ...values, buyerLeadId: value as string, vehicleId: "" })
+      onChange({
+        ...values,
+        buyerLeadId: value as string,
+        vehicleId: "",
+        finalSaleAmount: "",
+      })
+      return
+    }
+
+    if (key === "vehicleId") {
+      onChange({
+        ...values,
+        vehicleId: value as string,
+        finalSaleAmount: value === values.vehicleId ? values.finalSaleAmount : "",
+      })
       return
     }
 
@@ -413,10 +631,11 @@ function SalesForm({
             <FieldLabel htmlFor="saleDate">Sale date</FieldLabel>
             <Input id="saleDate" type="datetime-local" value={values.saleDate} onChange={(e) => updateField("saleDate", e.target.value)} required />
           </Field>
-          <Field>
-            <FieldLabel htmlFor="finalSaleAmount">Final sale amount</FieldLabel>
-            <Input id="finalSaleAmount" value={values.finalSaleAmount} onChange={(e) => updateField("finalSaleAmount", e.target.value)} placeholder="1250000" required />
-          </Field>
+          <FinalSaleAmountField
+            value={values.finalSaleAmount}
+            selectedVehicle={selectedVehicle}
+            onChange={(nextValue) => updateField("finalSaleAmount", nextValue)}
+          />
         </div>
       </section>
 
@@ -469,6 +688,7 @@ export function SalesScreen() {
   const [debouncedBuyerLeadSearch, setDebouncedBuyerLeadSearch] = React.useState("")
   const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("")
   const [viewSaleId, setViewSaleId] = React.useState<string | null>(null)
+  const [belowMinimumConfirmOpen, setBelowMinimumConfirmOpen] = React.useState(false)
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -563,6 +783,15 @@ export function SalesScreen() {
         id: vehicle.id,
         label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
       })) ?? []
+  const selectedPricingVehicle = availableVehiclesQuery.data?.vehicles.find(
+    (vehicle) => vehicle.id === effectiveVehicleId,
+  )
+  const selectedPricingRange = getVehiclePricingRange(selectedPricingVehicle)
+  const finalSaleAmountNumber = parseMoney(form.finalSaleAmount)
+  const isFinalSaleBelowMinimum =
+    Boolean(selectedPricingRange) &&
+    finalSaleAmountNumber !== null &&
+    finalSaleAmountNumber < selectedPricingRange!.minimum
 
   const commissionPreview = getCommissionPreview(form, currentUserName)
   const readinessChecks = [
@@ -594,6 +823,7 @@ export function SalesScreen() {
     setBuyerLeadSearch("")
     setDebouncedBuyerLeadSearch("")
     setInlineLinkVehicleId("")
+    setBelowMinimumConfirmOpen(false)
   }, [currentUserName])
 
   function handleCreateOpenChange(nextOpen: boolean) {
@@ -624,9 +854,7 @@ export function SalesScreen() {
     )
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
+  async function submitSale() {
     await createMutation.mutateAsync(
       {
         buyerLeadId: form.buyerLeadId,
@@ -646,6 +874,17 @@ export function SalesScreen() {
         },
       },
     )
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (isFinalSaleBelowMinimum) {
+      setBelowMinimumConfirmOpen(true)
+      return
+    }
+
+    await submitSale()
   }
 
   const summaryCards = [
@@ -977,6 +1216,7 @@ export function SalesScreen() {
                       buyerLeadSearchError={buyerLeadSearchQuery.error}
                       vehicleOptions={vehicleOptions}
                       selectedBuyerLead={selectedBuyerLead}
+                      selectedVehicle={selectedPricingVehicle}
                       availableVehicles={inlineAvailableVehicleOptions}
                       inlineLinkVehicleId={inlineLinkVehicleId}
                       onInlineLinkVehicleIdChange={setInlineLinkVehicleId}
@@ -1095,6 +1335,51 @@ export function SalesScreen() {
             </form>
           </SheetContent>
         </Sheet>
+
+        <AlertDialog
+          open={belowMinimumConfirmOpen}
+          onOpenChange={setBelowMinimumConfirmOpen}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogMedia>
+                <TriangleAlertIcon />
+              </AlertDialogMedia>
+              <AlertDialogTitle>Finalize below minimum price?</AlertDialogTitle>
+              <AlertDialogDescription>
+                The final sale amount of {formatMoney(form.finalSaleAmount)} is
+                below the vehicle minimum acceptable price of{" "}
+                {formatMoney(
+                  selectedPricingRange
+                    ? formatAmountInputValue(selectedPricingRange.minimum)
+                    : null,
+                )}
+                . Confirm this exception only if the deal has approval.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={createMutation.isPending}>
+                Review Amount
+              </AlertDialogCancel>
+              <AlertDialogAction
+                disabled={createMutation.isPending}
+                onClick={(event) => {
+                  event.preventDefault()
+                  void (async () => {
+                    try {
+                      await submitSale()
+                      setBelowMinimumConfirmOpen(false)
+                    } catch {
+                      // The sheet-level API error alert renders the mutation error.
+                    }
+                  })()
+                }}
+              >
+                Finalize Anyway
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <SaleDetailDialog open={Boolean(viewSaleId)} onOpenChange={(open) => !open && setViewSaleId(null)} saleId={viewSaleId} />
       </div>

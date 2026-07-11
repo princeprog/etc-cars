@@ -1573,9 +1573,9 @@ export function SalesScreen() {
             </Button>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1.3fr)_180px_180px_180px_auto]">
+          <div className="grid gap-3 lg:grid-cols-[minmax(320px,1fr)_repeat(4,160px)]">
             <div className="relative">
-              <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <SearchIcon className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchTerm}
                 onChange={(event) => {
@@ -1583,7 +1583,7 @@ export function SalesScreen() {
                   setPage(1);
                 }}
                 placeholder="Search sales, buyer, vehicle, or ID..."
-                className="pl-9"
+                className="h-10 pl-9"
               />
             </div>
             <Select
@@ -1593,7 +1593,7 @@ export function SalesScreen() {
                 setPage(1);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 w-full">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -1613,7 +1613,7 @@ export function SalesScreen() {
                 setPage(1);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 w-full">
                 <SelectValue placeholder="Agent" />
               </SelectTrigger>
               <SelectContent>
@@ -1628,7 +1628,7 @@ export function SalesScreen() {
                 setPage(1);
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="h-10 w-full">
                 <SelectValue placeholder="Date range" />
               </SelectTrigger>
               <SelectContent>
@@ -1639,6 +1639,7 @@ export function SalesScreen() {
             </Select>
             <Button
               variant="outline"
+              className="h-10 w-full justify-center"
               onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("all");

@@ -744,7 +744,7 @@ function SalesForm({
           <Field>
             <FieldLabel htmlFor="saleVehicleId">Vehicle</FieldLabel>
             <div className="space-y-2">
-              {selectedVehicleOption ? (
+              {selectedVehicleOption && !vehiclePickerVisible ? (
                 <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
                   <div className="flex min-w-0 items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -784,9 +784,9 @@ function SalesForm({
                       </Button>
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="hidden shrink-0 sm:inline-flex"
+                        className="shrink-0"
                         onClick={() => setVehiclePickerVisible(true)}
                       >
                         Change
@@ -796,26 +796,51 @@ function SalesForm({
                 </div>
               ) : null}
               {!selectedVehicleOption || vehiclePickerVisible ? (
-                <Select
-                  value={values.vehicleId}
-                  onValueChange={(value) => updateField("vehicleId", value)}
-                >
-                  <SelectTrigger
-                    id="saleVehicleId"
-                    disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
+                <div className="flex items-start gap-2">
+                  <Select
+                    value={values.vehicleId}
+                    onValueChange={(value) => updateField("vehicleId", value)}
                   >
-                    <SelectValue
-                      placeholder={
-                        !hasSelectedBuyerLead
-                          ? "Select buyer lead first"
-                          : hasVehicleOptions
-                            ? "Select vehicle"
-                            : "No available vehicles"
-                      }
-                    />
-                  </SelectTrigger>
-                  {vehicleSelectContent}
-                </Select>
+                    <SelectTrigger
+                      id="saleVehicleId"
+                      className="h-auto min-h-10 w-full py-2"
+                      disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
+                    >
+                      {selectedVehicleOption ? (
+                        <span className="flex min-w-0 flex-col items-start text-left">
+                          <span className="block max-w-full truncate text-sm font-medium text-foreground">
+                            {selectedVehicleOption.summary}
+                          </span>
+                          <span className="block max-w-full truncate text-xs text-muted-foreground">
+                            {selectedVehicleOption.details}
+                          </span>
+                        </span>
+                      ) : (
+                        <SelectValue
+                          placeholder={
+                            !hasSelectedBuyerLead
+                              ? "Select buyer lead first"
+                              : hasVehicleOptions
+                                ? "Select vehicle"
+                                : "No available vehicles"
+                          }
+                        />
+                      )}
+                    </SelectTrigger>
+                    {vehicleSelectContent}
+                  </Select>
+                  {selectedVehicleOption && vehiclePickerVisible ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-10 shrink-0"
+                      onClick={() => setVehiclePickerVisible(false)}
+                    >
+                      Cancel
+                    </Button>
+                  ) : null}
+                </div>
               ) : null}
               {hasSelectedBuyerLead && !hasVehicleOptions ? (
                 <p className="text-xs text-muted-foreground">

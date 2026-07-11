@@ -1303,7 +1303,7 @@ export function SalesScreen() {
   const totalPages = salesQuery.data?.totalPages ?? 1;
 
   const effectiveVehicleId = React.useMemo(() => {
-    if (!selectedBuyerLead) {
+    if (form.vehicleId || !selectedBuyerLead) {
       return form.vehicleId;
     }
 
@@ -1311,11 +1311,7 @@ export function SalesScreen() {
       return selectedBuyerLead.vehicles[0]?.id ?? "";
     }
 
-    return selectedBuyerLead.vehicles.some(
-      (vehicle) => vehicle.id === form.vehicleId,
-    )
-      ? form.vehicleId
-      : "";
+    return "";
   }, [form.vehicleId, selectedBuyerLead]);
 
   const totalSales = salesSummaryQuery.data?.totalSales ?? 0;

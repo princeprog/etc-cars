@@ -522,6 +522,33 @@ function SalesForm({
   );
   const shouldAutoLinkSelectedVehicle =
     selectedVehicleOption?.relationship === "available";
+  const vehicleSelectContent = (
+    <SelectContent>
+      {linkedVehicleOptions.length ? (
+        <SelectGroup>
+          <SelectLabel>Linked vehicles</SelectLabel>
+          {linkedVehicleOptions.map((vehicle) => (
+            <SelectItem key={vehicle.id} value={vehicle.id}>
+              {vehicle.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      ) : null}
+      {linkedVehicleOptions.length && availableVehicleOptions.length ? (
+        <SelectMenuSeparator />
+      ) : null}
+      {availableVehicleOptions.length ? (
+        <SelectGroup>
+          <SelectLabel>Available vehicles</SelectLabel>
+          {availableVehicleOptions.map((vehicle) => (
+            <SelectItem key={vehicle.id} value={vehicle.id}>
+              {vehicle.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      ) : null}
+    </SelectContent>
+  );
 
   return (
     <FieldGroup className="gap-6">
@@ -672,6 +699,10 @@ function SalesForm({
             <FieldLabel htmlFor="saleVehicleId">Vehicle</FieldLabel>
             <div className="space-y-2">
               {selectedVehicleOption ? (
+                <Select
+                  value={values.vehicleId}
+                  onValueChange={(value) => updateField("vehicleId", value)}
+                >
                 <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
                   <div className="flex min-w-0 items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -687,34 +718,48 @@ function SalesForm({
                         </p>
                       ) : null}
                     </div>
-                    <Badge
-                      variant={
-                        selectedVehicleOption.relationship === "linked"
-                          ? "secondary"
-                          : "outline"
-                      }
-                      className="shrink-0"
-                    >
-                      {selectedVehicleOption.relationship === "linked"
-                        ? "Linked"
-                        : "Will link"}
-                    </Badge>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Badge
+                        variant={
+                          selectedVehicleOption.relationship === "linked"
+                            ? "secondary"
+                            : "outline"
+                        }
+                        className="hidden sm:inline-flex"
+                      >
+                        {selectedVehicleOption.relationship === "linked"
+                          ? "Linked"
+                          : "Will link"}
+                      </Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Clear selected vehicle"
+                        onClick={() => updateField("vehicleId", "")}
+                      >
+                        <XIcon />
+                      </Button>
+                      <SelectTrigger
+                        id="saleVehicleId"
+                        className="h-8 w-auto border-0 bg-transparent px-2 text-xs shadow-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-0"
+                      >
+                        <span>Change</span>
+                      </SelectTrigger>
+                    </div>
                   </div>
                 </div>
-              ) : null}
-              <Select
-                value={values.vehicleId}
-                onValueChange={(value) => updateField("vehicleId", value)}
-              >
-                <SelectTrigger
-                  id="saleVehicleId"
-                  disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
+                {vehicleSelectContent}
+                </Select>
+              ) : (
+                <Select
+                  value={values.vehicleId}
+                  onValueChange={(value) => updateField("vehicleId", value)}
                 >
-                  {selectedVehicleOption ? (
-                    <span className="truncate text-muted-foreground">
-                      Change vehicle
-                    </span>
-                  ) : (
+                  <SelectTrigger
+                    id="saleVehicleId"
+                    disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
+                  >
                     <SelectValue
                       placeholder={
                         !hasSelectedBuyerLead
@@ -724,35 +769,10 @@ function SalesForm({
                             : "No available vehicles"
                       }
                     />
-                  )}
-                </SelectTrigger>
-                <SelectContent>
-                  {linkedVehicleOptions.length ? (
-                    <SelectGroup>
-                      <SelectLabel>Linked vehicles</SelectLabel>
-                      {linkedVehicleOptions.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ) : null}
-                  {linkedVehicleOptions.length &&
-                  availableVehicleOptions.length ? (
-                    <SelectMenuSeparator />
-                  ) : null}
-                  {availableVehicleOptions.length ? (
-                    <SelectGroup>
-                      <SelectLabel>Available vehicles</SelectLabel>
-                      {availableVehicleOptions.map((vehicle) => (
-                        <SelectItem key={vehicle.id} value={vehicle.id}>
-                          {vehicle.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ) : null}
-                </SelectContent>
-              </Select>
+                  </SelectTrigger>
+                  {vehicleSelectContent}
+                </Select>
+              )}
             </div>
           </Field>
         </div>

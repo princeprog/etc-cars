@@ -1274,6 +1274,8 @@ export function SalesScreen() {
   >(() => debouncedSalesFilterValues, [debouncedSalesFilterValues]);
   const salesQuery = useSalesQuery(salesFilters);
   const salesSummaryQuery = useSalesSummaryQuery(salesSummaryFilters);
+  const isUpdatingSalesTable =
+    isDebouncingSalesFilters || (salesQuery.isFetching && !salesQuery.isPending);
   const buyerLeadSearchQuery = useSalesBuyerLeadSearchQuery(
     debouncedBuyerLeadSearch,
     createOpen,
@@ -1598,27 +1600,8 @@ export function SalesScreen() {
                   setPage(1);
                 }}
                 placeholder="Search sales, buyer, vehicle, or ID..."
-                className="h-10 pr-12 pl-9 sm:pr-40"
+                className="h-10 pl-9"
               />
-              {isDebouncingSalesFilters ? (
-                <div
-                  className="pointer-events-none absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1.5 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-xs font-medium text-muted-foreground shadow-xs"
-                  role="status"
-                  aria-live="polite"
-                >
-                  <Image
-                    src="/loading.gif"
-                    alt=""
-                    width={18}
-                    height={18}
-                    unoptimized
-                    aria-hidden="true"
-                    className="size-4 rounded-sm"
-                  />
-                  <span className="hidden sm:inline">Applying filters</span>
-                  <span className="sr-only">Applying sales filters</span>
-                </div>
-              ) : null}
             </div>
             <Select
               value={statusFilter}
@@ -1721,7 +1704,27 @@ export function SalesScreen() {
         </section>
 
         <Card className="overflow-hidden border-border/70 py-0 shadow-xs">
-          <CardContent className="p-0">
+          <CardContent className="relative p-0">
+            {isUpdatingSalesTable ? (
+              <div
+                className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center"
+                role="status"
+                aria-live="polite"
+              >
+                <div className="flex items-center gap-2 rounded-full border border-border/70 bg-background/95 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur">
+                  <Image
+                    src="/loading.gif"
+                    alt=""
+                    width={20}
+                    height={20}
+                    unoptimized
+                    aria-hidden="true"
+                    className="size-5 rounded-sm"
+                  />
+                  <span>Updating results</span>
+                </div>
+              </div>
+            ) : null}
             {salesQuery.isPending ? (
               <div className="p-6">
                 <ModuleLoadingState label="Loading sales" />

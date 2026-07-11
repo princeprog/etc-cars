@@ -1139,6 +1139,63 @@ function SaleReviewDialog({
   );
 }
 
+function DeleteSaleDraftDialog({
+  draft,
+  open,
+  onOpenChange,
+  pending,
+  onConfirm,
+}: {
+  draft: SaleDraft | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  pending: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogMedia>
+            <Trash2Icon />
+          </AlertDialogMedia>
+          <AlertDialogTitle>Delete sales draft?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete{" "}
+            {draft ? draft.draftNumber : "this sales draft"}. You cannot undo
+            this action.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {draft ? (
+          <div className="rounded-lg border bg-muted/20 px-4 py-3 text-sm">
+            <p className="font-medium text-foreground">
+              {draft.buyerLead.buyerName}
+            </p>
+            <p className="text-muted-foreground">
+              {draft.vehicle.stockNumber} • {draft.vehicle.brand}{" "}
+              {draft.vehicle.model}
+            </p>
+          </div>
+        ) : null}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={pending}
+            onClick={(event) => {
+              event.preventDefault();
+              onConfirm();
+            }}
+          >
+            <Trash2Icon data-icon="inline-start" />
+            Delete Draft
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 export function SalesScreen() {
   const authQuery = useAuthenticatedUserQuery();
   const availableVehiclesQuery = useVehiclesQuery({ status: "Available" });
@@ -1166,6 +1223,8 @@ export function SalesScreen() {
   const [viewSaleId, setViewSaleId] = React.useState<string | null>(null);
   const [reviewSaleOpen, setReviewSaleOpen] = React.useState(false);
   const [activeDraftId, setActiveDraftId] = React.useState<string | null>(null);
+  const [draftPendingDelete, setDraftPendingDelete] =
+    React.useState<SaleDraft | null>(null);
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1297,6 +1356,7 @@ export function SalesScreen() {
     setInlineLinkVehicleId("");
     setReviewSaleOpen(false);
     setActiveDraftId(null);
+    setDraftPendingDelete(null);
   }, [currentUserName]);
 
   function handleCreateOpenChange(nextOpen: boolean) {
@@ -1395,10 +1455,15 @@ export function SalesScreen() {
     });
   }
 
-  async function handleDeleteDraft(draft: SaleDraft) {
-    await deleteDraftMutation.mutateAsync(draft.id, {
+  async function confirmDeleteDraft() {
+    if (!draftPendingDelete) {
+      return;
+    }
+
+    await deleteDraftMutation.mutateAsync(draftPendingDelete.id, {
       onSuccess: () => {
         toast.success("Sales draft deleted");
+        setDraftPendingDelete(null);
       },
     });
   }
@@ -1791,7 +1856,7 @@ export function SalesScreen() {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem
                                     disabled={deleteDraftMutation.isPending}
-                                    onClick={() => handleDeleteDraft(sale)}
+                                    onClick={() => setDraftPendingDelete(sale)}
                                   >
                                     <Trash2Icon data-icon="inline-start" />
                                     Delete Draft
@@ -2005,6 +2070,20 @@ export function SalesScreen() {
                 setReviewSaleOpen(false);
               }
             })();
+          }}
+        />
+
+        <DeleteSaleDraftDialog
+          draft={draftPendingDelete}
+          open={Boolean(draftPendingDelete)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setDraftPendingDelete(null);
+            }
+          }}
+          pending={deleteDraftMutation.isPending}
+          onConfirm={() => {
+            void confirmDeleteDraft();
           }}
         />
 

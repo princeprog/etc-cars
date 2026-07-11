@@ -1,6 +1,5 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
   TooltipContent,
@@ -8,9 +7,16 @@ import {
 } from "@/components/ui/tooltip"
 import type { VehicleQualityScore } from "@/types/vehicles"
 
-import { GRADE_BADGE_CLASSES, GRADE_LABELS, getIssueCount } from "./vehicle-quality.helpers"
+import { GRADE_LABELS, getIssueCount } from "./vehicle-quality.helpers"
 
 type Size = "sm" | "md"
+
+const GRADE_TEXT_CLASSES: Record<VehicleQualityScore["grade"], string> = {
+  excellent: "text-emerald-700 dark:text-emerald-300",
+  good: "text-sky-700 dark:text-sky-300",
+  needs_attention: "text-amber-700 dark:text-amber-300",
+  incomplete: "text-rose-700 dark:text-rose-300",
+}
 
 export function VehicleQualityBadge({
   quality,
@@ -21,35 +27,27 @@ export function VehicleQualityBadge({
 }) {
   if (!quality) {
     return (
-      <Badge
-        variant="outline"
-        className="rounded-full px-2 py-0.5 text-[11px] text-muted-foreground"
-      >
-        Score N/A
-      </Badge>
+      <span className="text-[11px] font-medium text-muted-foreground">
+        N/A
+      </span>
     )
   }
 
   const { critical, warning, info } = getIssueCount(quality)
 
   const label = GRADE_LABELS[quality.grade]
-  const className = GRADE_BADGE_CLASSES[quality.grade]
+  const className = GRADE_TEXT_CLASSES[quality.grade]
 
-  const sizeClass =
-    size === "sm"
-      ? "px-2.5 py-0.5 text-[11px] font-semibold"
-      : "px-3 py-1 text-xs font-semibold"
+  const sizeClass = size === "sm" ? "text-[11px]" : "text-xs"
 
   const content = (
-    <Badge
-      variant="outline"
-      className={`rounded-full ${sizeClass} ${className}`}
+    <span
+      className={`inline-flex items-baseline gap-1 font-semibold tabular-nums ${sizeClass}`}
       aria-label={`Quality ${label} score ${quality.score} out of 100`}
     >
-      <span className="tabular-nums">
-        {quality.score} <span className="text-current/60">/ 100</span>
-      </span>
-    </Badge>
+      <span className={className}>{quality.score}</span>
+      <span className="font-medium text-muted-foreground">/ 100</span>
+    </span>
   )
 
   return (

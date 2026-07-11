@@ -8,22 +8,16 @@ import {
 } from "@/components/ui/tooltip"
 import type { VehicleQualityScore } from "@/types/vehicles"
 
-import {
-  GRADE_BADGE_CLASSES,
-  GRADE_SHORT_LABELS,
-  getIssueCount,
-} from "./vehicle-quality.helpers"
+import { GRADE_BADGE_CLASSES, GRADE_LABELS, getIssueCount } from "./vehicle-quality.helpers"
 
 type Size = "sm" | "md"
 
 export function VehicleQualityBadge({
   quality,
   size = "sm",
-  showScore = true,
 }: {
   quality: VehicleQualityScore | null | undefined
   size?: Size
-  showScore?: boolean
 }) {
   if (!quality) {
     return (
@@ -38,23 +32,22 @@ export function VehicleQualityBadge({
 
   const { critical, warning, info } = getIssueCount(quality)
 
-  const label = GRADE_SHORT_LABELS[quality.grade]
+  const label = GRADE_LABELS[quality.grade]
   const className = GRADE_BADGE_CLASSES[quality.grade]
 
   const sizeClass =
     size === "sm"
-      ? "px-2 py-0.5 text-[11px] font-medium"
-      : "px-2.5 py-1 text-xs font-semibold"
+      ? "px-2.5 py-0.5 text-[11px] font-semibold"
+      : "px-3 py-1 text-xs font-semibold"
 
   const content = (
     <Badge
       variant="outline"
       className={`rounded-full ${sizeClass} ${className}`}
-      aria-label={`Quality ${label} score ${quality.score}`}
+      aria-label={`Quality ${label} score ${quality.score} out of 100`}
     >
       <span className="tabular-nums">
-        {showScore ? `${quality.score} ` : ""}
-        {label}
+        {quality.score} <span className="text-current/60">/ 100</span>
       </span>
     </Badge>
   )

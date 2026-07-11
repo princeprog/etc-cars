@@ -52,6 +52,8 @@ export const API_ENDPOINTS = {
   },
   activityHistory: {
     root: "/activity-history",
+    summary: "/activity-history/summary",
+    export: "/activity-history/export",
     byEntity: (entityType: string, entityId: string, limit?: number) =>
       `/activity-history/${entityType}/${entityId}${limit ? `?limit=${limit}` : ""}`,
   },

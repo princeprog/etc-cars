@@ -1250,6 +1250,8 @@ export function SalesScreen() {
     React.useState<Omit<SalesListFilters, "page" | "pageSize">>(
       immediateSalesFilterValues,
     );
+  const isDebouncingSalesFilters =
+    immediateSalesFilterValues !== debouncedSalesFilterValues;
 
   React.useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -1596,8 +1598,27 @@ export function SalesScreen() {
                   setPage(1);
                 }}
                 placeholder="Search sales, buyer, vehicle, or ID..."
-                className="h-10 pl-9"
+                className="h-10 pr-12 pl-9 sm:pr-40"
               />
+              {isDebouncingSalesFilters ? (
+                <div
+                  className="pointer-events-none absolute top-1/2 right-2 flex -translate-y-1/2 items-center gap-1.5 rounded-md border border-border/70 bg-background/95 px-2 py-1 text-xs font-medium text-muted-foreground shadow-xs"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <Image
+                    src="/loading.gif"
+                    alt=""
+                    width={18}
+                    height={18}
+                    unoptimized
+                    aria-hidden="true"
+                    className="size-4 rounded-sm"
+                  />
+                  <span className="hidden sm:inline">Applying filters</span>
+                  <span className="sr-only">Applying sales filters</span>
+                </div>
+              ) : null}
             </div>
             <Select
               value={statusFilter}

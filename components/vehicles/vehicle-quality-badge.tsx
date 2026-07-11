@@ -27,7 +27,7 @@ export function VehicleQualityBadge({
 }) {
   if (!quality) {
     return (
-      <span className="text-[11px] font-medium text-muted-foreground">
+      <span className="text-sm font-medium text-muted-foreground">
         N/A
       </span>
     )
@@ -38,7 +38,7 @@ export function VehicleQualityBadge({
   const label = GRADE_LABELS[quality.grade]
   const className = GRADE_TEXT_CLASSES[quality.grade]
 
-  const sizeClass = size === "sm" ? "text-[11px]" : "text-xs"
+  const sizeClass = size === "sm" ? "text-sm" : "text-base"
 
   const content = (
     <span

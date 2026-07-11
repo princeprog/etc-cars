@@ -796,6 +796,7 @@ function SaleReviewDialog({
   form,
   buyerLead,
   vehicle,
+  vehicleRequiresAutoLink,
   currentUserName,
   belowMinimum,
   minimumAmount,
@@ -807,6 +808,7 @@ function SaleReviewDialog({
   form: SaleFormValues;
   buyerLead?: BuyerLead;
   vehicle?: Vehicle;
+  vehicleRequiresAutoLink: boolean;
   currentUserName: string;
   belowMinimum: boolean;
   minimumAmount: number | null;
@@ -853,7 +855,8 @@ function SaleReviewDialog({
           </AlertDialogTitle>
           <AlertDialogDescription className="max-w-md">
             Confirm the buyer, vehicle, final amount, commission, and closing
-            details before creating this sale.
+            details before creating this sale. The vehicle link will be created
+            automatically when needed.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -908,7 +911,7 @@ function SaleReviewDialog({
                 2. Vehicle Details
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
               <div className="grid gap-4 sm:grid-cols-[1fr_1.5fr_1fr]">
                 <div className="flex min-w-0 flex-col gap-1">
                   <span className="text-xs text-muted-foreground">
@@ -946,6 +949,16 @@ function SaleReviewDialog({
                   </div>
                 </div>
               </div>
+              {vehicleRequiresAutoLink ? (
+                <Alert>
+                  <CarFrontIcon />
+                  <AlertTitle>Vehicle will be linked automatically</AlertTitle>
+                  <AlertDescription>
+                    This vehicle is not currently linked to the buyer. The link
+                    will be created when you finalize the sale.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -2037,6 +2050,9 @@ export function SalesScreen() {
           form={form}
           buyerLead={selectedBuyerLead}
           vehicle={selectedPricingVehicle}
+          vehicleRequiresAutoLink={
+            selectedVehicleOption?.relationship === "available"
+          }
           currentUserName={currentUserName}
           belowMinimum={isFinalSaleBelowMinimum}
           minimumAmount={selectedPricingRange?.minimum ?? null}

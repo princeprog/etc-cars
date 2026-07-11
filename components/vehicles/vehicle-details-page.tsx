@@ -17,6 +17,7 @@ import {
   DollarSignIcon,
   FileQuestionIcon,
   ImagePlusIcon,
+  LoaderCircleIcon,
   PencilIcon,
   PlusCircleIcon,
   ReceiptTextIcon,
@@ -26,6 +27,7 @@ import {
   UploadIcon,
   UserIcon,
 } from "lucide-react"
+import { toast } from "sonner"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { resolveApiAssetUrl } from "@/constants/api-config"
@@ -66,6 +68,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useUpdateVehicleMutation } from "@/hooks/mutations/vehicles/use-update-vehicle-mutation"
+import { useUploadVehiclePhotoMutation } from "@/hooks/mutations/vehicles/use-upload-vehicle-photo-mutation"
 import { useActivityHistoryQuery } from "@/hooks/queries/activity-history/use-activity-history-query"
 import { useVehicleQuery } from "@/hooks/queries/vehicles/use-vehicle-query"
 import { cn } from "@/lib/utils"
@@ -179,7 +183,15 @@ function VehicleDetailsPageSkeleton() {
   )
 }
 
-function VehicleDetailsHeader({ vehicle }: { vehicle: Vehicle }) {
+function VehicleDetailsHeader({
+  vehicle,
+  onUploadPhoto,
+  isUploadingPhoto,
+}: {
+  vehicle: Vehicle
+  onUploadPhoto: () => void
+  isUploadingPhoto: boolean
+}) {
   return (
     <section className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div className="flex flex-col gap-1">
@@ -228,11 +240,19 @@ function VehicleDetailsHeader({ vehicle }: { vehicle: Vehicle }) {
                   Set Pricing
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href={`/vehicles/${vehicle.id}/edit#vehicle-photos`}>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault()
+                  onUploadPhoto()
+                }}
+                disabled={isUploadingPhoto}
+              >
+                {isUploadingPhoto ? (
+                  <LoaderCircleIcon className="animate-spin" />
+                ) : (
                   <ImagePlusIcon />
+                )}
                   Upload Photo
-                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
@@ -361,7 +381,15 @@ function VehicleOverviewCard({ vehicle }: { vehicle: Vehicle }) {
   )
 }
 
-function VehiclePhotosCard({ vehicle }: { vehicle: Vehicle }) {
+function VehiclePhotosCard({
+  vehicle,
+  onUploadPhoto,
+  isUploadingPhoto,
+}: {
+  vehicle: Vehicle
+  onUploadPhoto: () => void
+  isUploadingPhoto: boolean
+}) {
   const sortedPhotos = React.useMemo(
     () =>
       [...vehicle.photos].sort(
@@ -380,11 +408,22 @@ function VehiclePhotosCard({ vehicle }: { vehicle: Vehicle }) {
       <CardHeader className="flex-row items-center justify-between">
         <CardTitle>Photos</CardTitle>
         <CardAction>
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/vehicles/${vehicle.id}/edit#vehicle-photos`}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onUploadPhoto}
+            disabled={isUploadingPhoto}
+          >
+            {isUploadingPhoto ? (
+              <LoaderCircleIcon
+                data-icon="inline-start"
+                className="animate-spin"
+              />
+            ) : (
               <UploadIcon data-icon="inline-start" />
-              Upload Photo
-            </Link>
+            )}
+            {isUploadingPhoto ? "Uploading" : "Upload Photo"}
           </Button>
         </CardAction>
       </CardHeader>
@@ -435,11 +474,20 @@ function VehiclePhotosCard({ vehicle }: { vehicle: Vehicle }) {
                 Available.
               </EmptyDescription>
             </EmptyHeader>
-            <Button asChild>
-              <Link href={`/vehicles/${vehicle.id}/edit#vehicle-photos`}>
+            <Button
+              type="button"
+              onClick={onUploadPhoto}
+              disabled={isUploadingPhoto}
+            >
+              {isUploadingPhoto ? (
+                <LoaderCircleIcon
+                  data-icon="inline-start"
+                  className="animate-spin"
+                />
+              ) : (
                 <ImagePlusIcon data-icon="inline-start" />
-                Upload Photo
-              </Link>
+              )}
+              {isUploadingPhoto ? "Uploading" : "Upload Photo"}
             </Button>
           </Empty>
         )}
@@ -898,6 +946,63 @@ function ActivityTimestampsCard({ vehicle }: { vehicle: Vehicle }) {
 export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
   const vehicleQuery = useVehicleQuery(vehicleId)
   const vehicle = vehicleQuery.data?.vehicle
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
+  const uploadPhotoMutation = useUploadVehiclePhotoMutation()
+  const updateVehicleMutation = useUpdateVehicleMutation()
+  const isUploadingPhoto =
+    uploadPhotoMutation.isPending || updateVehicleMutation.isPending
+
+  const openPhotoPicker = () => {
+    if (!isUploadingPhoto) {
+      fileInputRef.current?.click()
+    }
+  }
+
+  const handlePhotoSelection = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(event.target.files ?? [])
+
+    if (!files.length || !vehicle) {
+      return
+    }
+
+    try {
+      const uploadedPhotos = []
+
+      for (const file of files) {
+        const response = await uploadPhotoMutation.mutateAsync(file)
+        uploadedPhotos.push({ fileUrl: response.file.path })
+      }
+
+      const existingPhotos = vehicle.photos.map((photo, index) => ({
+        fileUrl: photo.fileUrl,
+        sortOrder: photo.sortOrder ?? index,
+      }))
+      const photos = [
+        ...existingPhotos,
+        ...uploadedPhotos.map((photo, index) => ({
+          ...photo,
+          sortOrder: existingPhotos.length + index,
+        })),
+      ]
+
+      await updateVehicleMutation.mutateAsync({
+        id: vehicle.id,
+        payload: { photos },
+      })
+
+      toast.success(
+        uploadedPhotos.length === 1
+          ? "Vehicle photo uploaded"
+          : "Vehicle photos uploaded",
+      )
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Photo upload failed"))
+    } finally {
+      event.target.value = ""
+    }
+  }
 
   return (
     <AuthenticatedAppShell
@@ -908,6 +1013,15 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
       ]}
     >
       <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+          multiple
+          className="hidden"
+          onChange={handlePhotoSelection}
+          aria-label="Upload vehicle photos"
+        />
         {vehicleQuery.isPending ? (
           <VehicleDetailsPageSkeleton />
         ) : vehicleQuery.error ? (
@@ -931,13 +1045,21 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
           </Empty>
         ) : (
           <div className="flex flex-col gap-5">
-            <VehicleDetailsHeader vehicle={vehicle} />
+            <VehicleDetailsHeader
+              vehicle={vehicle}
+              onUploadPhoto={openPhotoPicker}
+              isUploadingPhoto={isUploadingPhoto}
+            />
             <VehicleOverviewCard vehicle={vehicle} />
 
             <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
               <div className="flex flex-col gap-5">
                 <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(330px,0.9fr)]">
-                  <VehiclePhotosCard vehicle={vehicle} />
+                  <VehiclePhotosCard
+                    vehicle={vehicle}
+                    onUploadPhoto={openPhotoPicker}
+                    isUploadingPhoto={isUploadingPhoto}
+                  />
                   <VehicleInformationCard vehicle={vehicle} />
                 </div>
                 <TrackedCostsPreviewCard vehicle={vehicle} />

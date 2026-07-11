@@ -68,10 +68,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
-  SelectLabel,
-  SelectSeparator as SelectMenuSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -486,11 +483,14 @@ function SalesForm({
   currentUserName?: string;
 }) {
   const buyerLeadInputRef = React.useRef<HTMLInputElement | null>(null);
+  const vehicleInputRef = React.useRef<HTMLInputElement | null>(null);
   const [buyerLeadPickerOpen, setBuyerLeadPickerOpen] = React.useState(false);
   const [buyerLeadSearchVisible, setBuyerLeadSearchVisible] =
     React.useState(false);
   const [vehiclePickerVisible, setVehiclePickerVisible] =
     React.useState(false);
+  const [vehiclePickerOpen, setVehiclePickerOpen] = React.useState(false);
+  const [vehicleSearch, setVehicleSearch] = React.useState("");
 
   function updateField<K extends keyof SaleFormValues>(
     key: K,
@@ -498,6 +498,8 @@ function SalesForm({
   ) {
     if (key === "buyerLeadId") {
       setVehiclePickerVisible(false);
+      setVehiclePickerOpen(false);
+      setVehicleSearch("");
       onChange({
         ...values,
         buyerLeadId: value as string,
@@ -509,6 +511,8 @@ function SalesForm({
 
     if (key === "vehicleId") {
       setVehiclePickerVisible(false);
+      setVehiclePickerOpen(false);
+      setVehicleSearch("");
       onChange({
         ...values,
         vehicleId: value as string,
@@ -529,58 +533,64 @@ function SalesForm({
   const availableVehicleOptions = vehicleOptions.filter(
     (vehicle) => vehicle.relationship === "available",
   );
-  const vehicleSelectContent = (
-    <SelectContent>
-      {linkedVehicleOptions.length ? (
-        <SelectGroup>
-          <SelectLabel>Linked to buyer</SelectLabel>
-          {linkedVehicleOptions.map((vehicle) => (
-            <SelectItem key={vehicle.id} value={vehicle.id}>
-              <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="block truncate text-sm font-medium">
-                    {vehicle.summary}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {vehicle.details}
-                  </span>
-                </div>
-                <Badge variant="secondary" className="shrink-0">
-                  Linked
-                </Badge>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      ) : null}
-      {linkedVehicleOptions.length && availableVehicleOptions.length ? (
-        <SelectMenuSeparator />
-      ) : null}
-      {availableVehicleOptions.length ? (
-        <SelectGroup>
-          <SelectLabel>Available vehicles</SelectLabel>
-          {availableVehicleOptions.map((vehicle) => (
-            <SelectItem key={vehicle.id} value={vehicle.id}>
-              <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="block truncate text-sm font-medium">
-                    {vehicle.summary}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {vehicle.details}
-                  </span>
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Badge variant="secondary">{vehicle.statusLabel}</Badge>
-                  <Badge variant="outline">Will link</Badge>
-                </div>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectGroup>
-      ) : null}
-    </SelectContent>
+  const normalizedVehicleSearch = vehicleSearch.trim().toLowerCase();
+  const filterVehicleOptions = React.useCallback(
+    (options: SalesVehicleOption[]) => {
+      if (!normalizedVehicleSearch) {
+        return options;
+      }
+
+      return options.filter((vehicle) =>
+        [
+          vehicle.summary,
+          vehicle.details,
+          vehicle.statusLabel,
+          vehicle.relationship,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedVehicleSearch),
+      );
+    },
+    [normalizedVehicleSearch],
   );
+  const filteredLinkedVehicleOptions =
+    filterVehicleOptions(linkedVehicleOptions);
+  const filteredAvailableVehicleOptions =
+    filterVehicleOptions(availableVehicleOptions);
+  const hasFilteredVehicleOptions =
+    filteredLinkedVehicleOptions.length > 0 ||
+    filteredAvailableVehicleOptions.length > 0;
+
+  function renderVehicleOption(vehicle: SalesVehicleOption) {
+    return (
+      <button
+        key={vehicle.id}
+        type="button"
+        className="flex w-full items-start justify-between gap-3 rounded-sm px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground"
+        onMouseDown={(event) => {
+          event.preventDefault();
+          updateField("vehicleId", vehicle.id);
+          vehicleInputRef.current?.blur();
+        }}
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium text-foreground">
+            {vehicle.summary}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {vehicle.details}
+          </span>
+        </span>
+        <Badge
+          variant={vehicle.relationship === "linked" ? "secondary" : "outline"}
+          className="shrink-0"
+        >
+          {vehicle.relationship === "linked" ? "Linked" : "Will link"}
+        </Badge>
+      </button>
+    );
+  }
 
   return (
     <FieldGroup className="gap-6">
@@ -778,6 +788,9 @@ function SalesForm({
                         onClick={() => {
                           updateField("vehicleId", "");
                           setVehiclePickerVisible(true);
+                          window.setTimeout(() => {
+                            vehicleInputRef.current?.focus();
+                          }, 0);
                         }}
                       >
                         <XIcon />
@@ -787,7 +800,12 @@ function SalesForm({
                         variant="outline"
                         size="sm"
                         className="shrink-0"
-                        onClick={() => setVehiclePickerVisible(true)}
+                        onClick={() => {
+                          setVehiclePickerVisible(true);
+                          window.setTimeout(() => {
+                            vehicleInputRef.current?.focus();
+                          }, 0);
+                        }}
                       >
                         Change
                       </Button>
@@ -796,49 +814,84 @@ function SalesForm({
                 </div>
               ) : null}
               {!selectedVehicleOption || vehiclePickerVisible ? (
-                <div className="flex items-start gap-2">
-                  <Select
-                    value={values.vehicleId}
-                    onValueChange={(value) => updateField("vehicleId", value)}
-                  >
-                    <SelectTrigger
+                <div className="relative">
+                  <div className="flex items-start gap-2">
+                    <Input
                       id="saleVehicleId"
-                      className="h-auto min-h-10 w-full py-2"
+                      ref={vehicleInputRef}
+                      value={vehicleSearch}
                       disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
-                    >
-                      {selectedVehicleOption ? (
-                        <span className="flex min-w-0 flex-col items-start text-left">
-                          <span className="block max-w-full truncate text-sm font-medium text-foreground">
-                            {selectedVehicleOption.summary}
-                          </span>
-                          <span className="block max-w-full truncate text-xs text-muted-foreground">
-                            {selectedVehicleOption.details}
-                          </span>
-                        </span>
-                      ) : (
-                        <SelectValue
-                          placeholder={
-                            !hasSelectedBuyerLead
-                              ? "Select buyer lead first"
-                              : hasVehicleOptions
-                                ? "Select vehicle"
-                                : "No available vehicles"
-                          }
-                        />
-                      )}
-                    </SelectTrigger>
-                    {vehicleSelectContent}
-                  </Select>
-                  {selectedVehicleOption && vehiclePickerVisible ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-10 shrink-0"
-                      onClick={() => setVehiclePickerVisible(false)}
-                    >
-                      Cancel
-                    </Button>
+                      placeholder={
+                        !hasSelectedBuyerLead
+                          ? "Select buyer lead first"
+                          : hasVehicleOptions
+                            ? selectedVehicleOption
+                              ? "Search to replace vehicle"
+                              : "Search vehicle"
+                            : "No available vehicles"
+                      }
+                      onFocus={() => setVehiclePickerOpen(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => setVehiclePickerOpen(false), 120);
+                      }}
+                      onChange={(event) => {
+                        setVehicleSearch(event.target.value);
+                        setVehiclePickerOpen(true);
+                      }}
+                    />
+                    {selectedVehicleOption && vehiclePickerVisible ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-10 shrink-0"
+                        onClick={() => {
+                          setVehiclePickerVisible(false);
+                          setVehiclePickerOpen(false);
+                          setVehicleSearch("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    ) : null}
+                  </div>
+                  {vehiclePickerOpen ? (
+                    <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-md border bg-popover shadow-md">
+                      <div className="border-b px-3 py-2 text-xs text-muted-foreground">
+                        {selectedVehicleOption
+                          ? "Search or select another available vehicle"
+                          : "Search or select an available vehicle"}
+                      </div>
+                      {!hasFilteredVehicleOptions ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No available vehicles found.
+                        </div>
+                      ) : null}
+                      <div className="p-1">
+                        {filteredLinkedVehicleOptions.length ? (
+                          <div className="space-y-1">
+                            <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                              Linked to buyer
+                            </p>
+                            {filteredLinkedVehicleOptions.map(renderVehicleOption)}
+                          </div>
+                        ) : null}
+                        {filteredLinkedVehicleOptions.length &&
+                        filteredAvailableVehicleOptions.length ? (
+                          <Separator className="my-1" />
+                        ) : null}
+                        {filteredAvailableVehicleOptions.length ? (
+                          <div className="space-y-1">
+                            <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+                              Available vehicles
+                            </p>
+                            {filteredAvailableVehicleOptions.map(
+                              renderVehicleOption,
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
                   ) : null}
                 </div>
               ) : null}

@@ -68,7 +68,10 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator as SelectMenuSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -91,7 +94,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { useLinkBuyerLeadVehicleMutation } from "@/hooks/mutations/buyer-leads/use-link-buyer-lead-vehicle-mutation";
 import { useCreateSaleMutation } from "@/hooks/mutations/sales/use-create-sale-mutation";
 import {
   useDeleteSaleDraftMutation,
@@ -133,6 +135,13 @@ type SaleFormValues = {
 type BuyerLeadOption = {
   value: string;
   label: string;
+};
+
+type SalesVehicleOption = {
+  id: string;
+  label: string;
+  relationship: "linked" | "available";
+  vehicle?: Vehicle;
 };
 
 function getEmptySaleFormValues(defaultAgentName = ""): SaleFormValues {
@@ -453,12 +462,7 @@ function SalesForm({
   vehicleOptions,
   selectedBuyerLead,
   selectedVehicle,
-  availableVehicles,
-  inlineLinkVehicleId,
-  onInlineLinkVehicleIdChange,
-  onLinkVehicle,
-  linkVehiclePending,
-  linkVehicleError,
+  selectedVehicleOption,
   currentUserName,
 }: {
   values: SaleFormValues;
@@ -468,20 +472,12 @@ function SalesForm({
   buyerLeadOptions: BuyerLeadOption[];
   buyerLeadSearchPending: boolean;
   buyerLeadSearchError?: unknown;
-  vehicleOptions: { id: string; label: string }[];
+  vehicleOptions: SalesVehicleOption[];
   selectedBuyerLead?: BuyerLead;
   selectedVehicle?: Vehicle;
-  availableVehicles: { id: string; label: string }[];
-  inlineLinkVehicleId: string;
-  onInlineLinkVehicleIdChange: (value: string) => void;
-  onLinkVehicle: () => void;
-  linkVehiclePending: boolean;
-  linkVehicleError?: unknown;
+  selectedVehicleOption?: SalesVehicleOption;
   currentUserName?: string;
 }) {
-  const inlineVehicleSelectTriggerRef = React.useRef<HTMLButtonElement | null>(
-    null,
-  );
   const buyerLeadInputRef = React.useRef<HTMLInputElement | null>(null);
   const [buyerLeadPickerOpen, setBuyerLeadPickerOpen] = React.useState(false);
 
@@ -513,22 +509,18 @@ function SalesForm({
   }
 
   const hasSelectedBuyerLead = Boolean(values.buyerLeadId);
-  const hasLinkedVehicles = Boolean(selectedBuyerLead?.vehicles.length);
+  const hasVehicleOptions = vehicleOptions.length > 0;
+  const linkedVehicleOptions = vehicleOptions.filter(
+    (vehicle) => vehicle.relationship === "linked",
+  );
+  const availableVehicleOptions = vehicleOptions.filter(
+    (vehicle) => vehicle.relationship === "available",
+  );
+  const shouldAutoLinkSelectedVehicle =
+    selectedVehicleOption?.relationship === "available";
   const selectedBuyerLeadLabel = selectedBuyerLead
     ? `${selectedBuyerLead.buyerName} • ${selectedBuyerLead.contactNumber} • ${selectedBuyerLead.status}`
     : "";
-
-  React.useEffect(() => {
-    if (!hasSelectedBuyerLead || hasLinkedVehicles) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      inlineVehicleSelectTriggerRef.current?.focus();
-    }, 120);
-
-    return () => window.clearTimeout(timer);
-  }, [hasLinkedVehicles, hasSelectedBuyerLead]);
 
   return (
     <FieldGroup className="gap-6">
@@ -538,8 +530,8 @@ function SalesForm({
             Deal Details
           </h3>
           <p className="text-sm text-muted-foreground">
-            Finalize a sale using a buyer lead that is already linked to a
-            vehicle.
+            Select a buyer and vehicle; the system will link them when the sale
+            is saved.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -651,88 +643,63 @@ function SalesForm({
             />
           </Field>
           <Field>
-            <FieldLabel htmlFor="saleVehicleId">Linked vehicle</FieldLabel>
+            <FieldLabel htmlFor="saleVehicleId">Vehicle</FieldLabel>
             <Select
               value={values.vehicleId}
               onValueChange={(value) => updateField("vehicleId", value)}
             >
               <SelectTrigger
                 id="saleVehicleId"
-                disabled={!hasSelectedBuyerLead || !hasLinkedVehicles}
+                disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
               >
                 <SelectValue
                   placeholder={
                     !hasSelectedBuyerLead
                       ? "Select buyer lead first"
-                      : hasLinkedVehicles
-                        ? "Select linked vehicle"
-                        : "Link a vehicle below first"
+                      : hasVehicleOptions
+                        ? "Select vehicle"
+                        : "No available vehicles"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {vehicleOptions.map((vehicle) => (
-                  <SelectItem key={vehicle.id} value={vehicle.id}>
-                    {vehicle.label}
-                  </SelectItem>
-                ))}
+                {linkedVehicleOptions.length ? (
+                  <SelectGroup>
+                    <SelectLabel>Linked vehicles</SelectLabel>
+                    {linkedVehicleOptions.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ) : null}
+                {linkedVehicleOptions.length && availableVehicleOptions.length ? (
+                  <SelectMenuSeparator />
+                ) : null}
+                {availableVehicleOptions.length ? (
+                  <SelectGroup>
+                    <SelectLabel>Available vehicles</SelectLabel>
+                    {availableVehicleOptions.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ) : null}
               </SelectContent>
             </Select>
           </Field>
         </div>
 
-        {hasSelectedBuyerLead && !hasLinkedVehicles ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-4">
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h4 className="text-sm font-semibold text-foreground">
-                  Link a vehicle to continue
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {selectedBuyerLead?.buyerName ?? "This buyer"} has no linked
-                  vehicle yet. Link one available unit here and continue
-                  finalizing the sale without leaving this screen.
-                </p>
-              </div>
-              <ApiErrorAlert
-                title="Unable to link vehicle"
-                message={getApiErrorMessage(linkVehicleError, "")}
-              />
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                <Select
-                  value={inlineLinkVehicleId}
-                  onValueChange={onInlineLinkVehicleIdChange}
-                >
-                  <SelectTrigger ref={inlineVehicleSelectTriggerRef}>
-                    <SelectValue placeholder="Select an available vehicle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableVehicles.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <SubmitButton
-                  type="button"
-                  pending={linkVehiclePending}
-                  pendingLabel="Linking vehicle"
-                  disabled={
-                    !inlineLinkVehicleId || availableVehicles.length === 0
-                  }
-                  onClick={onLinkVehicle}
-                >
-                  Link Vehicle
-                </SubmitButton>
-              </div>
-              {!availableVehicles.length ? (
-                <p className="text-sm text-muted-foreground">
-                  No available vehicles can be linked right now.
-                </p>
-              ) : null}
-            </div>
-          </div>
+        {hasSelectedBuyerLead && shouldAutoLinkSelectedVehicle ? (
+          <Alert>
+            <CarFrontIcon />
+            <AlertTitle>Vehicle will be linked automatically</AlertTitle>
+            <AlertDescription>
+              This vehicle will be linked to the buyer when you save the draft
+              or finalize the sale.
+            </AlertDescription>
+          </Alert>
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -1205,7 +1172,6 @@ export function SalesScreen() {
   const updateDraftMutation = useUpdateSaleDraftMutation();
   const deleteDraftMutation = useDeleteSaleDraftMutation();
   const finalizeDraftMutation = useFinalizeSaleDraftMutation();
-  const linkVehicleMutation = useLinkBuyerLeadVehicleMutation();
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -1220,7 +1186,6 @@ export function SalesScreen() {
   const [buyerLeadSearch, setBuyerLeadSearch] = React.useState("");
   const [debouncedBuyerLeadSearch, setDebouncedBuyerLeadSearch] =
     React.useState("");
-  const [inlineLinkVehicleId, setInlineLinkVehicleId] = React.useState("");
   const [viewSaleId, setViewSaleId] = React.useState<string | null>(null);
   const [reviewSaleOpen, setReviewSaleOpen] = React.useState(false);
   const [activeDraftId, setActiveDraftId] = React.useState<string | null>(null);
@@ -1334,26 +1299,37 @@ export function SalesScreen() {
   }, [buyerLeadSearchResults, selectedBuyerLead]);
 
   const vehicleOptions =
-    selectedBuyerLead?.vehicles.map((vehicle) => ({
-      id: vehicle.id,
-      label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
-    })) ?? [];
-
-  const inlineAvailableVehicleOptions =
-    availableVehiclesQuery.data?.vehicles
-      .filter(
-        (vehicle) =>
-          !selectedBuyerLead?.vehicles.some(
-            (linkedVehicle) => linkedVehicle.id === vehicle.id,
-          ),
-      )
-      .map((vehicle) => ({
+    React.useMemo<SalesVehicleOption[]>(() => {
+      const linkedVehicles = selectedBuyerLead?.vehicles ?? [];
+      const availableVehicles = availableVehiclesQuery.data?.vehicles ?? [];
+      const availableVehicleById = new Map(
+        availableVehicles.map((vehicle) => [vehicle.id, vehicle]),
+      );
+      const linkedVehicleIds = new Set(
+        linkedVehicles.map((vehicle) => vehicle.id),
+      );
+      const linkedOptions = linkedVehicles.map((vehicle) => ({
         id: vehicle.id,
-        label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model}`,
-      })) ?? [];
-  const selectedPricingVehicle = availableVehiclesQuery.data?.vehicles.find(
+        label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model} • Linked`,
+        relationship: "linked" as const,
+        vehicle: availableVehicleById.get(vehicle.id),
+      }));
+      const availableOptions =
+        availableVehicles
+          .filter((vehicle) => !linkedVehicleIds.has(vehicle.id))
+          .map((vehicle) => ({
+            id: vehicle.id,
+            label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model} • Available - will be linked when saved`,
+            relationship: "available" as const,
+            vehicle,
+          }));
+
+      return [...linkedOptions, ...availableOptions];
+    }, [availableVehiclesQuery.data?.vehicles, selectedBuyerLead?.vehicles]);
+  const selectedVehicleOption = vehicleOptions.find(
     (vehicle) => vehicle.id === effectiveVehicleId,
   );
+  const selectedPricingVehicle = selectedVehicleOption?.vehicle;
   const selectedPricingRange = getVehiclePricingRange(selectedPricingVehicle);
   const finalSaleAmountNumber = parseMoney(form.finalSaleAmount);
   const isFinalSaleBelowMinimum =
@@ -1371,7 +1347,6 @@ export function SalesScreen() {
     setForm(getEmptySaleFormValues(currentUserName));
     setBuyerLeadSearch("");
     setDebouncedBuyerLeadSearch("");
-    setInlineLinkVehicleId("");
     setReviewSaleOpen(false);
     setActiveDraftId(null);
     setDraftPendingDelete(null);
@@ -1383,26 +1358,6 @@ export function SalesScreen() {
     if (!nextOpen) {
       resetCreateSaleState();
     }
-  }
-
-  async function handleInlineLinkVehicle() {
-    if (!selectedBuyerLead || !inlineLinkVehicleId) {
-      return;
-    }
-
-    await linkVehicleMutation.mutateAsync(
-      { id: selectedBuyerLead.id, vehicleId: inlineLinkVehicleId },
-      {
-        onSuccess: () => {
-          setForm((current) => ({
-            ...current,
-            vehicleId: inlineLinkVehicleId,
-          }));
-          setInlineLinkVehicleId("");
-          toast.success("Vehicle linked to buyer lead");
-        },
-      },
-    );
   }
 
   function getDraftPayload() {
@@ -1437,7 +1392,6 @@ export function SalesScreen() {
     });
     setBuyerLeadSearch("");
     setDebouncedBuyerLeadSearch("");
-    setInlineLinkVehicleId("");
     setReviewSaleOpen(false);
     setCreateOpen(true);
   }
@@ -2007,8 +1961,6 @@ export function SalesScreen() {
                       values={{ ...form, vehicleId: effectiveVehicleId }}
                       onChange={(nextValues) => {
                         if (nextValues.buyerLeadId !== form.buyerLeadId) {
-                          setInlineLinkVehicleId("");
-
                           const nextBuyerLead = buyerLeadSearchResults.find(
                             (lead) => lead.id === nextValues.buyerLeadId,
                           );
@@ -2035,12 +1987,7 @@ export function SalesScreen() {
                       vehicleOptions={vehicleOptions}
                       selectedBuyerLead={selectedBuyerLead}
                       selectedVehicle={selectedPricingVehicle}
-                      availableVehicles={inlineAvailableVehicleOptions}
-                      inlineLinkVehicleId={inlineLinkVehicleId}
-                      onInlineLinkVehicleIdChange={setInlineLinkVehicleId}
-                      onLinkVehicle={handleInlineLinkVehicle}
-                      linkVehiclePending={linkVehicleMutation.isPending}
-                      linkVehicleError={linkVehicleMutation.error}
+                      selectedVehicleOption={selectedVehicleOption}
                       currentUserName={currentUserName}
                     />
                   </div>

@@ -529,7 +529,7 @@ function SalesForm({
     <SelectContent>
       {linkedVehicleOptions.length ? (
         <SelectGroup>
-          <SelectLabel>Linked vehicles</SelectLabel>
+          <SelectLabel>Linked to buyer</SelectLabel>
           {linkedVehicleOptions.map((vehicle) => (
             <SelectItem key={vehicle.id} value={vehicle.id}>
               <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
@@ -538,7 +538,7 @@ function SalesForm({
                     {vehicle.summary}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {vehicle.details.replace(`${vehicle.stockNumber} • `, "")}
+                    {vehicle.details}
                   </span>
                 </div>
                 <Badge variant="secondary" className="shrink-0">
@@ -563,7 +563,7 @@ function SalesForm({
                     {vehicle.summary}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {vehicle.details.replace(`${vehicle.stockNumber} • `, "")}
+                    {vehicle.details}
                   </span>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -595,55 +595,58 @@ function SalesForm({
             <FieldLabel htmlFor="saleBuyerLeadId">Buyer lead</FieldLabel>
             <div className="space-y-2">
               {selectedBuyerLead ? (
-                <div className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {selectedBuyerLead.buyerName}
+                <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {selectedBuyerLead.buyerName}
+                        </p>
+                        <Badge variant="secondary" className="shrink-0">
+                          {selectedBuyerLead.status}
+                        </Badge>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {selectedBuyerLead.contactNumber}
+                        {selectedBuyerLead.email
+                          ? ` • ${selectedBuyerLead.email}`
+                          : ""}
                       </p>
-                      <Badge variant="secondary" className="shrink-0">
-                        {selectedBuyerLead.status}
-                      </Badge>
                     </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {selectedBuyerLead.contactNumber}
-                      {selectedBuyerLead.email
-                        ? ` • ${selectedBuyerLead.email}`
-                        : ""}
-                    </p>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label="Clear selected buyer"
+                        onClick={() => {
+                          updateField("buyerLeadId", "");
+                          onBuyerLeadSearchChange("");
+                          setBuyerLeadSearchVisible(true);
+                          setBuyerLeadPickerOpen(false);
+                          window.setTimeout(() => {
+                            buyerLeadInputRef.current?.focus();
+                          }, 0);
+                        }}
+                      >
+                        <XIcon />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="hidden shrink-0 sm:inline-flex"
+                        onClick={() => {
+                          setBuyerLeadSearchVisible(true);
+                          window.setTimeout(() => {
+                            buyerLeadInputRef.current?.focus();
+                          }, 0);
+                        }}
+                      >
+                        Change
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="shrink-0"
-                    aria-label="Clear selected buyer"
-                    onClick={() => {
-                      updateField("buyerLeadId", "");
-                      onBuyerLeadSearchChange("");
-                      setBuyerLeadSearchVisible(true);
-                      setBuyerLeadPickerOpen(false);
-                      window.setTimeout(() => {
-                        buyerLeadInputRef.current?.focus();
-                      }, 0);
-                    }}
-                  >
-                    <XIcon />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="hidden shrink-0 sm:inline-flex"
-                    onClick={() => {
-                      setBuyerLeadSearchVisible(true);
-                      window.setTimeout(() => {
-                        buyerLeadInputRef.current?.focus();
-                      }, 0);
-                    }}
-                  >
-                    Change
-                  </Button>
                 </div>
               ) : null}
               {!selectedBuyerLead || buyerLeadSearchVisible ? (
@@ -742,48 +745,50 @@ function SalesForm({
                   value={values.vehicleId}
                   onValueChange={(value) => updateField("vehicleId", value)}
                 >
-                <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
-                  <div className="flex min-w-0 items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {selectedVehicleOption.summary}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {selectedVehicleOption.details}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Badge
-                        variant={
-                          selectedVehicleOption.relationship === "linked"
-                            ? "secondary"
-                            : "outline"
-                        }
-                        className="hidden sm:inline-flex"
-                      >
-                        {selectedVehicleOption.relationship === "linked"
-                          ? "Linked"
-                          : "Will link"}
-                      </Badge>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label="Clear selected vehicle"
-                        onClick={() => updateField("vehicleId", "")}
-                      >
-                        <XIcon />
-                      </Button>
-                      <SelectTrigger
-                        id="saleVehicleId"
-                        className="h-8 w-auto border-0 bg-transparent px-2 text-xs shadow-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-0"
-                      >
-                        <span>Change</span>
-                      </SelectTrigger>
+                  <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {selectedVehicleOption.summary}
+                          </p>
+                          <Badge
+                            variant={
+                              selectedVehicleOption.relationship === "linked"
+                                ? "secondary"
+                                : "outline"
+                            }
+                            className="shrink-0"
+                          >
+                            {selectedVehicleOption.relationship === "linked"
+                              ? "Linked"
+                              : "Will link"}
+                          </Badge>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {selectedVehicleOption.details}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Clear selected vehicle"
+                          onClick={() => updateField("vehicleId", "")}
+                        >
+                          <XIcon />
+                        </Button>
+                        <SelectTrigger
+                          id="saleVehicleId"
+                          className="h-8 w-auto border-0 bg-transparent px-2 text-xs shadow-none hover:bg-accent hover:text-accent-foreground focus-visible:ring-0"
+                        >
+                          <span>Change</span>
+                        </SelectTrigger>
+                      </div>
                     </div>
                   </div>
-                </div>
-                {vehicleSelectContent}
+                  {vehicleSelectContent}
                 </Select>
               ) : (
                 <Select
@@ -807,6 +812,11 @@ function SalesForm({
                   {vehicleSelectContent}
                 </Select>
               )}
+              {hasSelectedBuyerLead && !hasVehicleOptions ? (
+                <p className="text-xs text-muted-foreground">
+                  No available vehicles can be selected for this sale.
+                </p>
+              ) : null}
             </div>
           </Field>
         </div>
@@ -1294,6 +1304,7 @@ export function SalesScreen() {
   const updateDraftMutation = useUpdateSaleDraftMutation();
   const deleteDraftMutation = useDeleteSaleDraftMutation();
   const finalizeDraftMutation = useFinalizeSaleDraftMutation();
+  const autoSelectedBuyerIdRef = React.useRef<string | null>(null);
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -1378,18 +1389,6 @@ export function SalesScreen() {
   const total = salesQuery.data?.total ?? 0;
   const totalPages = salesQuery.data?.totalPages ?? 1;
 
-  const effectiveVehicleId = React.useMemo(() => {
-    if (form.vehicleId || !selectedBuyerLead) {
-      return form.vehicleId;
-    }
-
-    if (selectedBuyerLead.vehicles.length === 1) {
-      return selectedBuyerLead.vehicles[0]?.id ?? "";
-    }
-
-    return "";
-  }, [form.vehicleId, selectedBuyerLead]);
-
   const totalSales = salesSummaryQuery.data?.totalSales ?? 0;
   const revenueTotal = salesSummaryQuery.data?.totalRevenue ?? "0.00";
   const grossProfitTotal = salesSummaryQuery.data?.totalGrossProfit ?? "0.00";
@@ -1432,24 +1431,36 @@ export function SalesScreen() {
       const linkedVehicleIds = new Set(
         linkedVehicles.map((vehicle) => vehicle.id),
       );
-      const linkedOptions = linkedVehicles.map((vehicle) => ({
-        id: vehicle.id,
-        label: `${vehicle.stockNumber} - ${vehicle.brand} ${vehicle.model}`,
-        summary: `${vehicle.brand} ${vehicle.model}`,
-        details: `${vehicle.stockNumber} • ${vehicle.year} • ${vehicle.status}`,
-        stockNumber: vehicle.stockNumber,
-        statusLabel: vehicle.status,
-        relationship: "linked" as const,
-        vehicle: availableVehicleById.get(vehicle.id),
-      }));
+      const linkedOptions = linkedVehicles.flatMap((linkedVehicle) => {
+        const vehicle = availableVehicleById.get(linkedVehicle.id);
+
+        if (!vehicle) {
+          return [];
+        }
+
+        return [
+          {
+            id: vehicle.id,
+            label: `${vehicle.brand} ${vehicle.model}`,
+            summary: `${vehicle.brand} ${vehicle.model}`,
+            details: `${vehicle.year}${
+              vehicle.variant ? ` • ${vehicle.variant}` : ""
+            }`,
+            stockNumber: vehicle.stockNumber,
+            statusLabel: vehicle.status,
+            relationship: "linked" as const,
+            vehicle,
+          },
+        ];
+      });
       const availableOptions =
         availableVehicles
           .filter((vehicle) => !linkedVehicleIds.has(vehicle.id))
           .map((vehicle) => ({
             id: vehicle.id,
-            label: `${vehicle.stockNumber} - ${vehicle.brand} ${vehicle.model}`,
+            label: `${vehicle.brand} ${vehicle.model}`,
             summary: `${vehicle.brand} ${vehicle.model}`,
-            details: `${vehicle.stockNumber} • ${vehicle.year}${
+            details: `${vehicle.year}${
               vehicle.variant ? ` • ${vehicle.variant}` : ""
             }`,
             stockNumber: vehicle.stockNumber,
@@ -1460,8 +1471,56 @@ export function SalesScreen() {
 
       return [...linkedOptions, ...availableOptions];
     }, [availableVehiclesQuery.data?.vehicles, selectedBuyerLead?.vehicles]);
+
+  React.useEffect(() => {
+    if (!form.buyerLeadId) {
+      autoSelectedBuyerIdRef.current = null;
+      return;
+    }
+
+    if (!selectedBuyerLead || selectedBuyerLead.id !== form.buyerLeadId) {
+      return;
+    }
+
+    if (
+      form.vehicleId ||
+      autoSelectedBuyerIdRef.current === selectedBuyerLead.id
+    ) {
+      return;
+    }
+
+    const linkedAvailableOptions = vehicleOptions.filter(
+      (vehicle) => vehicle.relationship === "linked",
+    );
+
+    if (linkedAvailableOptions.length !== 1) {
+      return;
+    }
+
+    const [linkedVehicle] = linkedAvailableOptions;
+    const timer = window.setTimeout(() => {
+      autoSelectedBuyerIdRef.current = selectedBuyerLead.id;
+      setForm((currentForm) => {
+        if (
+          currentForm.buyerLeadId !== selectedBuyerLead.id ||
+          currentForm.vehicleId
+        ) {
+          return currentForm;
+        }
+
+        return {
+          ...currentForm,
+          vehicleId: linkedVehicle.id,
+          finalSaleAmount: "",
+        };
+      });
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [form.buyerLeadId, form.vehicleId, selectedBuyerLead, vehicleOptions]);
+
   const selectedVehicleOption = vehicleOptions.find(
-    (vehicle) => vehicle.id === effectiveVehicleId,
+    (vehicle) => vehicle.id === form.vehicleId,
   );
   const selectedPricingVehicle = selectedVehicleOption?.vehicle;
   const selectedPricingRange = getVehiclePricingRange(selectedPricingVehicle);
@@ -1497,7 +1556,7 @@ export function SalesScreen() {
   function getDraftPayload() {
     return {
       buyerLeadId: form.buyerLeadId,
-      vehicleId: effectiveVehicleId,
+      vehicleId: form.vehicleId,
       saleDate: form.saleDate
         ? new Date(form.saleDate).toISOString()
         : null,
@@ -1531,7 +1590,7 @@ export function SalesScreen() {
   }
 
   async function handleSaveDraft() {
-    if (!form.buyerLeadId || !effectiveVehicleId) {
+    if (!form.buyerLeadId || !form.vehicleId) {
       toast.error("Select a buyer lead and vehicle before saving a draft");
       return;
     }
@@ -1593,7 +1652,7 @@ export function SalesScreen() {
     await createMutation.mutateAsync(
       {
         buyerLeadId: form.buyerLeadId,
-        vehicleId: effectiveVehicleId,
+        vehicleId: form.vehicleId,
         saleDate: new Date(form.saleDate).toISOString(),
         finalSaleAmount: form.finalSaleAmount,
         agentName: form.agentName || currentUserName || null,
@@ -2092,7 +2151,7 @@ export function SalesScreen() {
                       )}
                     />
                     <SalesForm
-                      values={{ ...form, vehicleId: effectiveVehicleId }}
+                      values={form}
                       onChange={(nextValues) => {
                         if (nextValues.buyerLeadId !== form.buyerLeadId) {
                           const nextBuyerLead = buyerLeadSearchResults.find(

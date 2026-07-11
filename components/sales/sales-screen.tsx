@@ -134,7 +134,10 @@ type SaleFormValues = {
 
 type BuyerLeadOption = {
   value: string;
-  label: string;
+  buyerName: string;
+  contactNumber: string;
+  email: string | null;
+  status: string;
 };
 
 type SalesVehicleOption = {
@@ -142,6 +145,8 @@ type SalesVehicleOption = {
   label: string;
   summary: string;
   details: string;
+  stockNumber: string;
+  statusLabel: string;
   relationship: "linked" | "available";
   vehicle?: Vehicle;
 };
@@ -527,7 +532,20 @@ function SalesForm({
           <SelectLabel>Linked vehicles</SelectLabel>
           {linkedVehicleOptions.map((vehicle) => (
             <SelectItem key={vehicle.id} value={vehicle.id}>
-              {vehicle.label}
+              <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {vehicle.stockNumber}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {vehicle.summary} •{" "}
+                    {vehicle.details.replace(`${vehicle.stockNumber} • `, "")}
+                  </span>
+                </div>
+                <Badge variant="secondary" className="shrink-0">
+                  Linked
+                </Badge>
+              </div>
             </SelectItem>
           ))}
         </SelectGroup>
@@ -540,7 +558,21 @@ function SalesForm({
           <SelectLabel>Available vehicles</SelectLabel>
           {availableVehicleOptions.map((vehicle) => (
             <SelectItem key={vehicle.id} value={vehicle.id}>
-              {vehicle.label}
+              <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="block truncate text-sm font-medium">
+                    {vehicle.stockNumber}
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {vehicle.summary} •{" "}
+                    {vehicle.details.replace(`${vehicle.stockNumber} • `, "")}
+                  </span>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Badge variant="secondary">{vehicle.statusLabel}</Badge>
+                  <Badge variant="outline">Will link</Badge>
+                </div>
+              </div>
             </SelectItem>
           ))}
         </SelectGroup>
@@ -666,7 +698,7 @@ function SalesForm({
                         <button
                           key={lead.value}
                           type="button"
-                          className="flex w-full items-center rounded-sm px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                          className="flex w-full items-start justify-between gap-3 rounded-sm px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground"
                           onMouseDown={(event) => {
                             event.preventDefault();
                             updateField("buyerLeadId", lead.value);
@@ -676,7 +708,18 @@ function SalesForm({
                             buyerLeadInputRef.current?.blur();
                           }}
                         >
-                          {lead.label}
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-foreground">
+                              {lead.buyerName}
+                            </span>
+                            <span className="block truncate text-xs text-muted-foreground">
+                              {lead.contactNumber}
+                              {lead.email ? ` • ${lead.email}` : ""}
+                            </span>
+                          </span>
+                          <Badge variant="secondary" className="shrink-0">
+                            {lead.status}
+                          </Badge>
                         </button>
                       ))}
                     </div>
@@ -1359,7 +1402,10 @@ export function SalesScreen() {
   const buyerLeadOptions = React.useMemo(() => {
     const options = buyerLeadSearchResults.map((lead) => ({
       value: lead.id,
-      label: `${lead.buyerName} • ${lead.contactNumber} • ${lead.status}`,
+      buyerName: lead.buyerName,
+      contactNumber: lead.contactNumber,
+      email: lead.email,
+      status: lead.status,
     }));
 
     if (
@@ -1368,7 +1414,10 @@ export function SalesScreen() {
     ) {
       options.unshift({
         value: selectedBuyerLead.id,
-        label: `${selectedBuyerLead.buyerName} • ${selectedBuyerLead.contactNumber} • ${selectedBuyerLead.status}`,
+        buyerName: selectedBuyerLead.buyerName,
+        contactNumber: selectedBuyerLead.contactNumber,
+        email: selectedBuyerLead.email,
+        status: selectedBuyerLead.status,
       });
     }
 
@@ -1387,9 +1436,11 @@ export function SalesScreen() {
       );
       const linkedOptions = linkedVehicles.map((vehicle) => ({
         id: vehicle.id,
-        label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model} • Linked`,
+        label: `${vehicle.stockNumber} - ${vehicle.brand} ${vehicle.model}`,
         summary: `${vehicle.brand} ${vehicle.model}`,
         details: `${vehicle.stockNumber} • ${vehicle.year} • ${vehicle.status}`,
+        stockNumber: vehicle.stockNumber,
+        statusLabel: vehicle.status,
         relationship: "linked" as const,
         vehicle: availableVehicleById.get(vehicle.id),
       }));
@@ -1398,11 +1449,13 @@ export function SalesScreen() {
           .filter((vehicle) => !linkedVehicleIds.has(vehicle.id))
           .map((vehicle) => ({
             id: vehicle.id,
-            label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model} • Available - will be linked when saved`,
+            label: `${vehicle.stockNumber} - ${vehicle.brand} ${vehicle.model}`,
             summary: `${vehicle.brand} ${vehicle.model}`,
             details: `${vehicle.stockNumber} • ${vehicle.year}${
               vehicle.variant ? ` • ${vehicle.variant}` : ""
             }`,
+            stockNumber: vehicle.stockNumber,
+            statusLabel: vehicle.status,
             relationship: "available" as const,
             vehicle,
           }));

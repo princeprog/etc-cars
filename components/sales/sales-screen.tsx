@@ -843,7 +843,7 @@ function SaleReviewDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto p-5 sm:max-w-4xl sm:p-6">
+      <AlertDialogContent className="max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto p-5 data-[size=default]:sm:max-w-5xl sm:max-w-5xl sm:p-6">
         <AlertDialogCancel
           aria-label="Close review"
           className="absolute right-4 top-4"

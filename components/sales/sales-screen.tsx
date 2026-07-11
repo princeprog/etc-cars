@@ -140,6 +140,8 @@ type BuyerLeadOption = {
 type SalesVehicleOption = {
   id: string;
   label: string;
+  summary: string;
+  details: string;
   relationship: "linked" | "available";
   vehicle?: Vehicle;
 };
@@ -518,9 +520,6 @@ function SalesForm({
   );
   const shouldAutoLinkSelectedVehicle =
     selectedVehicleOption?.relationship === "available";
-  const selectedBuyerLeadLabel = selectedBuyerLead
-    ? `${selectedBuyerLead.buyerName} • ${selectedBuyerLead.contactNumber} • ${selectedBuyerLead.status}`
-    : "";
 
   return (
     <FieldGroup className="gap-6">
@@ -539,17 +538,22 @@ function SalesForm({
             <FieldLabel htmlFor="saleBuyerLeadId">Buyer lead</FieldLabel>
             <div className="space-y-2">
               {selectedBuyerLead ? (
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                      Selected buyer
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {selectedBuyerLead.buyerName}
+                      </p>
+                      <Badge variant="secondary" className="shrink-0">
+                        {selectedBuyerLead.status}
+                      </Badge>
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {selectedBuyerLead.contactNumber}
+                      {selectedBuyerLead.email
+                        ? ` • ${selectedBuyerLead.email}`
+                        : ""}
                     </p>
-                    <Badge
-                      variant="outline"
-                      className="max-w-full truncate rounded-full border-emerald-200 bg-emerald-50 px-2.5 py-1 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                    >
-                      {selectedBuyerLeadLabel}
-                    </Badge>
                   </div>
                   <Button
                     type="button"
@@ -644,50 +648,79 @@ function SalesForm({
           </Field>
           <Field>
             <FieldLabel htmlFor="saleVehicleId">Vehicle</FieldLabel>
-            <Select
-              value={values.vehicleId}
-              onValueChange={(value) => updateField("vehicleId", value)}
-            >
-              <SelectTrigger
-                id="saleVehicleId"
-                disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
+            <div className="space-y-2">
+              <Select
+                value={values.vehicleId}
+                onValueChange={(value) => updateField("vehicleId", value)}
               >
-                <SelectValue
-                  placeholder={
-                    !hasSelectedBuyerLead
-                      ? "Select buyer lead first"
-                      : hasVehicleOptions
-                        ? "Select vehicle"
-                        : "No available vehicles"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {linkedVehicleOptions.length ? (
-                  <SelectGroup>
-                    <SelectLabel>Linked vehicles</SelectLabel>
-                    {linkedVehicleOptions.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ) : null}
-                {linkedVehicleOptions.length && availableVehicleOptions.length ? (
-                  <SelectMenuSeparator />
-                ) : null}
-                {availableVehicleOptions.length ? (
-                  <SelectGroup>
-                    <SelectLabel>Available vehicles</SelectLabel>
-                    {availableVehicleOptions.map((vehicle) => (
-                      <SelectItem key={vehicle.id} value={vehicle.id}>
-                        {vehicle.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ) : null}
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  id="saleVehicleId"
+                  disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
+                >
+                  <SelectValue
+                    placeholder={
+                      !hasSelectedBuyerLead
+                        ? "Select buyer lead first"
+                        : hasVehicleOptions
+                          ? "Select vehicle"
+                          : "No available vehicles"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {linkedVehicleOptions.length ? (
+                    <SelectGroup>
+                      <SelectLabel>Linked vehicles</SelectLabel>
+                      {linkedVehicleOptions.map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ) : null}
+                  {linkedVehicleOptions.length &&
+                  availableVehicleOptions.length ? (
+                    <SelectMenuSeparator />
+                  ) : null}
+                  {availableVehicleOptions.length ? (
+                    <SelectGroup>
+                      <SelectLabel>Available vehicles</SelectLabel>
+                      {availableVehicleOptions.map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ) : null}
+                </SelectContent>
+              </Select>
+              {selectedVehicleOption ? (
+                <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {selectedVehicleOption.summary}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {selectedVehicleOption.details}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        selectedVehicleOption.relationship === "linked"
+                          ? "secondary"
+                          : "outline"
+                      }
+                      className="shrink-0"
+                    >
+                      {selectedVehicleOption.relationship === "linked"
+                        ? "Linked"
+                        : "Will link"}
+                    </Badge>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </Field>
         </div>
 
@@ -1324,6 +1357,8 @@ export function SalesScreen() {
       const linkedOptions = linkedVehicles.map((vehicle) => ({
         id: vehicle.id,
         label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model} • Linked`,
+        summary: `${vehicle.brand} ${vehicle.model}`,
+        details: `${vehicle.stockNumber} • ${vehicle.year} • ${vehicle.status}`,
         relationship: "linked" as const,
         vehicle: availableVehicleById.get(vehicle.id),
       }));
@@ -1333,6 +1368,10 @@ export function SalesScreen() {
           .map((vehicle) => ({
             id: vehicle.id,
             label: `${vehicle.stockNumber} • ${vehicle.brand} ${vehicle.model} • Available - will be linked when saved`,
+            summary: `${vehicle.brand} ${vehicle.model}`,
+            details: `${vehicle.stockNumber} • ${vehicle.year}${
+              vehicle.variant ? ` • ${vehicle.variant}` : ""
+            }`,
             relationship: "available" as const,
             vehicle,
           }));

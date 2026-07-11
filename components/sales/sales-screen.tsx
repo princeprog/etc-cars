@@ -482,6 +482,8 @@ function SalesForm({
 }) {
   const buyerLeadInputRef = React.useRef<HTMLInputElement | null>(null);
   const [buyerLeadPickerOpen, setBuyerLeadPickerOpen] = React.useState(false);
+  const [buyerLeadSearchVisible, setBuyerLeadSearchVisible] =
+    React.useState(false);
 
   function updateField<K extends keyof SaleFormValues>(
     key: K,
@@ -564,14 +566,32 @@ function SalesForm({
                     onClick={() => {
                       updateField("buyerLeadId", "");
                       onBuyerLeadSearchChange("");
+                      setBuyerLeadSearchVisible(true);
                       setBuyerLeadPickerOpen(false);
-                      buyerLeadInputRef.current?.focus();
+                      window.setTimeout(() => {
+                        buyerLeadInputRef.current?.focus();
+                      }, 0);
                     }}
                   >
                     <XIcon />
                   </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="hidden shrink-0 sm:inline-flex"
+                    onClick={() => {
+                      setBuyerLeadSearchVisible(true);
+                      window.setTimeout(() => {
+                        buyerLeadInputRef.current?.focus();
+                      }, 0);
+                    }}
+                  >
+                    Change
+                  </Button>
                 </div>
               ) : null}
+              {!selectedBuyerLead || buyerLeadSearchVisible ? (
               <div className="relative">
                 <Input
                   id="saleBuyerLeadId"
@@ -626,6 +646,7 @@ function SalesForm({
                             event.preventDefault();
                             updateField("buyerLeadId", lead.value);
                             onBuyerLeadSearchChange("");
+                            setBuyerLeadSearchVisible(false);
                             setBuyerLeadPickerOpen(false);
                             buyerLeadInputRef.current?.blur();
                           }}
@@ -637,6 +658,7 @@ function SalesForm({
                   </div>
                 ) : null}
               </div>
+              ) : null}
             </div>
             <ApiErrorAlert
               title="Unable to search buyer leads"
@@ -649,6 +671,37 @@ function SalesForm({
           <Field>
             <FieldLabel htmlFor="saleVehicleId">Vehicle</FieldLabel>
             <div className="space-y-2">
+              {selectedVehicleOption ? (
+                <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {selectedVehicleOption.summary}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {selectedVehicleOption.details}
+                      </p>
+                      {shouldAutoLinkSelectedVehicle ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Will be linked to the buyer when saved.
+                        </p>
+                      ) : null}
+                    </div>
+                    <Badge
+                      variant={
+                        selectedVehicleOption.relationship === "linked"
+                          ? "secondary"
+                          : "outline"
+                      }
+                      className="shrink-0"
+                    >
+                      {selectedVehicleOption.relationship === "linked"
+                        ? "Linked"
+                        : "Will link"}
+                    </Badge>
+                  </div>
+                </div>
+              ) : null}
               <Select
                 value={values.vehicleId}
                 onValueChange={(value) => updateField("vehicleId", value)}
@@ -657,15 +710,21 @@ function SalesForm({
                   id="saleVehicleId"
                   disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
                 >
-                  <SelectValue
-                    placeholder={
-                      !hasSelectedBuyerLead
-                        ? "Select buyer lead first"
-                        : hasVehicleOptions
-                          ? "Select vehicle"
-                          : "No available vehicles"
-                    }
-                  />
+                  {selectedVehicleOption ? (
+                    <span className="truncate text-muted-foreground">
+                      Change vehicle
+                    </span>
+                  ) : (
+                    <SelectValue
+                      placeholder={
+                        !hasSelectedBuyerLead
+                          ? "Select buyer lead first"
+                          : hasVehicleOptions
+                            ? "Select vehicle"
+                            : "No available vehicles"
+                      }
+                    />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   {linkedVehicleOptions.length ? (
@@ -694,46 +753,9 @@ function SalesForm({
                   ) : null}
                 </SelectContent>
               </Select>
-              {selectedVehicleOption ? (
-                <div className="rounded-md border border-border/70 bg-background px-3 py-2 shadow-xs">
-                  <div className="flex min-w-0 items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {selectedVehicleOption.summary}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {selectedVehicleOption.details}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        selectedVehicleOption.relationship === "linked"
-                          ? "secondary"
-                          : "outline"
-                      }
-                      className="shrink-0"
-                    >
-                      {selectedVehicleOption.relationship === "linked"
-                        ? "Linked"
-                        : "Will link"}
-                    </Badge>
-                  </div>
-                </div>
-              ) : null}
             </div>
           </Field>
         </div>
-
-        {hasSelectedBuyerLead && shouldAutoLinkSelectedVehicle ? (
-          <Alert>
-            <CarFrontIcon />
-            <AlertTitle>Vehicle will be linked automatically</AlertTitle>
-            <AlertDescription>
-              This vehicle will be linked to the buyer when you save the draft
-              or finalize the sale.
-            </AlertDescription>
-          </Alert>
-        ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">
           <Field>

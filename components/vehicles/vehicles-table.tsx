@@ -300,20 +300,18 @@ export function VehiclesTable({
             <TableCell className="px-4 py-3">
               <div className="flex items-center gap-3">
                 <div className="relative size-11 shrink-0 overflow-hidden rounded-lg border border-border/70 bg-muted/30">
-                  {vehicle.photos[0] ? (
-                    <Image
-                      src={resolveApiAssetUrl(vehicle.photos[0].fileUrl)}
-                      alt={`${vehicle.brand} ${vehicle.model}`}
-                      fill
-                      unoptimized
-                      sizes="44px"
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-[10px] font-medium text-muted-foreground">
-                      N/A
-                    </div>
-                  )}
+                  <Image
+                    src={
+                      vehicle.photos[0]
+                        ? resolveApiAssetUrl(vehicle.photos[0].fileUrl)
+                        : "/default-vehicle-image.png"
+                    }
+                    alt={`${vehicle.brand} ${vehicle.model}`}
+                    fill
+                    unoptimized
+                    sizes="44px"
+                    className="object-cover"
+                  />
                 </div>
                 <div className="space-y-1">
                   <p className="font-medium text-foreground">

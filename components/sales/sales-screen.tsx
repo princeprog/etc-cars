@@ -1235,18 +1235,7 @@ export function SalesScreen() {
   }, [buyerLeadSearch]);
 
   const currentUserName = authQuery.data?.user.fullName ?? "";
-  const salesFilters = React.useMemo<SalesListFilters>(
-    () => ({
-      page,
-      pageSize: 10,
-      search: searchTerm.trim() || undefined,
-      status: statusFilter,
-      agentName: agentFilter === "mine" ? currentUserName : undefined,
-      dateRange: rangeFilter,
-    }),
-    [agentFilter, currentUserName, page, rangeFilter, searchTerm, statusFilter],
-  );
-  const salesSummaryFilters = React.useMemo<
+  const immediateSalesFilterValues = React.useMemo<
     Omit<SalesListFilters, "page" | "pageSize">
   >(
     () => ({
@@ -1257,6 +1246,30 @@ export function SalesScreen() {
     }),
     [agentFilter, currentUserName, rangeFilter, searchTerm, statusFilter],
   );
+  const [debouncedSalesFilterValues, setDebouncedSalesFilterValues] =
+    React.useState<Omit<SalesListFilters, "page" | "pageSize">>(
+      immediateSalesFilterValues,
+    );
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSalesFilterValues(immediateSalesFilterValues);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [immediateSalesFilterValues]);
+
+  const salesFilters = React.useMemo<SalesListFilters>(
+    () => ({
+      page,
+      pageSize: 10,
+      ...debouncedSalesFilterValues,
+    }),
+    [debouncedSalesFilterValues, page],
+  );
+  const salesSummaryFilters = React.useMemo<
+    Omit<SalesListFilters, "page" | "pageSize">
+  >(() => debouncedSalesFilterValues, [debouncedSalesFilterValues]);
   const salesQuery = useSalesQuery(salesFilters);
   const salesSummaryQuery = useSalesSummaryQuery(salesSummaryFilters);
   const buyerLeadSearchQuery = useSalesBuyerLeadSearchQuery(

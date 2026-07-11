@@ -1,6 +1,6 @@
 "use client"
 
-import { useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
 import { getSalesSummary } from "@/services/sales.service"
 import type { SalesListFilters } from "@/types/sales"
@@ -10,6 +10,7 @@ export function useSalesSummaryQuery(filters: Omit<SalesListFilters, "page" | "p
   return useQuery({
     queryKey: salesQueryKeys.filteredSummary(filters),
     queryFn: () => getSalesSummary(filters),
+    placeholderData: keepPreviousData,
     retry: false,
   })
 }

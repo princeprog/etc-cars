@@ -1119,6 +1119,8 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
       description: "This lead can now convert into inventory.",
     },
   ]
+  const primaryBlocker = lead.pipeline?.blockers[0] ?? null
+  const primaryWarning = lead.pipeline?.warnings[0] ?? null
 
   return (
     <div className="space-y-4">
@@ -1171,20 +1173,42 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
 
       <Card className="border-border/70 shadow-xs">
         <CardHeader className="border-b">
-          <CardTitle className="text-base">System Recommendation</CardTitle>
-          <CardDescription>Operational guidance based on inspection and costing inputs.</CardDescription>
+          <CardTitle className="text-base">Workflow Guidance</CardTitle>
+          <CardDescription>The system&apos;s current stage, next step, and any blockers for this seller lead.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
           <Alert className="border-border bg-muted/30">
             <InfoIcon />
-            <AlertTitle>{lead.recommendedAction ?? "Awaiting evaluation data"}</AlertTitle>
+            <AlertTitle>{lead.pipeline?.nextAction?.label ?? lead.recommendedAction ?? "Awaiting evaluation data"}</AlertTitle>
             <AlertDescription>
-              {lead.recommendedAction
-                ? "Use this as a guide only. Final acquisition approval should still come from staff or admin."
-                : "Complete inspection and costing assumptions so the system can surface a clearer recommendation."}
+              {lead.pipeline?.nextAction?.description ??
+                (lead.recommendedAction
+                  ? "Use this as a guide only. Final acquisition approval should still come from staff or admin."
+                  : "Complete inspection and costing assumptions so the system can surface a clearer recommendation.")}
             </AlertDescription>
           </Alert>
+          {primaryBlocker ? (
+            <Alert variant="destructive">
+              <AlertTriangleIcon />
+              <AlertTitle>{primaryBlocker.label}</AlertTitle>
+              <AlertDescription>{primaryBlocker.description}</AlertDescription>
+            </Alert>
+          ) : null}
+          {primaryWarning ? (
+            <Alert>
+              <AlertTriangleIcon />
+              <AlertTitle>{primaryWarning.label}</AlertTitle>
+              <AlertDescription>{primaryWarning.description}</AlertDescription>
+            </Alert>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border bg-background p-4">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Stage</p>
+              <p className="mt-2 text-lg font-semibold text-foreground">{lead.pipeline?.stageLabel ?? lead.status}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {lead.pipeline ? `${lead.pipeline.progressPercent}% through the acquisition workflow.` : "Pipeline stage is being derived from the current status."}
+              </p>
+            </div>
             <div className="rounded-xl border bg-background p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Inspection Score</p>
               <div className="mt-2 flex items-end gap-2">
@@ -1192,7 +1216,7 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
                 <span className="pb-1 text-sm text-muted-foreground">/100</span>
               </div>
             </div>
-            <div className="rounded-xl border bg-background p-4">
+            <div className="rounded-xl border bg-background p-4 sm:col-span-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Approval State</p>
               <p className="mt-2 text-lg font-semibold text-foreground">
                 {lead.approvedToBuyAt ? "Approved to Buy" : "Not approved"}
@@ -1208,13 +1232,13 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
       <Card className="border-border/70 shadow-xs">
         <CardHeader className="border-b">
           <CardTitle className="text-base">Conversion Readiness</CardTitle>
-          <CardDescription>How close this lead is to becoming an inventory unit.</CardDescription>
+          <CardDescription>How close this seller workflow is to becoming an inventory unit.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5 pt-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-medium text-foreground">
-                {lead.status === "Approved to Buy" ? "Ready to convert" : "Still in evaluation"}
+                {lead.status === "Approved to Buy" ? "Ready to convert" : "Still in workflow"}
               </p>
               <span className="text-sm font-medium text-muted-foreground">{readinessProgress}%</span>
             </div>
@@ -1275,7 +1299,7 @@ function SummaryRail({ lead }: { lead: SellerLead }) {
             <GaugeIcon className="mt-0.5 size-4 text-muted-foreground" />
             <div className="space-y-1">
               <p className="text-muted-foreground">Current Status</p>
-              <p className="font-medium text-foreground">{lead.status}</p>
+              <p className="font-medium text-foreground">{lead.pipeline?.stageLabel ?? lead.status}</p>
             </div>
           </div>
         </CardContent>
@@ -1321,7 +1345,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
         title="Seller Lead Evaluation"
         breadcrumbs={[
           { label: "Seller Leads", href: "/seller-leads" },
-          { label: "Evaluation" },
+          { label: "Workflow" },
         ]}
       >
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -1337,7 +1361,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
         title="Seller Lead Evaluation"
         breadcrumbs={[
           { label: "Seller Leads", href: "/seller-leads" },
-          { label: "Evaluation" },
+          { label: "Workflow" },
         ]}
       >
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -1353,7 +1377,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
         title="Seller Lead Evaluation"
         breadcrumbs={[
           { label: "Seller Leads", href: "/seller-leads" },
-          { label: "Evaluation" },
+          { label: "Workflow" },
         ]}
       >
         <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -1375,7 +1399,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
       title="Seller Lead Evaluation"
       breadcrumbs={[
         { label: "Seller Leads", href: "/seller-leads" },
-        { label: "Evaluation" },
+        { label: "Workflow" },
       ]}
     >
       <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -1384,6 +1408,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-2">
                 <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Seller Lead Evaluation</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Acquisition Workflow</p>
                 <h2 className="text-2xl font-semibold tracking-tight">{lead.sellerName}</h2>
                 <p className="text-sm text-muted-foreground">{getSellerLeadVehicleLabel(lead)}</p>
               </div>
@@ -1409,8 +1434,8 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
                 <p className="mt-1 text-lg font-semibold">{formatPercent(lead.estimatedProfitMargin)}</p>
               </div>
               <div className="rounded-xl border bg-background/80 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Recommendation</p>
-                <p className="mt-1 text-lg font-semibold">{lead.recommendedAction ?? "—"}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Next Step</p>
+                <p className="mt-1 text-lg font-semibold">{lead.pipeline?.nextAction?.label ?? lead.recommendedAction ?? "-"}</p>
               </div>
             </div>
           </div>

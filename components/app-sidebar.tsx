@@ -65,13 +65,13 @@ const data = {
       url: "/reports",
       icon: <ChartColumnIcon />,
     },
-  ],
-  adminNav: [
     {
       title: "Activity History",
       url: "/activity-history",
       icon: <ClipboardListIcon />,
     },
+  ],
+  adminNav: [
     {
       title: "Staff",
       url: "/staff",

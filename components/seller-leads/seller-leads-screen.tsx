@@ -1529,7 +1529,7 @@ export function SellerLeadsScreen() {
                 />
               </div>
             ) : leads.length ? (
-              <Table className="min-w-[1020px] border-collapse">
+              <Table className="min-w-[820px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
@@ -1540,12 +1540,6 @@ export function SellerLeadsScreen() {
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Asking
-                    </TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-                      Investment
-                    </TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-                      Stage
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Next Action
@@ -1598,19 +1592,6 @@ export function SellerLeadsScreen() {
                         </TableCell>
                         <TableCell className="px-4 py-3 font-medium tabular-nums">
                           {formatVehicleMoney(lead.askingPrice)}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 font-medium tabular-nums">
-                          {formatVehicleMoney(lead.estimatedTotalInvestment)}
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
-                            variant={getSellerLeadStatusBadgeVariant(
-                              lead.status,
-                            )}
-                          >
-                            {lead.pipeline?.stageLabel ??
-                              getSellerLeadStage(lead.status)}
-                          </Badge>
                         </TableCell>
                         <TableCell className="px-4 py-3">
                           <Button

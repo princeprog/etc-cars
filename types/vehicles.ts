@@ -132,6 +132,10 @@ export interface VehiclesResponse {
   vehicles: Vehicle[];
 }
 
+export interface VehicleModelOptionsResponse {
+  models: string[];
+}
+
 export interface VehicleTrackedCostsResponse {
   trackedCosts: VehicleTrackedCost[];
   page: number;

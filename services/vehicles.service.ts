@@ -3,6 +3,7 @@ import { apiRequest } from "@/services/api-service";
 import type {
   CreateVehiclePayload,
   UpdateVehiclePayload,
+  VehicleModelOptionsResponse,
   VehicleResponse,
   VehicleTrackedCostListFilters,
   VehicleTrackedCostPayload,
@@ -12,6 +13,7 @@ import type {
 
 export type GetVehiclesFilters = {
   status?: string;
+  model?: string;
 };
 
 export function getVehicles(filters?: GetVehiclesFilters) {
@@ -21,12 +23,22 @@ export function getVehicles(filters?: GetVehiclesFilters) {
     searchParams.set("status", filters.status);
   }
 
+  if (filters?.model) {
+    searchParams.set("model", filters.model);
+  }
+
   const queryString = searchParams.toString();
   const endpoint = queryString
     ? `${API_ENDPOINTS.vehicles.root}?${queryString}`
     : API_ENDPOINTS.vehicles.root;
 
   return apiRequest<VehiclesResponse>(endpoint);
+}
+
+export function getVehicleModelOptions() {
+  return apiRequest<VehicleModelOptionsResponse>(
+    API_ENDPOINTS.vehicles.modelOptions,
+  );
 }
 
 export function getVehicle(id: string) {

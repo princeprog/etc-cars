@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
   },
   vehicles: {
     root: "/vehicles",
+    modelOptions: "/vehicles/model-options",
     byId: (id: string) => `/vehicles/${id}`,
     trackedCosts: (id: string) => `/vehicles/${id}/tracked-costs`,
     trackedCostById: (id: string, costId: string) =>

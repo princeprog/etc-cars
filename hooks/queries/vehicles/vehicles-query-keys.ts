@@ -3,6 +3,7 @@ export const vehiclesQueryKeys = {
   lists: () => [...vehiclesQueryKeys.all, "list"] as const,
   filteredList: (filters: Record<string, string | undefined>) =>
     [...vehiclesQueryKeys.all, "list", "filtered", filters] as const,
+  modelOptions: () => [...vehiclesQueryKeys.all, "model-options"] as const,
   detail: (id: string) => [...vehiclesQueryKeys.all, "detail", id] as const,
   trackedCosts: (id: string, filters: { page?: number; pageSize?: number }) =>
     [...vehiclesQueryKeys.detail(id), "tracked-costs", filters] as const,

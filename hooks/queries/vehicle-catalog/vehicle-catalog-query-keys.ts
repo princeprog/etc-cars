@@ -1,8 +1,19 @@
 export const vehicleCatalogQueryKeys = {
   all: ["vehicle-catalog"] as const,
-  brands: () => [...vehicleCatalogQueryKeys.all, "brands"] as const,
-  models: (brandId?: string) =>
-    [...vehicleCatalogQueryKeys.all, "models", brandId ?? ""] as const,
-  variants: (modelId?: string) =>
-    [...vehicleCatalogQueryKeys.all, "variants", modelId ?? ""] as const,
+  brands: (filters?: unknown) =>
+    [...vehicleCatalogQueryKeys.all, "brands", filters ?? {}] as const,
+  models: (brandId?: string, filters?: unknown) =>
+    [
+      ...vehicleCatalogQueryKeys.all,
+      "models",
+      brandId ?? "",
+      filters ?? {},
+    ] as const,
+  variants: (modelId?: string, filters?: unknown) =>
+    [
+      ...vehicleCatalogQueryKeys.all,
+      "variants",
+      modelId ?? "",
+      filters ?? {},
+    ] as const,
 };

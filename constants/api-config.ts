@@ -44,8 +44,11 @@ export const API_ENDPOINTS = {
   },
   vehicleCatalog: {
     brands: "/vehicle-catalog/brands",
+    brandById: (id: string) => `/vehicle-catalog/brands/${id}`,
     models: "/vehicle-catalog/models",
+    modelById: (id: string) => `/vehicle-catalog/models/${id}`,
     variants: "/vehicle-catalog/variants",
+    variantById: (id: string) => `/vehicle-catalog/variants/${id}`,
   },
   uploads: {
     vehiclePhoto: "/uploads/vehicle-photos",

@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Image from "next/image"
-import Link from "next/link"
+import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +14,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import {
   BellRingIcon,
   CarFrontIcon,
@@ -23,9 +23,10 @@ import {
   HandCoinsIcon,
   LayoutDashboardIcon,
   ScanSearchIcon,
+  SettingsIcon,
   ShoppingBagIcon,
   UsersRoundIcon,
-} from "lucide-react"
+} from "lucide-react";
 
 const data = {
   navMain: [
@@ -76,19 +77,24 @@ const data = {
       url: "/staff",
       icon: <UsersRoundIcon />,
     },
+    {
+      title: "Vehicle Catalog",
+      url: "/settings/vehicle-catalog",
+      icon: <SettingsIcon />,
+    },
   ],
-}
+};
 
 export function AppSidebar({
   user,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
   user: {
-    name: string
-    email: string
-    avatar: string
-    role: "admin" | "staff"
-  }
+    name: string;
+    email: string;
+    avatar: string;
+    role: "admin" | "staff";
+  };
 }) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -134,5 +140,5 @@ export function AppSidebar({
         <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

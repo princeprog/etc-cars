@@ -7,11 +7,15 @@ import {
   createVehicleCatalogBrand,
   createVehicleCatalogModel,
   createVehicleCatalogVariant,
+  updateVehicleCatalogBrand,
+  updateVehicleCatalogModel,
+  updateVehicleCatalogVariant,
 } from "@/services/vehicle-catalog.service";
 import type {
   CreateVehicleCatalogBrandPayload,
   CreateVehicleCatalogModelPayload,
   CreateVehicleCatalogVariantPayload,
+  UpdateVehicleCatalogItemPayload,
 } from "@/types/vehicle-catalog";
 
 export function useCreateVehicleCatalogBrandMutation() {
@@ -22,7 +26,7 @@ export function useCreateVehicleCatalogBrandMutation() {
       createVehicleCatalogBrand(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: vehicleCatalogQueryKeys.brands(),
+        queryKey: vehicleCatalogQueryKeys.all,
       });
     },
   });
@@ -34,9 +38,9 @@ export function useCreateVehicleCatalogModelMutation() {
   return useMutation({
     mutationFn: (payload: CreateVehicleCatalogModelPayload) =>
       createVehicleCatalogModel(payload),
-    onSuccess: async (_data, variables) => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: vehicleCatalogQueryKeys.models(variables.brandId),
+        queryKey: vehicleCatalogQueryKeys.all,
       });
     },
   });
@@ -48,9 +52,66 @@ export function useCreateVehicleCatalogVariantMutation() {
   return useMutation({
     mutationFn: (payload: CreateVehicleCatalogVariantPayload) =>
       createVehicleCatalogVariant(payload),
-    onSuccess: async (_data, variables) => {
+    onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: vehicleCatalogQueryKeys.variants(variables.modelId),
+        queryKey: vehicleCatalogQueryKeys.all,
+      });
+    },
+  });
+}
+
+export function useUpdateVehicleCatalogBrandMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateVehicleCatalogItemPayload;
+    }) => updateVehicleCatalogBrand(id, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: vehicleCatalogQueryKeys.all,
+      });
+    },
+  });
+}
+
+export function useUpdateVehicleCatalogModelMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateVehicleCatalogItemPayload;
+    }) => updateVehicleCatalogModel(id, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: vehicleCatalogQueryKeys.all,
+      });
+    },
+  });
+}
+
+export function useUpdateVehicleCatalogVariantMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: UpdateVehicleCatalogItemPayload;
+    }) => updateVehicleCatalogVariant(id, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: vehicleCatalogQueryKeys.all,
       });
     },
   });

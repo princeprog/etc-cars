@@ -1,10 +1,10 @@
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 if (!apiBaseUrl) {
-  throw new Error("NEXT_PUBLIC_API_BASE_URL is required")
+  throw new Error("NEXT_PUBLIC_API_BASE_URL is required");
 }
 
-export const API_BASE_URL = apiBaseUrl
+export const API_BASE_URL = apiBaseUrl;
 
 export const API_ENDPOINTS = {
   auth: {
@@ -42,6 +42,11 @@ export const API_ENDPOINTS = {
     trackedCostById: (id: string, costId: string) =>
       `/vehicles/${id}/tracked-costs/${costId}`,
   },
+  vehicleCatalog: {
+    brands: "/vehicle-catalog/brands",
+    models: "/vehicle-catalog/models",
+    variants: "/vehicle-catalog/variants",
+  },
   uploads: {
     vehiclePhoto: "/uploads/vehicle-photos",
   },
@@ -74,16 +79,16 @@ export const API_ENDPOINTS = {
     profitability: "/reports/profitability",
     export: (domain: string) => `/reports/${domain}/export`,
   },
-} as const
+} as const;
 
 export function buildApiUrl(path: string) {
-  return new URL(path, API_BASE_URL).toString()
+  return new URL(path, API_BASE_URL).toString();
 }
 
 export function resolveApiAssetUrl(pathOrUrl: string) {
   if (/^https?:\/\//i.test(pathOrUrl)) {
-    return pathOrUrl
+    return pathOrUrl;
   }
 
-  return buildApiUrl(pathOrUrl)
+  return buildApiUrl(pathOrUrl);
 }

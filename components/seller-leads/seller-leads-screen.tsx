@@ -719,6 +719,7 @@ function SellerLeadForm({
               id="sellerName"
               value={values.sellerName}
               onChange={(e) => updateField("sellerName", e.target.value)}
+              placeholder="Juan Dela Cruz"
               required
             />
           </Field>
@@ -728,6 +729,7 @@ function SellerLeadForm({
               id="contactNumber"
               value={values.contactNumber}
               onChange={(e) => updateField("contactNumber", e.target.value)}
+              placeholder="0917 123 4567"
               required
             />
           </Field>
@@ -740,6 +742,7 @@ function SellerLeadForm({
               type="email"
               value={values.email}
               onChange={(e) => updateField("email", e.target.value)}
+              placeholder="seller@example.com"
             />
           </Field>
           <Field>
@@ -748,6 +751,7 @@ function SellerLeadForm({
               id="facebookName"
               value={values.facebookName}
               onChange={(e) => updateField("facebookName", e.target.value)}
+              placeholder="Juan Dela Cruz"
             />
           </Field>
         </div>
@@ -832,6 +836,7 @@ function SellerLeadForm({
               type="number"
               value={values.vehicleYear}
               onChange={(e) => updateField("vehicleYear", e.target.value)}
+              placeholder="2020"
             />
           </Field>
           <Field>
@@ -872,6 +877,7 @@ function SellerLeadForm({
               id="askingPrice"
               value={values.askingPrice}
               onChange={(e) => updateField("askingPrice", e.target.value)}
+              placeholder="850000"
             />
           </Field>
         </div>
@@ -895,6 +901,7 @@ function SellerLeadForm({
               id="inquirySource"
               value={values.inquirySource}
               onChange={(e) => updateField("inquirySource", e.target.value)}
+              placeholder="Facebook Marketplace"
             />
           </Field>
           <Field>
@@ -903,6 +910,7 @@ function SellerLeadForm({
               id="region"
               value={values.region}
               onChange={(e) => updateField("region", e.target.value)}
+              placeholder="Metro Manila"
             />
           </Field>
         </div>
@@ -933,6 +941,7 @@ function SellerLeadForm({
             rows={5}
             value={values.notes}
             onChange={(e) => updateField("notes", e.target.value)}
+            placeholder="Seller mentioned the unit is casa maintained, complete papers, and available for inspection this week."
           />
         </Field>
       </section>

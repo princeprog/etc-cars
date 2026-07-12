@@ -796,19 +796,8 @@ function TrackedCostsPreviewCard({ vehicle }: { vehicle: Vehicle }) {
 
   return (
     <Card className="border-border/70 shadow-xs">
-      <CardHeader className="flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>Tracked Costs</CardTitle>
-        <CardAction className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/vehicles/${vehicle.id}/costs`}>View All Costs</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href={`/vehicles/${vehicle.id}/costs`}>
-              <PlusCircleIcon data-icon="inline-start" />
-              Track Costs
-            </Link>
-          </Button>
-        </CardAction>
       </CardHeader>
       <CardContent className="p-0">
         {costs.length ? (

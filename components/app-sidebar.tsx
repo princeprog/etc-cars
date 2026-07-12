@@ -78,8 +78,8 @@ const data = {
       icon: <UsersRoundIcon />,
     },
     {
-      title: "Vehicle Catalog",
-      url: "/settings/vehicle-catalog",
+      title: "Settings",
+      url: "/settings",
       icon: <SettingsIcon />,
     },
   ],

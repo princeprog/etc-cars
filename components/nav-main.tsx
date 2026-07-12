@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import {
   SidebarGroup,
@@ -9,19 +10,21 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function NavMain({
   label,
   items,
 }: {
-  label?: string
+  label?: string;
   items: {
-    title: string
-    url: string
-    icon?: React.ReactNode
-  }[]
+    title: string;
+    url: string;
+    icon?: React.ReactNode;
+  }[];
 }) {
+  const pathname = usePathname();
+
   return (
     <SidebarGroup>
       {label ? <SidebarGroupLabel>{label}</SidebarGroupLabel> : null}
@@ -29,7 +32,11 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
+              <SidebarMenuButton
+                asChild
+                tooltip={item.title}
+                isActive={isActiveNavItem(pathname, item.url)}
+              >
                 <Link href={item.url}>
                   {item.icon}
                   <span>{item.title}</span>
@@ -40,5 +47,13 @@ export function NavMain({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
+}
+
+function isActiveNavItem(pathname: string, url: string) {
+  if (url === "/dashboard") {
+    return pathname === url;
+  }
+
+  return pathname === url || pathname.startsWith(`${url}/`);
 }

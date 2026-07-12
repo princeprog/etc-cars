@@ -5,15 +5,9 @@ import Link from "next/link"
 import { format } from "date-fns"
 import {
   AlertTriangleIcon,
-  CheckCircle2Icon,
-  CircleIcon,
-  FileTextIcon,
-  GaugeIcon,
   InfoIcon,
-  MapPinIcon,
   MessageSquareTextIcon,
   SparklesIcon,
-  UserRoundIcon,
   WrenchIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -787,226 +781,6 @@ function DecisionTab({
   )
 }
 
-function SummaryRail({ lead }: { lead: SellerLead }) {
-  const inspectionScore = getInspectionScore(getInspectionFormValues(lead).inspectionFindings)
-  const readinessProgress = [
-    Boolean(lead.inspectionCompletedAt),
-    Boolean(lead.targetBuyPrice && lead.expectedResalePrice),
-    Boolean(lead.decision),
-    lead.status === "Approved to Buy",
-  ].filter(Boolean).length * 25
-
-  const readinessItems = [
-    {
-      complete: Boolean(lead.inspectionCompletedAt),
-      title: "Inspection recorded",
-      description: "Appraisal evidence is documented.",
-    },
-    {
-      complete: Boolean(lead.targetBuyPrice && lead.expectedResalePrice),
-      title: "Valuation set",
-      description: "Buy and resale assumptions are complete.",
-    },
-    {
-      complete: Boolean(lead.decision),
-      title: "Decision selected",
-      description: "A clear acquisition direction is on file.",
-    },
-    {
-      complete: lead.status === "Approved to Buy",
-      title: "Approved to buy",
-      description: "This lead can now convert into inventory.",
-    },
-  ]
-  const primaryBlocker = lead.pipeline?.blockers[0] ?? null
-  const primaryWarning = lead.pipeline?.warnings[0] ?? null
-
-  return (
-    <div className="space-y-4">
-      <Card className="border-border/70 shadow-xs">
-        <CardHeader className="border-b">
-          <CardTitle className="text-base">Financial Summary</CardTitle>
-          <CardDescription>Acquisition economics and current buy-side posture.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6">
-          <div className="space-y-1">
-            <p className="text-lg font-semibold text-foreground">{lead.sellerName}</p>
-            <p className="text-sm text-muted-foreground">{getSellerLeadVehicleLabel(lead)}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant={getStatusBadgeVariant(lead.status)}>{lead.status}</Badge>
-            <Badge variant={getDecisionBadgeVariant(lead.decision)}>{lead.decision ?? "Pending"}</Badge>
-            <Badge variant={lead.approvedToBuyAt ? "secondary" : "outline"}>
-              {lead.approvedToBuyAt ? "Approved" : "Not approved"}
-            </Badge>
-          </div>
-          <Separator />
-          <div className="space-y-3 text-sm">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Seller asking</span>
-              <span className="font-medium">{formatVehicleMoney(lead.askingPrice)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Target buy</span>
-              <span className="font-medium">{formatVehicleMoney(lead.targetBuyPrice)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Expected resale</span>
-              <span className="font-medium">{formatVehicleMoney(lead.expectedResalePrice)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Estimated costs</span>
-              <span className="font-medium">{formatVehicleMoney(lead.estimatedCostsTotal)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Total investment</span>
-              <span className="font-medium">{formatVehicleMoney(lead.estimatedTotalInvestment)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">Profit margin</span>
-              <span className="font-medium">{formatPercent(lead.estimatedProfitMargin)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/70 shadow-xs">
-        <CardHeader className="border-b">
-          <CardTitle className="text-base">Workflow Guidance</CardTitle>
-          <CardDescription>The system&apos;s current stage, next step, and any blockers for this seller lead.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6">
-          <Alert className="border-border bg-muted/30">
-            <InfoIcon />
-            <AlertTitle>{lead.pipeline?.nextAction?.label ?? lead.recommendedAction ?? "Awaiting evaluation data"}</AlertTitle>
-            <AlertDescription>
-              {lead.pipeline?.nextAction?.description ??
-                (lead.recommendedAction
-                  ? "Use this as a guide only. Final acquisition approval should still come from staff or admin."
-                  : "Complete inspection and costing assumptions so the system can surface a clearer recommendation.")}
-            </AlertDescription>
-          </Alert>
-          {primaryBlocker ? (
-            <Alert variant="destructive">
-              <AlertTriangleIcon />
-              <AlertTitle>{primaryBlocker.label}</AlertTitle>
-              <AlertDescription>{primaryBlocker.description}</AlertDescription>
-            </Alert>
-          ) : null}
-          {primaryWarning ? (
-            <Alert>
-              <AlertTriangleIcon />
-              <AlertTitle>{primaryWarning.label}</AlertTitle>
-              <AlertDescription>{primaryWarning.description}</AlertDescription>
-            </Alert>
-          ) : null}
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border bg-background p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Stage</p>
-              <p className="mt-2 text-lg font-semibold text-foreground">{lead.pipeline?.stageLabel ?? lead.status}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {lead.pipeline ? `${lead.pipeline.progressPercent}% through the acquisition workflow.` : "Pipeline stage is being derived from the current status."}
-              </p>
-            </div>
-            <div className="rounded-xl border bg-background p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Inspection Score</p>
-              <div className="mt-2 flex items-end gap-2">
-                <span className="text-3xl font-semibold text-foreground">{inspectionScore}</span>
-                <span className="pb-1 text-sm text-muted-foreground">/100</span>
-              </div>
-            </div>
-            <div className="rounded-xl border bg-background p-4 sm:col-span-2">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Approval State</p>
-              <p className="mt-2 text-lg font-semibold text-foreground">
-                {lead.approvedToBuyAt ? "Approved to Buy" : "Not approved"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {lead.approvedToBuyAt ? format(new Date(lead.approvedToBuyAt), "MMM d, yyyy h:mm a") : "Approval is still pending."}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/70 shadow-xs">
-        <CardHeader className="border-b">
-          <CardTitle className="text-base">Conversion Readiness</CardTitle>
-          <CardDescription>How close this seller workflow is to becoming an inventory unit.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5 pt-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-foreground">
-                {lead.status === "Approved to Buy" ? "Ready to convert" : "Still in workflow"}
-              </p>
-              <span className="text-sm font-medium text-muted-foreground">{readinessProgress}%</span>
-            </div>
-            <Progress value={readinessProgress} />
-          </div>
-          {readinessItems.map((item, index) => (
-            <React.Fragment key={item.title}>
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 shrink-0 text-muted-foreground">
-                  {item.complete ? (
-                    <CheckCircle2Icon className="size-4 text-emerald-600" />
-                  ) : (
-                    <CircleIcon className="size-4" />
-                  )}
-                </span>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">{item.title}</p>
-                  <p className="text-xs text-muted-foreground">{item.description}</p>
-                </div>
-              </div>
-              {index < readinessItems.length - 1 ? <Separator /> : null}
-            </React.Fragment>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/70 shadow-xs">
-        <CardHeader className="border-b">
-          <CardTitle className="text-base">Lead Information</CardTitle>
-          <CardDescription>Reference details for acquisition coordination.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6 text-sm">
-          <div className="flex items-start gap-3">
-            <UserRoundIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Seller Contact</p>
-              <p className="font-medium text-foreground">{lead.contactNumber}</p>
-            </div>
-          </div>
-          <Separator />
-          <div className="flex items-start gap-3">
-            <MapPinIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Region</p>
-              <p className="font-medium text-foreground">{lead.region ?? "Not set"}</p>
-            </div>
-          </div>
-          <Separator />
-          <div className="flex items-start gap-3">
-            <FileTextIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Inquiry Source</p>
-              <p className="font-medium text-foreground">{lead.inquirySource ?? "Not set"}</p>
-            </div>
-          </div>
-          <Separator />
-          <div className="flex items-start gap-3">
-            <GaugeIcon className="mt-0.5 size-4 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-muted-foreground">Current Status</p>
-              <p className="font-medium text-foreground">{lead.pipeline?.stageLabel ?? lead.status}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-
 export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
   const leadQuery = useSellerLeadQuery(leadId)
   const updateMutation = useUpdateSellerLeadMutation()
@@ -1137,7 +911,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
           </div>
         </section>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
+        <div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-6">
             <TabsList variant="line" className="w-full justify-start overflow-x-auto rounded-xl border border-border/70 bg-background p-1">
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -1176,8 +950,6 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
               />
             </TabsContent>
           </Tabs>
-
-          <SummaryRail lead={lead} />
         </div>
       </div>
     </AuthenticatedAppShell>

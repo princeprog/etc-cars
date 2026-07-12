@@ -10,6 +10,12 @@ interface ApiRequestOptions<TBody> {
   retryOnUnauthorized?: boolean
 }
 
+interface AuthenticatedFetchOptions extends RequestInit {
+  retryOnUnauthorized?: boolean
+}
+
+let refreshPromise: Promise<boolean> | null = null
+
 async function parseResponseBody<TResponse>(response: Response): Promise<TResponse | undefined> {
   const contentType = response.headers.get("content-type")
 
@@ -29,13 +35,66 @@ async function createApiError(response: Response) {
   return new AppApiError(message, response.status, payload)
 }
 
-async function attemptTokenRefresh() {
-  const response = await fetch(buildApiUrl(API_ENDPOINTS.auth.refresh), {
-    method: "POST",
-    credentials: "include",
-  })
+function redirectToLogin() {
+  if (typeof window === "undefined") {
+    return
+  }
 
-  return response.ok
+  if (window.location.pathname !== "/login") {
+    window.location.replace("/login")
+  }
+}
+
+async function attemptTokenRefresh() {
+  if (!refreshPromise) {
+    refreshPromise = fetch(buildApiUrl(API_ENDPOINTS.auth.refresh), {
+      method: "POST",
+      credentials: "include",
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+
+  return refreshPromise
+}
+
+export async function authenticatedFetch(
+  path: string,
+  options: AuthenticatedFetchOptions = {},
+) {
+  const { retryOnUnauthorized = true, ...fetchOptions } = options
+
+  const executeRequest = () =>
+    fetch(buildApiUrl(path), {
+      ...fetchOptions,
+      credentials: "include",
+    })
+
+  let response = await executeRequest()
+
+  if (
+    response.status === 401 &&
+    retryOnUnauthorized &&
+    path !== API_ENDPOINTS.auth.refresh &&
+    path !== API_ENDPOINTS.auth.login
+  ) {
+    const refreshed = await attemptTokenRefresh()
+
+    if (refreshed) {
+      response = await executeRequest()
+    } else {
+      redirectToLogin()
+    }
+  }
+
+  if (response.status === 401) {
+    redirectToLogin()
+  }
+
+  return response
 }
 
 export async function apiRequest<TResponse, TBody = undefined>(
@@ -56,33 +115,17 @@ export async function apiRequest<TResponse, TBody = undefined>(
     requestHeaders.set("Content-Type", "application/json")
   }
 
-  const executeRequest = () =>
-    fetch(buildApiUrl(path), {
-      method,
-      credentials: "include",
-      headers: requestHeaders,
-      body:
-        body === undefined
-          ? undefined
-          : isFormData
-            ? (body as FormData)
-            : JSON.stringify(body),
-    })
-
-  let response = await executeRequest()
-
-  if (
-    response.status === 401 &&
-    retryOnUnauthorized &&
-    path !== API_ENDPOINTS.auth.refresh &&
-    path !== API_ENDPOINTS.auth.login
-  ) {
-    const refreshed = await attemptTokenRefresh()
-
-    if (refreshed) {
-      response = await executeRequest()
-    }
-  }
+  const response = await authenticatedFetch(path, {
+    method,
+    headers: requestHeaders,
+    retryOnUnauthorized,
+    body:
+      body === undefined
+        ? undefined
+        : isFormData
+          ? (body as FormData)
+          : JSON.stringify(body),
+  })
 
   if (!response.ok) {
     throw await createApiError(response)

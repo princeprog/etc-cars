@@ -1,5 +1,5 @@
-import { API_ENDPOINTS, buildApiUrl } from "@/constants/api-config"
-import { apiRequest } from "@/services/api-service"
+import { API_ENDPOINTS } from "@/constants/api-config"
+import { apiRequest, authenticatedFetch } from "@/services/api-service"
 import type { ActivityEntityType, ActivityHistoryResponse } from "@/types/activity-history"
 import type {
   ActivityHistoryListFilters,
@@ -39,9 +39,7 @@ export async function exportActivityHistory(filters?: ActivityHistoryListFilters
     ? `${API_ENDPOINTS.activityHistory.export}?${queryString}`
     : API_ENDPOINTS.activityHistory.export
 
-  const response = await fetch(buildApiUrl(endpoint), {
-    credentials: "include",
-  })
+  const response = await authenticatedFetch(endpoint)
 
   if (!response.ok) {
     throw new Error("Unable to export activity logs")

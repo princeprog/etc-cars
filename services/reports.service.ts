@@ -1,5 +1,5 @@
-import { API_ENDPOINTS, buildApiUrl } from "@/constants/api-config"
-import { apiRequest } from "@/services/api-service"
+import { API_ENDPOINTS } from "@/constants/api-config"
+import { apiRequest, authenticatedFetch } from "@/services/api-service"
 import { AppApiError } from "@/types/api"
 import type {
   InventoryReportResponse,
@@ -58,15 +58,6 @@ export function getProfitabilityReport(filters: ReportFilters = {}) {
   )
 }
 
-async function attemptTokenRefresh() {
-  const response = await fetch(buildApiUrl(API_ENDPOINTS.auth.refresh), {
-    method: "POST",
-    credentials: "include",
-  })
-
-  return response.ok
-}
-
 /**
  * Download a report CSV. The export endpoint streams a file (not JSON), so we
  * fetch it directly — preserving the same cookie auth and 401-refresh behaviour
@@ -83,20 +74,9 @@ export async function downloadReportCsv(
   params.set("dataset", dataset)
   const path = withQuery(API_ENDPOINTS.reports.export(domain), params)
 
-  const executeRequest = () =>
-    fetch(buildApiUrl(path), {
-      method: "GET",
-      credentials: "include",
-    })
-
-  let response = await executeRequest()
-
-  if (response.status === 401) {
-    const refreshed = await attemptTokenRefresh()
-    if (refreshed) {
-      response = await executeRequest()
-    }
-  }
+  const response = await authenticatedFetch(path, {
+    method: "GET",
+  })
 
   if (!response.ok) {
     throw new AppApiError(

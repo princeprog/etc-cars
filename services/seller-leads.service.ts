@@ -2,7 +2,6 @@ import { API_ENDPOINTS } from "@/constants/api-config"
 import { apiRequest } from "@/services/api-service"
 import type {
   ConvertSellerLeadPayload,
-  SellerLeadEstimatedCostPayload,
   SellerLeadResponse,
   SellerLeadsResponse,
   SellerLeadListFilters,
@@ -56,25 +55,6 @@ export function convertSellerLead(id: string, payload: ConvertSellerLeadPayload)
     {
       method: "POST",
       body: payload,
-    },
-  )
-}
-
-export function createSellerLeadEstimatedCost(id: string, payload: SellerLeadEstimatedCostPayload) {
-  return apiRequest<SellerLeadResponse, SellerLeadEstimatedCostPayload>(
-    API_ENDPOINTS.sellerLeads.estimatedCosts(id),
-    {
-      method: "POST",
-      body: payload,
-    },
-  )
-}
-
-export function deleteSellerLeadEstimatedCost(id: string, costId: string) {
-  return apiRequest<SellerLeadResponse>(
-    API_ENDPOINTS.sellerLeads.estimatedCostById(id, costId),
-    {
-      method: "DELETE",
     },
   )
 }

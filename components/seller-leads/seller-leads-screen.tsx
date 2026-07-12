@@ -13,7 +13,6 @@ import {
   PlusIcon,
   SearchIcon,
   ShuffleIcon,
-  Trash2Icon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,7 +57,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   NativeSelect,
   NativeSelectOption,
@@ -91,10 +89,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation";
 import { useCreateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-create-seller-lead-mutation";
-import {
-  useCreateSellerLeadEstimatedCostMutation,
-  useDeleteSellerLeadEstimatedCostMutation,
-} from "@/hooks/mutations/seller-leads/use-seller-lead-estimated-cost-mutations";
 import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation";
 import {
   useCreateVehicleCatalogBrandMutation,
@@ -111,13 +105,11 @@ import {
 import { getApiErrorMessage } from "@/types/api";
 import {
   SELLER_LEAD_DECISIONS,
-  SELLER_LEAD_ESTIMATED_COST_CATEGORIES,
   SELLER_LEAD_INSPECTION_RATINGS,
   SELLER_LEAD_STATUSES,
   type CreateSellerLeadPayload,
   type SellerLead,
   type SellerLeadDecision,
-  type SellerLeadEstimatedCostCategory,
   type SellerLeadInspectionFindings,
   type SellerLeadInspectionRating,
   type SellerLeadListFilters,
@@ -163,9 +155,6 @@ type SellerLeadFormValues = {
   status: SellerLeadStatus;
   inspectionCompletedAt: string;
   inspectionNotes: string;
-  targetBuyPrice: string;
-  expectedResalePrice: string;
-  targetProfitAmount: string;
   decision: SellerLeadDecision | "";
   decisionNote: string;
   inspectionFindings: Record<
@@ -212,9 +201,6 @@ function getEmptySellerLeadFormValues(): SellerLeadFormValues {
     status: "New Inquiry",
     inspectionCompletedAt: "",
     inspectionNotes: "",
-    targetBuyPrice: "",
-    expectedResalePrice: "",
-    targetProfitAmount: "",
     decision: "",
     decisionNote: "",
     inspectionFindings: getEmptyInspectionFindings(),
@@ -260,9 +246,6 @@ export function getSellerLeadFormValues(
       ? lead.inspectionCompletedAt.slice(0, 16)
       : "",
     inspectionNotes: lead.inspectionNotes ?? "",
-    targetBuyPrice: lead.targetBuyPrice ?? "",
-    expectedResalePrice: lead.expectedResalePrice ?? "",
-    targetProfitAmount: lead.targetProfitAmount ?? "",
     decision: lead.decision ?? "",
     decisionNote: lead.decisionNote ?? "",
     inspectionFindings: mapInspectionFindings(lead.inspectionFindings),
@@ -327,9 +310,6 @@ export function parseUpdateSellerLeadPayload(
       : null,
     inspectionNotes: values.inspectionNotes || null,
     inspectionFindings: toInspectionFindingsPayload(values.inspectionFindings),
-    targetBuyPrice: values.targetBuyPrice || null,
-    expectedResalePrice: values.expectedResalePrice || null,
-    targetProfitAmount: values.targetProfitAmount || null,
     decision: values.decision || null,
     decisionNote: values.decisionNote || null,
   };
@@ -356,8 +336,7 @@ function buildConvertVehicleHref(lead: SellerLead) {
 
   if (lead.vehicleYear) params.set("vehicleYear", String(lead.vehicleYear));
   if (lead.vehicleVariant) params.set("vehicleVariant", lead.vehicleVariant);
-  if (lead.targetBuyPrice ?? lead.askingPrice)
-    params.set("askingPrice", lead.targetBuyPrice ?? lead.askingPrice ?? "");
+  if (lead.askingPrice) params.set("askingPrice", lead.askingPrice);
   if (lead.region) params.set("region", lead.region);
   if (lead.notes) params.set("notes", lead.notes);
 
@@ -412,9 +391,7 @@ function getSellerLeadNextAction(lead: SellerLead) {
     return "Convert to vehicle";
   }
 
-  return lead.recommendedAction
-    ? `${lead.recommendedAction} with seller`
-    : "Review acquisition economics";
+  return "Review inspection and decide";
 }
 
 function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
@@ -536,10 +513,6 @@ function getSellerLeadWarning(lead: SellerLead) {
 
   if (isSellerLeadStale(lead)) {
     return "This seller lead has gone stale and should be reviewed before the opportunity cools off.";
-  }
-
-  if (lead.recommendedAction === "Walk Away") {
-    return "The current economics suggest walking away unless new information changes the deal.";
   }
 
   return null;
@@ -985,46 +958,11 @@ export function AcquisitionEvaluationForm({
       <section className="space-y-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-foreground">
-            Pricing & Decision
+            Decision
           </h3>
           <p className="text-sm text-muted-foreground">
-            Record the target buy number, expected resale, and the current
-            acquisition decision.
+            Record the current acquisition direction after inspection.
           </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <Field>
-            <FieldLabel htmlFor="targetBuyPrice">Target buy price</FieldLabel>
-            <Input
-              id="targetBuyPrice"
-              value={values.targetBuyPrice}
-              onChange={(e) => updateField("targetBuyPrice", e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="expectedResalePrice">
-              Expected resale price
-            </FieldLabel>
-            <Input
-              id="expectedResalePrice"
-              value={values.expectedResalePrice}
-              onChange={(e) =>
-                updateField("expectedResalePrice", e.target.value)
-              }
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="targetProfitAmount">
-              Target profit amount
-            </FieldLabel>
-            <Input
-              id="targetProfitAmount"
-              value={values.targetProfitAmount}
-              onChange={(e) =>
-                updateField("targetProfitAmount", e.target.value)
-              }
-            />
-          </Field>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
@@ -1093,7 +1031,7 @@ export function AcquisitionEvaluationForm({
             Inspection Checklist
           </h3>
           <p className="text-sm text-muted-foreground">
-            Give each system a condition rating and short note so the costing
+            Give each system a condition rating and short note so the review
             discussion has real inspection context.
           </p>
         </div>
@@ -1133,199 +1071,19 @@ export function AcquisitionEvaluationForm({
   );
 }
 
-export function EstimatedCostsCard({
-  leadId,
-  lead,
-}: {
-  leadId: string;
-  lead: SellerLead;
-}) {
-  const createMutation = useCreateSellerLeadEstimatedCostMutation();
-  const deleteMutation = useDeleteSellerLeadEstimatedCostMutation();
-  const [category, setCategory] =
-    React.useState<SellerLeadEstimatedCostCategory>("repair");
-  const [amount, setAmount] = React.useState("");
-  const [note, setNote] = React.useState("");
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    await createMutation.mutateAsync(
-      { id: leadId, payload: { category, amount, note } },
-      {
-        onSuccess: () => {
-          setAmount("");
-          setNote("");
-          toast.success("Estimated cost added");
-        },
-      },
-    );
-  }
-
-  async function handleDelete(costId: string) {
-    await deleteMutation.mutateAsync(
-      { id: leadId, costId },
-      {
-        onSuccess: () => toast.success("Estimated cost removed"),
-      },
-    );
-  }
-
-  return (
-    <Card className="border-border/70 shadow-xs">
-      <CardHeader className="border-b">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <CardTitle className="text-base">Estimated Costs</CardTitle>
-            <CardDescription>
-              Pre-purchase work and acquisition costs recorded during
-              evaluation.
-            </CardDescription>
-          </div>
-          <div className="text-right">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-              Total
-            </p>
-            <p className="text-lg font-semibold tabular-nums">
-              {formatVehicleMoney(lead.estimatedCostsTotal)}
-            </p>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5 pt-6">
-        <ApiErrorAlert
-          title="Unable to update estimated costs"
-          message={getApiErrorMessage(
-            createMutation.error ?? deleteMutation.error,
-            "",
-          )}
-        />
-
-        {lead.estimatedCosts.length > 0 ? (
-          <div className="space-y-3">
-            {lead.estimatedCosts.map((cost) => (
-              <div
-                key={cost.id}
-                className="flex items-start justify-between gap-4 rounded-lg border bg-muted/20 px-4 py-3"
-              >
-                <div className="space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium capitalize">
-                      {cost.category}
-                    </span>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {formatVehicleMoney(cost.amount)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{cost.note}</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  disabled={deleteMutation.isPending}
-                  onClick={() => void handleDelete(cost.id)}
-                >
-                  <Trash2Icon />
-                </Button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
-            No estimated costs recorded yet.
-          </div>
-        )}
-
-        <Separator />
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="estimatedCostCategory">Category</Label>
-              <NativeSelect
-                id="estimatedCostCategory"
-                value={category}
-                onChange={(event) =>
-                  setCategory(
-                    event.target.value as SellerLeadEstimatedCostCategory,
-                  )
-                }
-              >
-                {SELLER_LEAD_ESTIMATED_COST_CATEGORIES.map((option) => (
-                  <NativeSelectOption key={option} value={option}>
-                    {option.charAt(0).toUpperCase() + option.slice(1)}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="estimatedCostAmount">Amount</Label>
-              <Input
-                id="estimatedCostAmount"
-                value={amount}
-                onChange={(event) => setAmount(event.target.value)}
-                required
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="estimatedCostNote">Note</Label>
-            <Textarea
-              id="estimatedCostNote"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              rows={3}
-              required
-            />
-          </div>
-          <SubmitButton
-            pending={createMutation.isPending}
-            pendingLabel="Adding estimated cost"
-          >
-            <PlusIcon />
-            Add Estimated Cost
-          </SubmitButton>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
 function AcquisitionSummaryCard({ lead }: { lead: SellerLead }) {
   const rows = [
     { label: "Seller asking", value: formatVehicleMoney(lead.askingPrice) },
-    { label: "Target buy", value: formatVehicleMoney(lead.targetBuyPrice) },
-    {
-      label: "Expected resale",
-      value: formatVehicleMoney(lead.expectedResalePrice),
-    },
-    {
-      label: "Estimated costs",
-      value: formatVehicleMoney(lead.estimatedCostsTotal),
-    },
-    {
-      label: "Total investment",
-      value: formatVehicleMoney(lead.estimatedTotalInvestment),
-    },
-    {
-      label: "Gross profit",
-      value: formatVehicleMoney(lead.estimatedGrossProfit),
-    },
-    {
-      label: "Profit margin",
-      value: formatPercent(lead.estimatedProfitMargin),
-    },
-    { label: "Recommendation", value: lead.recommendedAction ?? "—" },
+    { label: "Status", value: lead.status },
+    { label: "Decision", value: lead.decision ?? "Pending" },
   ];
 
   return (
     <Card className="border-border/70 shadow-xs">
       <CardHeader className="border-b">
-        <CardTitle className="text-base">Acquisition Summary</CardTitle>
+        <CardTitle className="text-base">Review Summary</CardTitle>
         <CardDescription>
-          Live evaluation economics based on the current inspection and
-          estimated costs.
+          Current seller asking price, workflow status, and decision state.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 pt-6">
@@ -1842,12 +1600,6 @@ export function SellerLeadsScreen() {
                             Decision
                           </span>
                           <span>{viewLead.decision ?? "Pending"}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">
-                            Recommendation
-                          </span>
-                          <span>{viewLead.recommendedAction ?? "—"}</span>
                         </div>
                       </CardContent>
                     </Card>

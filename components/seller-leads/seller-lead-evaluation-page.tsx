@@ -5,7 +5,6 @@ import Link from "next/link"
 import { format } from "date-fns"
 import {
   AlertTriangleIcon,
-  InfoIcon,
   MessageSquareTextIcon,
   SparklesIcon,
   WrenchIcon,
@@ -21,9 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -33,9 +30,7 @@ import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-
 import { useSellerLeadQuery } from "@/hooks/queries/seller-leads/use-seller-lead-query"
 import { getApiErrorMessage } from "@/types/api"
 import {
-  SELLER_LEAD_DECISIONS,
   SELLER_LEAD_INSPECTION_RATINGS,
-  SELLER_LEAD_STATUSES,
   type SellerLead,
   type SellerLeadDecision,
   type SellerLeadInspectionFindings,
@@ -163,23 +158,6 @@ function toInspectionFindingsPayload(values: InspectionFormValues["inspectionFin
   )
 }
 
-function buildOverviewPayload(values: OverviewFormValues): UpdateSellerLeadPayload {
-  return {
-    sellerName: values.sellerName,
-    contactNumber: values.contactNumber,
-    email: values.email || null,
-    facebookName: values.facebookName || null,
-    inquirySource: values.inquirySource || null,
-    vehicleBrand: values.vehicleBrand,
-    vehicleModel: values.vehicleModel,
-    vehicleYear: values.vehicleYear ? Number(values.vehicleYear) : null,
-    vehicleVariant: values.vehicleVariant || null,
-    askingPrice: values.askingPrice || null,
-    region: values.region || null,
-    notes: values.notes || null,
-  }
-}
-
 function buildInspectionPayload(values: InspectionFormValues): UpdateSellerLeadPayload {
   return {
     inspectionCompletedAt: values.inspectionCompletedAt ? new Date(values.inspectionCompletedAt).toISOString() : null,
@@ -196,8 +174,20 @@ function buildDecisionPayload(values: DecisionFormValues): UpdateSellerLeadPaylo
   }
 }
 
-function formatPercent(value: string | null) {
-  return value ? `${value}%` : "—"
+function getDefaultWorkflowTab(lead: SellerLead) {
+  if (["Evaluated", "Negotiating", "Approved to Buy", "Purchased", "Rejected"].includes(lead.status)) {
+    return "decision"
+  }
+
+  return "inspection"
+}
+
+function getStatusAfterInspection(status: SellerLeadStatus): SellerLeadStatus {
+  if (["Approved to Buy", "Purchased", "Rejected"].includes(status)) {
+    return status
+  }
+
+  return "Evaluated"
 }
 
 function formatInspectionLabel(key: InspectionKey) {
@@ -252,7 +242,7 @@ function getInspectionReadiness(findings: InspectionFormValues["inspectionFindin
   if (poor.length > 0) {
     return {
       label: "Needs attention",
-      description: "Critical issues found. Review before costing.",
+      description: "Critical issues found. Review before deciding.",
       progress: 38,
     }
   }
@@ -260,14 +250,14 @@ function getInspectionReadiness(findings: InspectionFormValues["inspectionFindin
   if (fair.length >= 3) {
     return {
       label: "Proceed with caution",
-      description: "Vehicle is costable but needs realistic repair allowance.",
+      description: "Vehicle can move forward, but condition issues need review.",
       progress: 68,
     }
   }
 
   return {
-    label: "Ready for costing",
-    description: "Condition profile is stable enough to move into valuation.",
+    label: "Ready for review",
+    description: "Condition profile is stable enough to review the acquisition path.",
     progress: 84,
   }
 }
@@ -288,9 +278,7 @@ function buildConvertVehicleHref(lead: SellerLead) {
 
   if (lead.vehicleYear) params.set("vehicleYear", String(lead.vehicleYear))
   if (lead.vehicleVariant) params.set("vehicleVariant", lead.vehicleVariant)
-  if (lead.targetBuyPrice ?? lead.askingPrice) {
-    params.set("askingPrice", lead.targetBuyPrice ?? lead.askingPrice ?? "")
-  }
+  if (lead.askingPrice) params.set("askingPrice", lead.askingPrice)
   if (lead.region) params.set("region", lead.region)
   if (lead.notes) params.set("notes", lead.notes)
 
@@ -324,54 +312,33 @@ function serialize(value: unknown) {
   return JSON.stringify(value)
 }
 
-function OverviewTab({
-  values,
-  onChange,
-  onSave,
-  pending,
-  dirty,
-}: {
-  values: OverviewFormValues
-  onChange: (values: OverviewFormValues) => void
-  onSave: () => Promise<void>
-  pending: boolean
-  dirty: boolean
-}) {
-  function updateField<K extends keyof OverviewFormValues>(key: K, value: OverviewFormValues[K]) {
-    onChange({ ...values, [key]: value })
-  }
+function SnapshotItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border bg-muted/15 p-4">
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-2 break-words text-sm font-medium text-foreground">{value || "—"}</p>
+    </div>
+  )
+}
 
+function OverviewTab({ values }: { values: OverviewFormValues }) {
   return (
     <Card className="border-border/70 shadow-xs">
       <CardHeader className="border-b">
-        <CardTitle className="text-base">Lead Overview</CardTitle>
-        <CardDescription>Maintain the seller profile and the original vehicle intake details.</CardDescription>
+        <CardTitle className="text-base">Intake Snapshot</CardTitle>
+        <CardDescription>Reference the seller profile and original vehicle intake while moving through inspection and review.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
         <section className="space-y-4">
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-foreground">Seller Details</h3>
-            <p className="text-sm text-muted-foreground">Administrative contact details and identity for the lead.</p>
+            <p className="text-sm text-muted-foreground">Contact details captured during lead creation.</p>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="sellerName">Seller name</FieldLabel>
-              <Input id="sellerName" value={values.sellerName} onChange={(e) => updateField("sellerName", e.target.value)} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="contactNumber">Contact number</FieldLabel>
-              <Input id="contactNumber" value={values.contactNumber} onChange={(e) => updateField("contactNumber", e.target.value)} />
-            </Field>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
-              <Input id="email" type="email" value={values.email} onChange={(e) => updateField("email", e.target.value)} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="facebookName">Facebook name</FieldLabel>
-              <Input id="facebookName" value={values.facebookName} onChange={(e) => updateField("facebookName", e.target.value)} />
-            </Field>
+            <SnapshotItem label="Seller name" value={values.sellerName} />
+            <SnapshotItem label="Contact number" value={values.contactNumber} />
+            <SnapshotItem label="Email" value={values.email} />
+            <SnapshotItem label="Facebook name" value={values.facebookName} />
           </div>
         </section>
 
@@ -380,56 +347,22 @@ function OverviewTab({
         <section className="space-y-4">
           <div className="space-y-1">
             <h3 className="text-sm font-semibold text-foreground">Vehicle Intake</h3>
-            <p className="text-sm text-muted-foreground">Capture exactly what the seller is offering before inspection and negotiation.</p>
+            <p className="text-sm text-muted-foreground">Original vehicle details and asking price for review context.</p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="vehicleBrand">Vehicle brand</FieldLabel>
-              <Input id="vehicleBrand" value={values.vehicleBrand} onChange={(e) => updateField("vehicleBrand", e.target.value)} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="vehicleModel">Vehicle model</FieldLabel>
-              <Input id="vehicleModel" value={values.vehicleModel} onChange={(e) => updateField("vehicleModel", e.target.value)} />
-            </Field>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <SnapshotItem label="Vehicle brand" value={values.vehicleBrand} />
+            <SnapshotItem label="Vehicle model" value={values.vehicleModel} />
+            <SnapshotItem label="Year" value={values.vehicleYear} />
+            <SnapshotItem label="Variant" value={values.vehicleVariant} />
+            <SnapshotItem label="Seller asking price" value={formatVehicleMoney(values.askingPrice)} />
+            <SnapshotItem label="Inquiry source" value={values.inquirySource} />
+            <SnapshotItem label="Region" value={values.region} />
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Field>
-              <FieldLabel htmlFor="vehicleYear">Year</FieldLabel>
-              <Input id="vehicleYear" type="number" value={values.vehicleYear} onChange={(e) => updateField("vehicleYear", e.target.value)} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="vehicleVariant">Variant</FieldLabel>
-              <Input id="vehicleVariant" value={values.vehicleVariant} onChange={(e) => updateField("vehicleVariant", e.target.value)} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="askingPrice">Seller asking price</FieldLabel>
-              <Input id="askingPrice" value={values.askingPrice} onChange={(e) => updateField("askingPrice", e.target.value)} />
-            </Field>
+          <div className="rounded-xl border bg-muted/15 p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Seller notes</p>
+            <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{values.notes || "No seller notes recorded."}</p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field>
-              <FieldLabel htmlFor="inquirySource">Inquiry source</FieldLabel>
-              <Input id="inquirySource" value={values.inquirySource} onChange={(e) => updateField("inquirySource", e.target.value)} />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="region">Region</FieldLabel>
-              <Input id="region" value={values.region} onChange={(e) => updateField("region", e.target.value)} />
-            </Field>
-          </div>
-          <Field>
-            <FieldLabel htmlFor="sellerNotes">Seller notes</FieldLabel>
-            <Textarea id="sellerNotes" rows={5} value={values.notes} onChange={(e) => updateField("notes", e.target.value)} />
-          </Field>
         </section>
-
-        <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {dirty ? "You have unsaved changes in Overview." : "Overview is up to date."}
-          </p>
-          <SubmitButton type="button" onClick={() => void onSave()} pending={pending} pendingLabel="Saving overview">
-            Save Overview
-          </SubmitButton>
-        </div>
       </CardContent>
     </Card>
   )
@@ -475,7 +408,7 @@ function InspectionTab({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <CardTitle className="text-base">Vehicle Condition Checklist</CardTitle>
-              <CardDescription>Rate each component and leave short professional notes for costing and negotiation.</CardDescription>
+              <CardDescription>Rate each component and leave short professional notes for review and negotiation.</CardDescription>
             </div>
             <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
               {SELLER_LEAD_INSPECTION_RATINGS.map((rating) => (
@@ -573,12 +506,12 @@ function InspectionTab({
                     {breakdown.fair.map((key) => (
                       <li key={key}>
                         <span className="font-medium text-foreground">{formatInspectionLabel(key)}:</span>{" "}
-                        {values.inspectionFindings[key].notes || "Allocate repair allowance during costing."}
+                        {values.inspectionFindings[key].notes || "Review this condition item before deciding."}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No moderate issues flagged for immediate costing attention.</p>
+                  <p className="text-sm text-muted-foreground">No moderate issues flagged for immediate review attention.</p>
                 )}
               </div>
             </div>
@@ -609,9 +542,9 @@ function InspectionTab({
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-foreground">Recommended Next Steps</p>
                 <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-                  <li>Proceed to costing using the recorded inspection notes and ratings.</li>
-                  <li>Use fair and poor components as the basis for repair and reconditioning assumptions.</li>
-                  <li>Finalize acquisition decision only after estimated costs align with target margin.</li>
+                  <li>Review the seller asking price against the recorded condition.</li>
+                  <li>Use fair and poor components as negotiation or review points.</li>
+                  <li>Choose whether to buy now, negotiate, keep reviewing, or walk away.</li>
                 </ul>
               </div>
             </div>
@@ -622,7 +555,7 @@ function InspectionTab({
       <Card className="border-border/70 shadow-xs">
         <CardHeader className="border-b">
           <CardTitle className="text-base">Visual Inspection Summary</CardTitle>
-          <CardDescription>A quick operational view of condition quality and readiness for costing.</CardDescription>
+          <CardDescription>A quick operational view of condition quality and readiness for review.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -666,8 +599,8 @@ function InspectionTab({
                 {poorCount > 0
                   ? "Critical issues were recorded. Review the inspection before moving to decision."
                   : fairCount > 0
-                    ? "No critical issues detected, but moderate reconditioning should be reflected in costing."
-                    : "No material condition blockers detected. This unit appears clean enough to proceed to costing."}
+                    ? "No critical issues detected, but moderate condition items should shape the decision."
+                    : "No material condition blockers detected. This unit appears clean enough to review."}
               </AlertDescription>
             </Alert>
           </div>
@@ -679,7 +612,7 @@ function InspectionTab({
           {dirty ? "You have unsaved changes in Inspection." : "Inspection is up to date."}
         </p>
         <SubmitButton type="button" onClick={() => void onSave()} pending={pending} pendingLabel="Saving inspection">
-          Save Inspection
+          Save Inspection & Review Decision
         </SubmitButton>
       </div>
     </div>
@@ -690,91 +623,160 @@ function DecisionTab({
   lead,
   values,
   onChange,
-  onSave,
+  onReviewAction,
   pending,
   dirty,
 }: {
   lead: SellerLead
   values: DecisionFormValues
   onChange: (values: DecisionFormValues) => void
-  onSave: () => Promise<void>
+  onReviewAction: (payload: UpdateSellerLeadPayload, successMessage: string) => Promise<void>
   pending: boolean
   dirty: boolean
 }) {
-  function updateField<K extends keyof DecisionFormValues>(key: K, value: DecisionFormValues[K]) {
-    onChange({ ...values, [key]: value })
+  function updateDecisionNote(value: string) {
+    onChange({ ...values, decisionNote: value })
+  }
+
+  function saveReview(decision: SellerLeadDecision | null, status: SellerLeadStatus, successMessage: string) {
+    return onReviewAction(
+      {
+        decision,
+        decisionNote: values.decisionNote || null,
+        status,
+      },
+      successMessage,
+    )
   }
 
   return (
     <Card className="border-border/70 shadow-xs">
       <CardHeader className="border-b">
-        <CardTitle className="text-base">Decision & Approval</CardTitle>
-        <CardDescription>Finalize the acquisition direction and unlock conversion only when approval is complete.</CardDescription>
+        <CardTitle className="text-base">Review & Decision</CardTitle>
+        <CardDescription>Use the inspection result to decide whether to review more, negotiate, approve, or walk away.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
-        <div className="rounded-xl border border-blue-200/80 bg-blue-50/70 px-4 py-3 text-sm text-blue-900">
-          <div className="flex items-start gap-3">
-            <InfoIcon className="mt-0.5 size-4 shrink-0" />
-            <div className="space-y-1">
-              <p className="font-medium">System recommendation</p>
-              <p>{lead.recommendedAction ?? "No recommendation yet. Complete costing assumptions first."}</p>
-            </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl border bg-muted/20 p-4 text-sm">
+            <p className="text-muted-foreground">Inspection state</p>
+            <p className="mt-1 font-medium text-foreground">
+              {lead.inspectionCompletedAt ? "Inspection recorded" : "Inspection not completed"}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              {lead.inspectionCompletedAt
+                ? format(new Date(lead.inspectionCompletedAt), "MMM d, yyyy h:mm a")
+                : "Save the inspection before making a final acquisition call."}
+            </p>
           </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field>
-            <FieldLabel htmlFor="decision">Decision</FieldLabel>
-            <NativeSelect id="decision" value={values.decision || "none"} onChange={(event) => updateField("decision", event.target.value === "none" ? "" : (event.target.value as SellerLeadDecision))}>
-              <NativeSelectOption value="none">No decision yet</NativeSelectOption>
-              {SELLER_LEAD_DECISIONS.map((decision) => (
-                <NativeSelectOption key={decision} value={decision}>
-                  {decision}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="status">Lead status</FieldLabel>
-            <NativeSelect id="status" value={values.status} onChange={(event) => updateField("status", event.target.value as SellerLeadStatus)}>
-              {SELLER_LEAD_STATUSES.map((status) => (
-                <NativeSelectOption key={status} value={status}>
-                  {status}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </Field>
-        </div>
-
-        <Field>
-          <FieldLabel htmlFor="decisionNote">Decision note</FieldLabel>
-          <Textarea id="decisionNote" rows={4} value={values.decisionNote} onChange={(e) => updateField("decisionNote", e.target.value)} />
-        </Field>
-
-        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border bg-muted/20 p-4 text-sm">
+            <p className="text-muted-foreground">Current direction</p>
+            <p className="mt-1 font-medium text-foreground">{lead.decision ?? "Need more review"}</p>
+            <p className="mt-1 text-muted-foreground">{lead.status}</p>
+          </div>
           <div className="rounded-xl border bg-muted/20 p-4 text-sm">
             <p className="text-muted-foreground">Approval state</p>
             <p className="mt-1 font-medium text-foreground">{lead.approvedToBuyAt ? "Approved to Buy" : "Not approved"}</p>
             <p className="mt-1 text-muted-foreground">
-              {lead.approvedToBuyAt ? format(new Date(lead.approvedToBuyAt), "MMM d, yyyy h:mm a") : "Move the lead to Approved to Buy when management is ready to acquire."}
+              {lead.approvedToBuyAt ? format(new Date(lead.approvedToBuyAt), "MMM d, yyyy h:mm a") : "Approval unlocks vehicle conversion."}
             </p>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="decisionNote" className="text-sm font-medium text-foreground">
+            Review note
+          </label>
+          <Textarea
+            id="decisionNote"
+            rows={4}
+            value={values.decisionNote}
+            onChange={(event) => updateDecisionNote(event.target.value)}
+            placeholder="Why this vehicle needs review, negotiation, approval, or rejection."
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border bg-muted/20 p-4 text-sm">
-            <p className="text-muted-foreground">Conversion readiness</p>
-            <p className="mt-1 font-medium text-foreground">{lead.status === "Approved to Buy" ? "Ready to convert" : "Approval required before conversion"}</p>
-            <Button type="button" className="mt-3 w-full" disabled={lead.status !== "Approved to Buy"} asChild>
-              <Link href={buildConvertVehicleHref(lead)}>Convert to Vehicle</Link>
-            </Button>
+            <p className="font-medium text-foreground">Need more review</p>
+            <p className="mt-1 min-h-10 text-muted-foreground">Inspection is done, but the team is not ready to choose buy or reject.</p>
+            <SubmitButton
+              type="button"
+              variant="outline"
+              className="mt-4 w-full"
+              pending={pending}
+              pendingLabel="Saving review"
+              onClick={() => void saveReview(null, "Evaluated", "Lead kept under review")}
+            >
+              Need More Review
+            </SubmitButton>
+          </div>
+          <div className="rounded-xl border bg-muted/20 p-4 text-sm">
+            <p className="font-medium text-foreground">Negotiate</p>
+            <p className="mt-1 min-h-10 text-muted-foreground">Vehicle is still viable, but the seller conversation needs to continue.</p>
+            <SubmitButton
+              type="button"
+              variant="outline"
+              className="mt-4 w-full"
+              pending={pending}
+              pendingLabel="Saving negotiation"
+              onClick={() => void saveReview("Negotiate", "Negotiating", "Lead moved to negotiation")}
+            >
+              Negotiate
+            </SubmitButton>
+          </div>
+          <div className="rounded-xl border bg-muted/20 p-4 text-sm">
+            <p className="font-medium text-foreground">Approve to buy</p>
+            <p className="mt-1 min-h-10 text-muted-foreground">The inspection supports acquisition and the unit can move toward inventory.</p>
+            <SubmitButton
+              type="button"
+              className="mt-4 w-full"
+              pending={pending}
+              pendingLabel="Approving"
+              onClick={() => void saveReview("Buy", "Approved to Buy", "Lead approved to buy")}
+            >
+              Approve to Buy
+            </SubmitButton>
+          </div>
+          <div className="rounded-xl border bg-muted/20 p-4 text-sm">
+            <p className="font-medium text-foreground">Walk away</p>
+            <p className="mt-1 min-h-10 text-muted-foreground">Condition or seller context makes this acquisition not worth continuing.</p>
+            <SubmitButton
+              type="button"
+              variant="destructive"
+              className="mt-4 w-full"
+              pending={pending}
+              pendingLabel="Rejecting"
+              onClick={() => void saveReview("Walk Away", "Rejected", "Lead rejected")}
+            >
+              Walk Away
+            </SubmitButton>
           </div>
         </div>
 
         <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            {dirty ? "You have unsaved changes in Decision." : "Decision and approval are up to date."}
+            {dirty ? "You have unsaved changes in Review & Decision." : "Review & Decision is up to date."}
           </p>
-          <SubmitButton type="button" onClick={() => void onSave()} pending={pending} pendingLabel="Saving decision">
-            Save Decision
-          </SubmitButton>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <SubmitButton
+              type="button"
+              variant="outline"
+              onClick={() => void onReviewAction(buildDecisionPayload(values), "Review note updated")}
+              pending={pending}
+              pendingLabel="Saving note"
+            >
+              Save Review Note
+            </SubmitButton>
+            {lead.status === "Approved to Buy" ? (
+              <Button type="button" asChild>
+                <Link href={buildConvertVehicleHref(lead)}>Convert to Vehicle</Link>
+              </Button>
+            ) : (
+              <Button type="button" disabled>
+                Convert to Vehicle
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -786,7 +788,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
   const updateMutation = useUpdateSellerLeadMutation()
   const lead = leadQuery.data?.sellerLead
 
-  const [activeTab, setActiveTab] = React.useState("overview")
+  const [activeTab, setActiveTab] = React.useState("inspection")
   const [overviewValues, setOverviewValues] = React.useState<OverviewFormValues | null>(null)
   const [inspectionValues, setInspectionValues] = React.useState<InspectionFormValues | null>(null)
   const [decisionValues, setDecisionValues] = React.useState<DecisionFormValues | null>(null)
@@ -797,6 +799,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
     setOverviewValues(getOverviewFormValues(lead))
     setInspectionValues(getInspectionFormValues(lead))
     setDecisionValues(getDecisionFormValues(lead))
+    setActiveTab(getDefaultWorkflowTab(lead))
   }, [lead])
 
   async function saveSection(payload: UpdateSellerLeadPayload, successMessage: string) {
@@ -808,6 +811,27 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
         },
       },
     )
+  }
+
+  async function saveInspectionAndReview() {
+    if (!lead || !inspectionValues) return
+
+    await saveSection(
+      {
+        ...buildInspectionPayload(inspectionValues),
+        inspectionCompletedAt: inspectionValues.inspectionCompletedAt
+          ? new Date(inspectionValues.inspectionCompletedAt).toISOString()
+          : new Date().toISOString(),
+        status: getStatusAfterInspection(lead.status),
+      },
+      "Inspection saved for review",
+    )
+    setActiveTab("decision")
+  }
+
+  async function saveReviewAction(payload: UpdateSellerLeadPayload, successMessage: string) {
+    await saveSection(payload, successMessage)
+    setActiveTab("decision")
   }
 
   if (leadQuery.isPending) {
@@ -858,7 +882,6 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
     )
   }
 
-  const overviewDirty = serialize(buildOverviewPayload(overviewValues)) !== serialize(buildOverviewPayload(getOverviewFormValues(lead)))
   const inspectionDirty =
     serialize(buildInspectionPayload(inspectionValues)) !== serialize(buildInspectionPayload(getInspectionFormValues(lead)))
   const decisionDirty =
@@ -877,8 +900,8 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
           <div className="flex flex-col gap-4 rounded-2xl border border-border/70 bg-gradient-to-br from-background to-muted/30 p-6">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div className="space-y-2">
-                <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Seller Lead Evaluation</p>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Acquisition Workflow</p>
+                <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">Seller Lead Workflow</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Inspection to Review</p>
                 <h2 className="text-2xl font-semibold tracking-tight">{lead.sellerName}</h2>
                 <p className="text-sm text-muted-foreground">{getSellerLeadVehicleLabel(lead)}</p>
               </div>
@@ -896,16 +919,16 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
                 <p className="mt-1 text-lg font-semibold">{formatVehicleMoney(lead.askingPrice)}</p>
               </div>
               <div className="rounded-xl border bg-background/80 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Investment</p>
-                <p className="mt-1 text-lg font-semibold">{formatVehicleMoney(lead.estimatedTotalInvestment)}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Inspection</p>
+                <p className="mt-1 text-lg font-semibold">{lead.inspectionCompletedAt ? "Recorded" : "Pending"}</p>
               </div>
               <div className="rounded-xl border bg-background/80 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Expected Margin</p>
-                <p className="mt-1 text-lg font-semibold">{formatPercent(lead.estimatedProfitMargin)}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Review</p>
+                <p className="mt-1 text-lg font-semibold">{lead.decision ?? (lead.status === "Evaluated" ? "Need review" : "Pending")}</p>
               </div>
               <div className="rounded-xl border bg-background/80 p-4">
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Next Step</p>
-                <p className="mt-1 text-lg font-semibold">{lead.pipeline?.nextAction?.label ?? lead.recommendedAction ?? "-"}</p>
+                <p className="mt-1 text-lg font-semibold">{lead.pipeline?.nextAction?.label ?? "No immediate action"}</p>
               </div>
             </div>
           </div>
@@ -914,18 +937,14 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
         <div>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-6">
             <TabsList variant="line" className="w-full justify-start overflow-x-auto rounded-xl border border-border/70 bg-background p-1">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="overview">Intake Snapshot</TabsTrigger>
               <TabsTrigger value="inspection">Inspection</TabsTrigger>
-              <TabsTrigger value="decision">Decision</TabsTrigger>
+              <TabsTrigger value="decision">Review & Decision</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
               <OverviewTab
                 values={overviewValues}
-                onChange={setOverviewValues}
-                onSave={() => saveSection(buildOverviewPayload(overviewValues), "Overview updated")}
-                pending={updateMutation.isPending}
-                dirty={overviewDirty}
               />
             </TabsContent>
 
@@ -933,7 +952,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
               <InspectionTab
                 values={inspectionValues}
                 onChange={setInspectionValues}
-                onSave={() => saveSection(buildInspectionPayload(inspectionValues), "Inspection updated")}
+                onSave={saveInspectionAndReview}
                 pending={updateMutation.isPending}
                 dirty={inspectionDirty}
               />
@@ -944,7 +963,7 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
                 lead={lead}
                 values={decisionValues}
                 onChange={setDecisionValues}
-                onSave={() => saveSection(buildDecisionPayload(decisionValues), "Decision updated")}
+                onReviewAction={saveReviewAction}
                 pending={updateMutation.isPending}
                 dirty={decisionDirty}
               />

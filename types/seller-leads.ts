@@ -15,16 +15,6 @@ export const SELLER_LEAD_STATUSES = [
 export type SellerLeadStatus = (typeof SELLER_LEAD_STATUSES)[number]
 export const SELLER_LEAD_DECISIONS = ["Buy", "Negotiate", "Walk Away"] as const
 export type SellerLeadDecision = (typeof SELLER_LEAD_DECISIONS)[number]
-export const SELLER_LEAD_ESTIMATED_COST_CATEGORIES = [
-  "reconditioning",
-  "repair",
-  "detailing",
-  "transport",
-  "documentation",
-  "miscellaneous",
-] as const
-export type SellerLeadEstimatedCostCategory =
-  (typeof SELLER_LEAD_ESTIMATED_COST_CATEGORIES)[number]
 export const SELLER_LEAD_INSPECTION_RATINGS = [
   "excellent",
   "good",
@@ -52,15 +42,6 @@ export interface SellerLeadInspectionFindings {
   papers?: SellerLeadInspectionItem
 }
 
-export interface SellerLeadEstimatedCost {
-  id: string
-  category: SellerLeadEstimatedCostCategory
-  amount: string
-  note: string
-  createdAt: string
-  updatedAt: string
-}
-
 export interface SellerLead {
   id: string
   sellerName: string
@@ -78,9 +59,6 @@ export interface SellerLead {
   inspectionCompletedAt: string | null
   inspectionNotes: string | null
   inspectionFindings: SellerLeadInspectionFindings | null
-  targetBuyPrice: string | null
-  expectedResalePrice: string | null
-  targetProfitAmount: string | null
   decision: SellerLeadDecision | null
   decisionNote: string | null
   approvedToBuyAt: string | null
@@ -89,12 +67,6 @@ export interface SellerLead {
   assigneeUserId: string | null
   latestActivityAt: string | null
   closingNote: string | null
-  estimatedCosts: SellerLeadEstimatedCost[]
-  estimatedCostsTotal: string
-  estimatedTotalInvestment: string | null
-  estimatedGrossProfit: string | null
-  estimatedProfitMargin: string | null
-  recommendedAction: SellerLeadDecision | null
   pipeline: LeadPipelineState | null
   createdAt: string
   updatedAt: string
@@ -116,9 +88,6 @@ export interface CreateSellerLeadPayload {
   inspectionCompletedAt?: string | null
   inspectionNotes?: string | null
   inspectionFindings?: SellerLeadInspectionFindings | null
-  targetBuyPrice?: string | null
-  expectedResalePrice?: string | null
-  targetProfitAmount?: string | null
   decision?: SellerLeadDecision | null
   decisionNote?: string | null
   status?: SellerLeadStatus
@@ -127,12 +96,6 @@ export interface CreateSellerLeadPayload {
 }
 
 export type UpdateSellerLeadPayload = Partial<CreateSellerLeadPayload>
-
-export interface SellerLeadEstimatedCostPayload {
-  category: SellerLeadEstimatedCostCategory
-  amount: string
-  note: string
-}
 
 export interface ConvertSellerLeadPayload {
   year?: number

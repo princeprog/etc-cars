@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
-import { format, formatDistanceToNow } from "date-fns"
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   AlertTriangleIcon,
   CalendarPlusIcon,
@@ -14,25 +14,25 @@ import {
   SearchIcon,
   ShuffleIcon,
   Trash2Icon,
-} from "lucide-react"
-import { toast } from "sonner"
+} from "lucide-react";
+import { toast } from "sonner";
 
-import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { EmptyState } from "@/components/operations/empty-state"
-import { ListPagination } from "@/components/operations/list-pagination"
-import { ModuleLoadingState } from "@/components/operations/module-loading-state"
-import { SubmitButton } from "@/components/operations/submit-button"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
+import { EmptyState } from "@/components/operations/empty-state";
+import { ListPagination } from "@/components/operations/list-pagination";
+import { ModuleLoadingState } from "@/components/operations/module-loading-state";
+import { SubmitButton } from "@/components/operations/submit-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +40,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,18 +50,26 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+} from "@/components/ui/dropdown-menu";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -69,8 +77,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -78,19 +86,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
-import { DateTimePicker } from "@/components/ui/date-time-picker"
-import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation"
-import { useCreateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-create-seller-lead-mutation"
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation";
+import { useCreateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-create-seller-lead-mutation";
 import {
   useCreateSellerLeadEstimatedCostMutation,
   useDeleteSellerLeadEstimatedCostMutation,
-} from "@/hooks/mutations/seller-leads/use-seller-lead-estimated-cost-mutations"
-import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation"
-import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query"
-import { getApiErrorMessage } from "@/types/api"
+} from "@/hooks/mutations/seller-leads/use-seller-lead-estimated-cost-mutations";
+import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation";
+import {
+  useCreateVehicleCatalogBrandMutation,
+  useCreateVehicleCatalogModelMutation,
+  useCreateVehicleCatalogVariantMutation,
+} from "@/hooks/mutations/vehicle-catalog/use-vehicle-catalog-mutations";
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query";
+import {
+  useVehicleCatalogBrandsQuery,
+  useVehicleCatalogModelsQuery,
+  useVehicleCatalogVariantsQuery,
+} from "@/hooks/queries/vehicle-catalog/use-vehicle-catalog-queries";
+import { getApiErrorMessage } from "@/types/api";
 import {
   SELLER_LEAD_DECISIONS,
   SELLER_LEAD_ESTIMATED_COST_CATEGORIES,
@@ -105,9 +123,14 @@ import {
   type SellerLeadListFilters,
   type SellerLeadStatus,
   type UpdateSellerLeadPayload,
-} from "@/types/seller-leads"
-import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
+} from "@/types/seller-leads";
+import {
+  findCatalogItemByName,
+  normalizeCatalogName,
+  VehicleCatalogCombobox,
+} from "../vehicles/vehicle-catalog-combobox";
+import { formatVehicleMoney } from "../vehicles/vehicles.helpers";
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel";
 
 const INSPECTION_KEYS = [
   "engine",
@@ -120,42 +143,42 @@ const INSPECTION_KEYS = [
   "ac",
   "electrical",
   "papers",
-] as const
+] as const;
 
-type InspectionKey = (typeof INSPECTION_KEYS)[number]
+type InspectionKey = (typeof INSPECTION_KEYS)[number];
 
 type SellerLeadFormValues = {
-  sellerName: string
-  contactNumber: string
-  email: string
-  facebookName: string
-  inquirySource: string
-  vehicleBrand: string
-  vehicleModel: string
-  vehicleYear: string
-  vehicleVariant: string
-  askingPrice: string
-  region: string
-  notes: string
-  status: SellerLeadStatus
-  inspectionCompletedAt: string
-  inspectionNotes: string
-  targetBuyPrice: string
-  expectedResalePrice: string
-  targetProfitAmount: string
-  decision: SellerLeadDecision | ""
-  decisionNote: string
+  sellerName: string;
+  contactNumber: string;
+  email: string;
+  facebookName: string;
+  inquirySource: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  vehicleVariant: string;
+  askingPrice: string;
+  region: string;
+  notes: string;
+  status: SellerLeadStatus;
+  inspectionCompletedAt: string;
+  inspectionNotes: string;
+  targetBuyPrice: string;
+  expectedResalePrice: string;
+  targetProfitAmount: string;
+  decision: SellerLeadDecision | "";
+  decisionNote: string;
   inspectionFindings: Record<
     InspectionKey,
     { rating: SellerLeadInspectionRating; notes: string }
-  >
-}
+  >;
+};
 
 type SellerLeadNextActionCta = {
-  label: string
-  helper: string
-  action: "convert" | "evaluate" | "follow-up"
-}
+  label: string;
+  helper: string;
+  action: "convert" | "evaluate" | "follow-up";
+};
 
 function getEmptyInspectionFindings(): SellerLeadFormValues["inspectionFindings"] {
   return {
@@ -169,7 +192,7 @@ function getEmptyInspectionFindings(): SellerLeadFormValues["inspectionFindings"
     ac: { rating: "good", notes: "" },
     electrical: { rating: "good", notes: "" },
     papers: { rating: "good", notes: "" },
-  }
+  };
 }
 
 function getEmptySellerLeadFormValues(): SellerLeadFormValues {
@@ -195,25 +218,25 @@ function getEmptySellerLeadFormValues(): SellerLeadFormValues {
     decision: "",
     decisionNote: "",
     inspectionFindings: getEmptyInspectionFindings(),
-  }
+  };
 }
 
 function mapInspectionFindings(
   findings: SellerLeadInspectionFindings | null | undefined,
 ) {
-  const next = getEmptyInspectionFindings()
+  const next = getEmptyInspectionFindings();
 
   for (const key of INSPECTION_KEYS) {
-    const current = findings?.[key]
+    const current = findings?.[key];
     if (current) {
       next[key] = {
         rating: current.rating,
         notes: current.notes ?? "",
-      }
+      };
     }
   }
 
-  return next
+  return next;
 }
 
 export function getSellerLeadFormValues(
@@ -243,7 +266,7 @@ export function getSellerLeadFormValues(
     decision: lead.decision ?? "",
     decisionNote: lead.decisionNote ?? "",
     inspectionFindings: mapInspectionFindings(lead.inspectionFindings),
-  }
+  };
 }
 
 function toInspectionFindingsPayload(
@@ -257,7 +280,7 @@ function toInspectionFindingsPayload(
         notes: values[key].notes.trim() || null,
       },
     ]),
-  )
+  );
 }
 
 function parseSellerLeadPayload(
@@ -279,7 +302,7 @@ function parseSellerLeadPayload(
     notes: values.notes || null,
     status: values.status,
     assigneeUserId,
-  }
+  };
 }
 
 export function parseUpdateSellerLeadPayload(
@@ -309,7 +332,7 @@ export function parseUpdateSellerLeadPayload(
     targetProfitAmount: values.targetProfitAmount || null,
     decision: values.decision || null,
     decisionNote: values.decisionNote || null,
-  }
+  };
 }
 
 function getSellerLeadVehicleLabel(lead: SellerLead) {
@@ -320,7 +343,7 @@ function getSellerLeadVehicleLabel(lead: SellerLead) {
     lead.vehicleVariant ?? "",
   ]
     .filter(Boolean)
-    .join(" • ")
+    .join(" • ");
 }
 
 function buildConvertVehicleHref(lead: SellerLead) {
@@ -329,69 +352,69 @@ function buildConvertVehicleHref(lead: SellerLead) {
     sellerName: lead.sellerName,
     vehicleBrand: lead.vehicleBrand,
     vehicleModel: lead.vehicleModel,
-  })
+  });
 
-  if (lead.vehicleYear) params.set("vehicleYear", String(lead.vehicleYear))
-  if (lead.vehicleVariant) params.set("vehicleVariant", lead.vehicleVariant)
+  if (lead.vehicleYear) params.set("vehicleYear", String(lead.vehicleYear));
+  if (lead.vehicleVariant) params.set("vehicleVariant", lead.vehicleVariant);
   if (lead.targetBuyPrice ?? lead.askingPrice)
-    params.set("askingPrice", lead.targetBuyPrice ?? lead.askingPrice ?? "")
-  if (lead.region) params.set("region", lead.region)
-  if (lead.notes) params.set("notes", lead.notes)
+    params.set("askingPrice", lead.targetBuyPrice ?? lead.askingPrice ?? "");
+  if (lead.region) params.set("region", lead.region);
+  if (lead.notes) params.set("notes", lead.notes);
 
-  return `/vehicles/new?${params.toString()}`
+  return `/vehicles/new?${params.toString()}`;
 }
 
 function getSellerLeadStage(status: SellerLeadStatus) {
   switch (status) {
     case "New Inquiry":
-      return "Intake"
+      return "Intake";
     case "Contacted":
-      return "Qualified Seller"
+      return "Qualified Seller";
     case "Inspection Scheduled":
-      return "Inspection Queue"
+      return "Inspection Queue";
     case "Evaluated":
-      return "Financial Review"
+      return "Financial Review";
     case "Negotiating":
-      return "Negotiation"
+      return "Negotiation";
     case "Approved to Buy":
-      return "Approved"
+      return "Approved";
     case "Purchased":
-      return "Converted"
+      return "Converted";
     case "Rejected":
-      return "Closed Lost"
+      return "Closed Lost";
     default:
-      return "Pipeline"
+      return "Pipeline";
   }
 }
 
 function getSellerLeadNextAction(lead: SellerLead) {
   if (lead.pipeline?.nextAction) {
-    return lead.pipeline.nextAction.label
+    return lead.pipeline.nextAction.label;
   }
 
   if (lead.status === "Purchased" || lead.status === "Rejected") {
-    return "No immediate action"
+    return "No immediate action";
   }
 
   if (lead.status === "New Inquiry") {
-    return "Make first contact"
+    return "Make first contact";
   }
 
   if (!lead.inspectionCompletedAt && lead.status !== "Contacted") {
-    return "Schedule or complete inspection"
+    return "Schedule or complete inspection";
   }
 
   if (!lead.decision) {
-    return "Lock buy decision"
+    return "Lock buy decision";
   }
 
   if (lead.status === "Approved to Buy") {
-    return "Convert to vehicle"
+    return "Convert to vehicle";
   }
 
   return lead.recommendedAction
     ? `${lead.recommendedAction} with seller`
-    : "Review acquisition economics"
+    : "Review acquisition economics";
 }
 
 function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
@@ -401,7 +424,7 @@ function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
         label: "Convert to Vehicle",
         helper: lead.pipeline.nextAction.description,
         action: "convert" as const,
-      }
+      };
     }
 
     if (lead.pipeline.nextAction.target === "follow_up") {
@@ -409,14 +432,14 @@ function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
         label: "Schedule Follow-Up",
         helper: "Create a dated task so the next seller contact is clear.",
         action: "follow-up" as const,
-      }
+      };
     }
 
     return {
       label: lead.pipeline.nextAction.label,
       helper: `${lead.pipeline.nextAction.description} This opens the seller workflow.`,
       action: "evaluate" as const,
-    }
+    };
   }
 
   if (lead.status === "Approved to Buy") {
@@ -424,7 +447,7 @@ function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
       label: "Convert to Vehicle",
       helper: "Move this approved deal into inventory.",
       action: "convert" as const,
-    }
+    };
   }
 
   if (lead.status === "Purchased" || lead.status === "Rejected") {
@@ -432,55 +455,55 @@ function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
       label: "View Workflow",
       helper: "Review the completed acquisition record.",
       action: "evaluate" as const,
-    }
+    };
   }
 
   return {
     label: "Continue Workflow",
     helper: "Continue inspection, pricing, approval, or decision work.",
     action: "evaluate" as const,
-  }
+  };
 }
 
 function SellerLeadNextActionIcon({
   action,
 }: {
-  action: SellerLeadNextActionCta["action"]
+  action: SellerLeadNextActionCta["action"];
 }) {
-  if (action === "follow-up") return <CalendarPlusIcon />
-  if (action === "convert") return <ShuffleIcon />
-  return <PencilIcon />
+  if (action === "follow-up") return <CalendarPlusIcon />;
+  if (action === "convert") return <ShuffleIcon />;
+  return <PencilIcon />;
 }
 
 function getDefaultSellerFollowUpDueAt() {
-  const dueAt = new Date()
-  dueAt.setDate(dueAt.getDate() + 1)
-  dueAt.setHours(9, 0, 0, 0)
-  return dueAt
+  const dueAt = new Date();
+  dueAt.setDate(dueAt.getDate() + 1);
+  dueAt.setHours(9, 0, 0, 0);
+  return dueAt;
 }
 
 function getDefaultSellerFollowUpNote(lead: SellerLead) {
-  return `Follow up with ${lead.sellerName} about their seller lead.`
+  return `Follow up with ${lead.sellerName} about their seller lead.`;
 }
 
 function isSellerLeadStale(lead: SellerLead) {
   if (typeof lead.pipeline?.isStale === "boolean") {
-    return lead.pipeline.isStale
+    return lead.pipeline.isStale;
   }
 
-  const activityAt = lead.latestActivityAt ?? lead.updatedAt
-  const ageMs = Date.now() - new Date(activityAt).getTime()
-  const staleDays = lead.status === "New Inquiry" ? 2 : 5
+  const activityAt = lead.latestActivityAt ?? lead.updatedAt;
+  const ageMs = Date.now() - new Date(activityAt).getTime();
+  const staleDays = lead.status === "New Inquiry" ? 2 : 5;
   return (
     ageMs > staleDays * 24 * 60 * 60 * 1000 &&
     lead.status !== "Purchased" &&
     lead.status !== "Rejected"
-  )
+  );
 }
 
 function getSellerLeadBlocker(lead: SellerLead) {
   if (lead.pipeline?.blockers.length) {
-    return lead.pipeline.blockers[0]?.description ?? null
+    return lead.pipeline.blockers[0]?.description ?? null;
   }
 
   if (
@@ -488,7 +511,7 @@ function getSellerLeadBlocker(lead: SellerLead) {
     lead.status !== "New Inquiry" &&
     lead.status !== "Rejected"
   ) {
-    return "Inspection details are still incomplete."
+    return "Inspection details are still incomplete.";
   }
 
   if (
@@ -496,30 +519,30 @@ function getSellerLeadBlocker(lead: SellerLead) {
     lead.status !== "New Inquiry" &&
     lead.status !== "Contacted"
   ) {
-    return "A buy decision has not been locked yet."
+    return "A buy decision has not been locked yet.";
   }
 
   if (lead.status === "Approved to Buy" && !lead.approvedToBuyAt) {
-    return "This lead is marked approved but does not have approval timing recorded."
+    return "This lead is marked approved but does not have approval timing recorded.";
   }
 
-  return null
+  return null;
 }
 
 function getSellerLeadWarning(lead: SellerLead) {
   if (lead.pipeline?.warnings.length) {
-    return lead.pipeline.warnings[0]?.description ?? null
+    return lead.pipeline.warnings[0]?.description ?? null;
   }
 
   if (isSellerLeadStale(lead)) {
-    return "This seller lead has gone stale and should be reviewed before the opportunity cools off."
+    return "This seller lead has gone stale and should be reviewed before the opportunity cools off.";
   }
 
   if (lead.recommendedAction === "Walk Away") {
-    return "The current economics suggest walking away unless new information changes the deal."
+    return "The current economics suggest walking away unless new information changes the deal.";
   }
 
-  return null
+  return null;
 }
 
 function getSellerLeadStatusBadgeVariant(
@@ -528,11 +551,11 @@ function getSellerLeadStatusBadgeVariant(
   switch (status) {
     case "Approved to Buy":
     case "Purchased":
-      return "secondary"
+      return "secondary";
     case "Rejected":
-      return "destructive"
+      return "destructive";
     default:
-      return "outline"
+      return "outline";
   }
 }
 
@@ -541,11 +564,11 @@ function getDecisionBadgeVariant(
 ): "default" | "secondary" | "outline" | "destructive" {
   switch (decision) {
     case "Buy":
-      return "secondary"
+      return "secondary";
     case "Walk Away":
-      return "destructive"
+      return "destructive";
     default:
-      return "outline"
+      return "outline";
   }
 }
 
@@ -553,32 +576,127 @@ function getAssigneeLabel(
   assigneeUserId: string | null,
   currentUserId?: string,
 ) {
-  if (!assigneeUserId) return "Unassigned"
-  if (assigneeUserId === currentUserId) return "You"
-  return "Assigned"
+  if (!assigneeUserId) return "Unassigned";
+  if (assigneeUserId === currentUserId) return "You";
+  return "Assigned";
 }
 
 function formatPercent(value: string | null) {
-  return value ? `${value}%` : "—"
+  return value ? `${value}%` : "—";
 }
 
 function formatInspectionLabel(key: InspectionKey) {
-  if (key === "ac") return "A/C"
-  return key.charAt(0).toUpperCase() + key.slice(1)
+  if (key === "ac") return "A/C";
+  return key.charAt(0).toUpperCase() + key.slice(1);
 }
 
 function SellerLeadForm({
   values,
   onChange,
 }: {
-  values: SellerLeadFormValues
-  onChange: (values: SellerLeadFormValues) => void
+  values: SellerLeadFormValues;
+  onChange: (values: SellerLeadFormValues) => void;
 }) {
+  const brandsQuery = useVehicleCatalogBrandsQuery();
+  const selectedBrand = findCatalogItemByName(
+    brandsQuery.data?.items ?? [],
+    values.vehicleBrand,
+  );
+  const modelsQuery = useVehicleCatalogModelsQuery(selectedBrand?.id);
+  const selectedModel = findCatalogItemByName(
+    modelsQuery.data?.items ?? [],
+    values.vehicleModel,
+  );
+  const variantsQuery = useVehicleCatalogVariantsQuery(selectedModel?.id);
+  const createBrandMutation = useCreateVehicleCatalogBrandMutation();
+  const createModelMutation = useCreateVehicleCatalogModelMutation();
+  const createVariantMutation = useCreateVehicleCatalogVariantMutation();
+
   function updateField<K extends keyof SellerLeadFormValues>(
     key: K,
     value: SellerLeadFormValues[K],
   ) {
-    onChange({ ...values, [key]: value })
+    onChange({ ...values, [key]: value });
+  }
+
+  function updateBrand(value: string) {
+    onChange({
+      ...values,
+      vehicleBrand: value,
+      vehicleModel: "",
+      vehicleVariant: "",
+    });
+  }
+
+  function updateModel(value: string) {
+    onChange({
+      ...values,
+      vehicleModel: value,
+      vehicleVariant: "",
+    });
+  }
+
+  async function addBrand() {
+    const name = normalizeCatalogName(values.vehicleBrand);
+
+    if (!name) {
+      return;
+    }
+
+    try {
+      const response = await createBrandMutation.mutateAsync({ name });
+      onChange({
+        ...values,
+        vehicleBrand: response.item.name,
+        vehicleModel: "",
+        vehicleVariant: "",
+      });
+      toast.success("Vehicle brand added");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle brand"));
+    }
+  }
+
+  async function addModel() {
+    const name = normalizeCatalogName(values.vehicleModel);
+
+    if (!name || !selectedBrand) {
+      return;
+    }
+
+    try {
+      const response = await createModelMutation.mutateAsync({
+        brandId: selectedBrand.id,
+        name,
+      });
+      onChange({
+        ...values,
+        vehicleModel: response.item.name,
+        vehicleVariant: "",
+      });
+      toast.success("Vehicle model added");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle model"));
+    }
+  }
+
+  async function addVariant() {
+    const name = normalizeCatalogName(values.vehicleVariant);
+
+    if (!name || !selectedModel) {
+      return;
+    }
+
+    try {
+      const response = await createVariantMutation.mutateAsync({
+        modelId: selectedModel.id,
+        name,
+      });
+      updateField("vehicleVariant", response.item.name);
+      toast.success("Vehicle variant added");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle variant"));
+    }
   }
 
   return (
@@ -648,21 +766,58 @@ function SellerLeadForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="vehicleBrand">Vehicle brand</FieldLabel>
-            <Input
+            <VehicleCatalogCombobox
               id="vehicleBrand"
               value={values.vehicleBrand}
-              onChange={(e) => updateField("vehicleBrand", e.target.value)}
+              items={brandsQuery.data?.items ?? []}
+              placeholder="Search or add brand"
+              emptyLabel="No brands found."
+              addLabel={`Add "${normalizeCatalogName(values.vehicleBrand)}" as a brand`}
+              isLoading={brandsQuery.isLoading}
+              isAdding={createBrandMutation.isPending}
+              onValueChange={updateBrand}
+              onAdd={addBrand}
               required
+              canAdd={Boolean(
+                normalizeCatalogName(values.vehicleBrand) &&
+                !findCatalogItemByName(
+                  brandsQuery.data?.items ?? [],
+                  values.vehicleBrand,
+                ),
+              )}
             />
           </Field>
           <Field>
             <FieldLabel htmlFor="vehicleModel">Vehicle model</FieldLabel>
-            <Input
+            <VehicleCatalogCombobox
               id="vehicleModel"
               value={values.vehicleModel}
-              onChange={(e) => updateField("vehicleModel", e.target.value)}
+              items={modelsQuery.data?.items ?? []}
+              placeholder={
+                selectedBrand ? "Search or add model" : "Select brand first"
+              }
+              emptyLabel="No models found."
+              addLabel={`Add "${normalizeCatalogName(values.vehicleModel)}" as a model`}
+              disabled={!selectedBrand}
+              isLoading={modelsQuery.isLoading}
+              isAdding={createModelMutation.isPending}
+              onValueChange={updateModel}
+              onAdd={addModel}
               required
+              canAdd={Boolean(
+                selectedBrand &&
+                normalizeCatalogName(values.vehicleModel) &&
+                !findCatalogItemByName(
+                  modelsQuery.data?.items ?? [],
+                  values.vehicleModel,
+                ),
+              )}
             />
+            {!selectedBrand ? (
+              <FieldDescription>
+                Select or add a brand before choosing a model.
+              </FieldDescription>
+            ) : null}
           </Field>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -677,11 +832,34 @@ function SellerLeadForm({
           </Field>
           <Field>
             <FieldLabel htmlFor="vehicleVariant">Variant</FieldLabel>
-            <Input
+            <VehicleCatalogCombobox
               id="vehicleVariant"
               value={values.vehicleVariant}
-              onChange={(e) => updateField("vehicleVariant", e.target.value)}
+              items={variantsQuery.data?.items ?? []}
+              placeholder={
+                selectedModel ? "Search or add variant" : "Select model first"
+              }
+              emptyLabel="No variants found."
+              addLabel={`Add "${normalizeCatalogName(values.vehicleVariant)}" as a variant`}
+              disabled={!selectedModel}
+              isLoading={variantsQuery.isLoading}
+              isAdding={createVariantMutation.isPending}
+              onValueChange={(value) => updateField("vehicleVariant", value)}
+              onAdd={addVariant}
+              canAdd={Boolean(
+                selectedModel &&
+                normalizeCatalogName(values.vehicleVariant) &&
+                !findCatalogItemByName(
+                  variantsQuery.data?.items ?? [],
+                  values.vehicleVariant,
+                ),
+              )}
             />
+            {!selectedModel ? (
+              <FieldDescription>
+                Select or add a model before choosing a variant.
+              </FieldDescription>
+            ) : null}
           </Field>
           <Field>
             <FieldLabel htmlFor="askingPrice">Seller asking price</FieldLabel>
@@ -754,21 +932,21 @@ function SellerLeadForm({
         </Field>
       </section>
     </FieldGroup>
-  )
+  );
 }
 
 export function AcquisitionEvaluationForm({
   values,
   onChange,
 }: {
-  values: SellerLeadFormValues
-  onChange: (values: SellerLeadFormValues) => void
+  values: SellerLeadFormValues;
+  onChange: (values: SellerLeadFormValues) => void;
 }) {
   function updateField<K extends keyof SellerLeadFormValues>(
     key: K,
     value: SellerLeadFormValues[K],
   ) {
-    onChange({ ...values, [key]: value })
+    onChange({ ...values, [key]: value });
   }
 
   function updateInspectionField(
@@ -785,7 +963,7 @@ export function AcquisitionEvaluationForm({
           [field]: value,
         },
       },
-    })
+    });
   }
 
   return (
@@ -938,36 +1116,36 @@ export function AcquisitionEvaluationForm({
         </div>
       </section>
     </div>
-  )
+  );
 }
 
 export function EstimatedCostsCard({
   leadId,
   lead,
 }: {
-  leadId: string
-  lead: SellerLead
+  leadId: string;
+  lead: SellerLead;
 }) {
-  const createMutation = useCreateSellerLeadEstimatedCostMutation()
-  const deleteMutation = useDeleteSellerLeadEstimatedCostMutation()
+  const createMutation = useCreateSellerLeadEstimatedCostMutation();
+  const deleteMutation = useDeleteSellerLeadEstimatedCostMutation();
   const [category, setCategory] =
-    React.useState<SellerLeadEstimatedCostCategory>("repair")
-  const [amount, setAmount] = React.useState("")
-  const [note, setNote] = React.useState("")
+    React.useState<SellerLeadEstimatedCostCategory>("repair");
+  const [amount, setAmount] = React.useState("");
+  const [note, setNote] = React.useState("");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
     await createMutation.mutateAsync(
       { id: leadId, payload: { category, amount, note } },
       {
         onSuccess: () => {
-          setAmount("")
-          setNote("")
-          toast.success("Estimated cost added")
+          setAmount("");
+          setNote("");
+          toast.success("Estimated cost added");
         },
       },
-    )
+    );
   }
 
   async function handleDelete(costId: string) {
@@ -976,7 +1154,7 @@ export function EstimatedCostsCard({
       {
         onSuccess: () => toast.success("Estimated cost removed"),
       },
-    )
+    );
   }
 
   return (
@@ -1097,7 +1275,7 @@ export function EstimatedCostsCard({
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function AcquisitionSummaryCard({ lead }: { lead: SellerLead }) {
@@ -1125,7 +1303,7 @@ function AcquisitionSummaryCard({ lead }: { lead: SellerLead }) {
       value: formatPercent(lead.estimatedProfitMargin),
     },
     { label: "Recommendation", value: lead.recommendedAction ?? "—" },
-  ]
+  ];
 
   return (
     <Card className="border-border/70 shadow-xs">
@@ -1169,29 +1347,29 @@ function AcquisitionSummaryCard({ lead }: { lead: SellerLead }) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export function SellerLeadsScreen() {
-  const router = useRouter()
-  const authQuery = useAuthenticatedUserQuery()
-  const createMutation = useCreateSellerLeadMutation()
-  const updateMutation = useUpdateSellerLeadMutation()
-  const createFollowUpMutation = useCreateFollowUpMutation()
+  const router = useRouter();
+  const authQuery = useAuthenticatedUserQuery();
+  const createMutation = useCreateSellerLeadMutation();
+  const updateMutation = useUpdateSellerLeadMutation();
+  const createFollowUpMutation = useCreateFollowUpMutation();
 
-  const [searchTerm, setSearchTerm] = React.useState("")
+  const [searchTerm, setSearchTerm] = React.useState("");
   const [activeFilter, setActiveFilter] = React.useState<
     SellerLeadStatus | "all"
-  >("all")
-  const [page, setPage] = React.useState(1)
-  const [createOpen, setCreateOpen] = React.useState(false)
-  const [viewLead, setViewLead] = React.useState<SellerLead | null>(null)
+  >("all");
+  const [page, setPage] = React.useState(1);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [viewLead, setViewLead] = React.useState<SellerLead | null>(null);
   const [followUpLead, setFollowUpLead] = React.useState<SellerLead | null>(
     null,
-  )
+  );
   const [createForm, setCreateForm] = React.useState<SellerLeadFormValues>(
     getEmptySellerLeadFormValues,
-  )
+  );
 
   const filters = React.useMemo<SellerLeadListFilters>(
     () => ({
@@ -1201,35 +1379,35 @@ export function SellerLeadsScreen() {
       status: activeFilter,
     }),
     [activeFilter, page, searchTerm],
-  )
-  const sellerLeadsQuery = useSellerLeadsQuery(filters)
+  );
+  const sellerLeadsQuery = useSellerLeadsQuery(filters);
 
-  const currentUserId = authQuery.data?.user.id
-  const leads = sellerLeadsQuery.data?.sellerLeads ?? []
-  const total = sellerLeadsQuery.data?.total ?? 0
-  const totalPages = sellerLeadsQuery.data?.totalPages ?? 1
+  const currentUserId = authQuery.data?.user.id;
+  const leads = sellerLeadsQuery.data?.sellerLeads ?? [];
+  const total = sellerLeadsQuery.data?.total ?? 0;
+  const totalPages = sellerLeadsQuery.data?.totalPages ?? 1;
 
   function handleNextActionClick(lead: SellerLead) {
-    const cta = getSellerLeadNextActionCta(lead)
+    const cta = getSellerLeadNextActionCta(lead);
 
     if (cta.action === "convert") {
-      router.push(buildConvertVehicleHref(lead))
-      return
+      router.push(buildConvertVehicleHref(lead));
+      return;
     }
 
     if (cta.action === "follow-up") {
-      setFollowUpLead(lead)
-      return
+      setFollowUpLead(lead);
+      return;
     }
 
-    router.push(`/seller-leads/${lead.id}`)
+    router.push(`/seller-leads/${lead.id}`);
   }
 
   async function handleStatusChange(
     lead: SellerLead,
     nextStatus: SellerLeadStatus,
   ) {
-    if (lead.status === nextStatus) return
+    if (lead.status === nextStatus) return;
 
     try {
       await updateMutation.mutateAsync({
@@ -1237,29 +1415,29 @@ export function SellerLeadsScreen() {
         payload: {
           status: nextStatus,
         },
-      })
+      });
 
-      toast.success(`Seller lead moved to ${nextStatus}`)
+      toast.success(`Seller lead moved to ${nextStatus}`);
     } catch (error) {
       toast.error(
         getApiErrorMessage(error, "Unable to update seller lead status"),
-      )
+      );
     }
   }
 
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
     await createMutation.mutateAsync(
       parseSellerLeadPayload(createForm, currentUserId ?? null),
       {
         onSuccess: () => {
-          toast.success("Seller lead created")
-          setCreateOpen(false)
-          setCreateForm(getEmptySellerLeadFormValues())
+          toast.success("Seller lead created");
+          setCreateOpen(false);
+          setCreateForm(getEmptySellerLeadFormValues());
         },
       },
-    )
+    );
   }
 
   return (
@@ -1289,8 +1467,8 @@ export function SellerLeadsScreen() {
                 <Input
                   value={searchTerm}
                   onChange={(event) => {
-                    setSearchTerm(event.target.value)
-                    setPage(1)
+                    setSearchTerm(event.target.value);
+                    setPage(1);
                   }}
                   placeholder="Search seller, contact, or vehicle"
                   className="pl-9"
@@ -1299,8 +1477,8 @@ export function SellerLeadsScreen() {
               <Select
                 value={activeFilter}
                 onValueChange={(value) => {
-                  setActiveFilter(value as SellerLeadStatus | "all")
-                  setPage(1)
+                  setActiveFilter(value as SellerLeadStatus | "all");
+                  setPage(1);
                 }}
               >
                 <SelectTrigger className="w-full md:w-[240px]">
@@ -1318,9 +1496,9 @@ export function SellerLeadsScreen() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setSearchTerm("")
-                  setActiveFilter("all")
-                  setPage(1)
+                  setSearchTerm("");
+                  setActiveFilter("all");
+                  setPage(1);
                 }}
               >
                 Reset
@@ -1346,7 +1524,7 @@ export function SellerLeadsScreen() {
                 />
               </div>
             ) : leads.length ? (
-              <Table className="min-w-[1380px] border-collapse">
+              <Table className="min-w-[1020px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
@@ -1362,22 +1540,10 @@ export function SellerLeadsScreen() {
                       Investment
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-                      Expected Resale
-                    </TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-                      Margin
-                    </TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Stage
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Next Action
-                    </TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-                      Decision
-                    </TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-                      Approval
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Status
@@ -1392,7 +1558,7 @@ export function SellerLeadsScreen() {
                 </TableHeader>
                 <TableBody>
                   {leads.map((lead) => {
-                    const cta = getSellerLeadNextActionCta(lead)
+                    const cta = getSellerLeadNextActionCta(lead);
 
                     return (
                       <TableRow
@@ -1431,12 +1597,6 @@ export function SellerLeadsScreen() {
                         <TableCell className="px-4 py-3 font-medium tabular-nums">
                           {formatVehicleMoney(lead.estimatedTotalInvestment)}
                         </TableCell>
-                        <TableCell className="px-4 py-3 font-medium tabular-nums">
-                          {formatVehicleMoney(lead.expectedResalePrice)}
-                        </TableCell>
-                        <TableCell className="px-4 py-3 font-medium tabular-nums">
-                          {formatPercent(lead.estimatedProfitMargin)}
-                        </TableCell>
                         <TableCell className="px-4 py-3">
                           <Badge
                             variant={getSellerLeadStatusBadgeVariant(
@@ -1448,49 +1608,17 @@ export function SellerLeadsScreen() {
                           </Badge>
                         </TableCell>
                         <TableCell className="px-4 py-3">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                              {getSellerLeadNextAction(lead)}
-                            </p>
-                            <Button
-                              type="button"
-                              variant={
-                                cta.action === "follow-up"
-                                  ? "default"
-                                  : "outline"
-                              }
-                              size="sm"
-                              className="mt-1"
-                              onClick={() => handleNextActionClick(lead)}
-                            >
-                              <SellerLeadNextActionIcon action={cta.action} />
-                              {cta.label}
-                            </Button>
-                            <p className="text-xs text-muted-foreground">
-                              {cta.helper}
-                            </p>
-                            {getSellerLeadWarning(lead) ? (
-                              <p className="text-xs text-amber-700 dark:text-amber-300">
-                                Needs attention
-                              </p>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
-                            variant={getDecisionBadgeVariant(lead.decision)}
-                          >
-                            {lead.decision ?? "Pending"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
+                          <Button
+                            type="button"
                             variant={
-                              lead.approvedToBuyAt ? "secondary" : "outline"
+                              cta.action === "follow-up" ? "default" : "outline"
                             }
+                            size="sm"
+                            onClick={() => handleNextActionClick(lead)}
                           >
-                            {lead.approvedToBuyAt ? "Approved" : "Not approved"}
-                          </Badge>
+                            <SellerLeadNextActionIcon action={cta.action} />
+                            {cta.label}
+                          </Button>
                         </TableCell>
                         <TableCell className="px-4 py-3">
                           <Badge
@@ -1569,8 +1697,8 @@ export function SellerLeadsScreen() {
                                     value={status}
                                     disabled={updateMutation.isPending}
                                     onSelect={(event) => {
-                                      event.preventDefault()
-                                      void handleStatusChange(lead, status)
+                                      event.preventDefault();
+                                      void handleStatusChange(lead, status);
                                     }}
                                   >
                                     {status}
@@ -1581,7 +1709,7 @@ export function SellerLeadsScreen() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
@@ -1793,7 +1921,7 @@ export function SellerLeadsScreen() {
         </Dialog>
       </div>
     </AuthenticatedAppShell>
-  )
+  );
 }
 
 function ScheduleSellerFollowUpDialogForm({
@@ -1802,24 +1930,24 @@ function ScheduleSellerFollowUpDialogForm({
   mutation,
   onClose,
 }: {
-  lead: SellerLead
-  currentUserId?: string
-  mutation: ReturnType<typeof useCreateFollowUpMutation>
-  onClose: () => void
+  lead: SellerLead;
+  currentUserId?: string;
+  mutation: ReturnType<typeof useCreateFollowUpMutation>;
+  onClose: () => void;
 }) {
-  const assigneeUserId = currentUserId ?? lead.assigneeUserId ?? ""
+  const assigneeUserId = currentUserId ?? lead.assigneeUserId ?? "";
   const [dueAt, setDueAt] = React.useState<Date | undefined>(() =>
     getDefaultSellerFollowUpDueAt(),
-  )
+  );
   const [note, setNote] = React.useState(() =>
     getDefaultSellerFollowUpNote(lead),
-  )
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!assigneeUserId || !dueAt || !note.trim()) {
-      return
+      return;
     }
 
     await mutation.mutateAsync(
@@ -1832,11 +1960,11 @@ function ScheduleSellerFollowUpDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up scheduled")
-          onClose()
+          toast.success("Follow-up scheduled");
+          onClose();
         },
       },
-    )
+    );
   }
 
   return (
@@ -1896,5 +2024,5 @@ function ScheduleSellerFollowUpDialogForm({
         </DialogFooter>
       </form>
     </>
-  )
+  );
 }

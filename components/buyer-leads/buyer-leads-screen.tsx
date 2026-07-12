@@ -802,7 +802,7 @@ export function BuyerLeadsScreen() {
                 />
               </div>
             ) : leads.length ? (
-              <Table className="min-w-[1040px] border-collapse">
+              <Table className="min-w-[940px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
@@ -819,9 +819,6 @@ export function BuyerLeadsScreen() {
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Next Action
-                    </TableHead>
-                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-                      Linked Vehicles
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Assignee
@@ -877,42 +874,19 @@ export function BuyerLeadsScreen() {
                           </Badge>
                         </TableCell>
                         <TableCell className="px-4 py-3">
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-foreground">
-                              {getBuyerLeadNextAction(lead)}
-                            </p>
-                            <Button
-                              type="button"
-                              variant={
-                                cta.action === "follow-up"
-                                  ? "default"
-                                  : "outline"
-                              }
-                              size="sm"
-                              className="mt-1"
-                              onClick={() => handleNextActionClick(lead)}
-                            >
-                              <BuyerLeadNextActionIcon action={cta.action} />
-                              {cta.label}
-                            </Button>
-                            <p className="text-xs text-muted-foreground">
-                              {cta.helper}
-                            </p>
-                            {getBuyerLeadWarning(lead) ? (
-                              <p className="text-xs text-amber-700 dark:text-amber-300">
-                                Needs follow-up
-                              </p>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
-                            variant="outline"
-                            className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground"
+                          <Button
+                            type="button"
+                            variant={
+                              cta.action === "follow-up"
+                                ? "default"
+                                : "outline"
+                            }
+                            size="sm"
+                            onClick={() => handleNextActionClick(lead)}
                           >
-                            {lead.vehicles.length} vehicle
-                            {lead.vehicles.length === 1 ? "" : "s"}
-                          </Badge>
+                            <BuyerLeadNextActionIcon action={cta.action} />
+                            {cta.label}
+                          </Button>
                         </TableCell>
                         <TableCell className="px-4 py-3 text-sm text-foreground">
                           {getAssigneeLabel(lead.assigneeUserId, currentUserId)}

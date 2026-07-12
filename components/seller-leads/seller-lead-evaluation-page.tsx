@@ -5,7 +5,6 @@ import Link from "next/link"
 import { format } from "date-fns"
 import {
   AlertTriangleIcon,
-  CalendarDaysIcon,
   CheckCircle2Icon,
   CircleIcon,
   FileTextIcon,
@@ -14,7 +13,6 @@ import {
   MapPinIcon,
   MessageSquareTextIcon,
   PlusIcon,
-  ShieldCheckIcon,
   SparklesIcon,
   Trash2Icon,
   UserRoundIcon,
@@ -475,24 +473,18 @@ function OverviewTab({
 }
 
 function InspectionTab({
-  lead,
   values,
   onChange,
   onSave,
   pending,
   dirty,
 }: {
-  lead: SellerLead
   values: InspectionFormValues
   onChange: (values: InspectionFormValues) => void
   onSave: () => Promise<void>
   pending: boolean
   dirty: boolean
 }) {
-  function updateField<K extends keyof InspectionFormValues>(key: K, value: InspectionFormValues[K]) {
-    onChange({ ...values, [key]: value })
-  }
-
   function updateInspectionField(key: InspectionKey, field: "rating" | "notes", value: string) {
     onChange({
       ...values,
@@ -515,74 +507,6 @@ function InspectionTab({
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/70 shadow-xs">
-        <CardHeader className="border-b">
-          <CardTitle className="text-base">Inspection Session</CardTitle>
-          <CardDescription>Record the appraisal session details before rating each system.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-6">
-          <div className="grid gap-4 xl:grid-cols-4 md:grid-cols-2">
-            <div className="rounded-xl border bg-muted/15 p-4">
-              <div className="flex items-start gap-3">
-                <CalendarDaysIcon className="mt-0.5 size-4 text-muted-foreground" />
-                <div className="min-w-0 space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Inspection Date & Time</p>
-                  <Input
-                    id="inspectionCompletedAt"
-                    type="datetime-local"
-                    value={values.inspectionCompletedAt}
-                    onChange={(e) => updateField("inspectionCompletedAt", e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl border bg-muted/15 p-4">
-              <div className="flex items-start gap-3">
-                <UserRoundIcon className="mt-0.5 size-4 text-muted-foreground" />
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Seller Contact</p>
-                  <p className="text-sm font-medium text-foreground">{lead.contactNumber}</p>
-                  <p className="text-xs text-muted-foreground">{lead.email ?? "No email on file"}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl border bg-muted/15 p-4">
-              <div className="flex items-start gap-3">
-                <MapPinIcon className="mt-0.5 size-4 text-muted-foreground" />
-                <div className="space-y-1">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Lead Context</p>
-                  <p className="text-sm font-medium text-foreground">{lead.region ?? "Region not set"}</p>
-                  <p className="text-xs text-muted-foreground">{lead.inquirySource ?? "Source not set"}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl border bg-muted/15 p-4">
-              <div className="flex items-start gap-3">
-                <ShieldCheckIcon className="mt-0.5 size-4 text-muted-foreground" />
-                <div className="space-y-2">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Current Workflow</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={getStatusBadgeVariant(lead.status)}>{lead.status}</Badge>
-                    <Badge variant={getDecisionBadgeVariant(lead.decision)}>{lead.decision ?? "Pending"}</Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Field>
-            <FieldLabel htmlFor="inspectionNotes">Overall First Impression</FieldLabel>
-            <Textarea
-              id="inspectionNotes"
-              rows={3}
-              value={values.inspectionNotes}
-              onChange={(e) => updateField("inspectionNotes", e.target.value)}
-              placeholder="Well-maintained overall. Clean interior and engine bay. Minor exterior blemishes."
-            />
-          </Field>
-        </CardContent>
-      </Card>
-
       <Card className="border-border/70 shadow-xs">
         <CardHeader className="border-b">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -1462,7 +1386,6 @@ export function SellerLeadEvaluationPage({ leadId }: { leadId: string }) {
 
             <TabsContent value="inspection">
               <InspectionTab
-                lead={lead}
                 values={inspectionValues}
                 onChange={setInspectionValues}
                 onSave={() => saveSection(buildInspectionPayload(inspectionValues), "Inspection updated")}

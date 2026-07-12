@@ -597,6 +597,8 @@ function SellerLeadForm({
   values: SellerLeadFormValues;
   onChange: (values: SellerLeadFormValues) => void;
 }) {
+  const [catalogPortalContainer, setCatalogPortalContainer] =
+    React.useState<HTMLDivElement | null>(null);
   const brandsQuery = useVehicleCatalogBrandsQuery();
   const selectedBrand = findCatalogItemByName(
     brandsQuery.data?.items ?? [],
@@ -700,7 +702,7 @@ function SellerLeadForm({
   }
 
   return (
-    <FieldGroup className="gap-6">
+    <FieldGroup ref={setCatalogPortalContainer} className="gap-6">
       <section className="space-y-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-foreground">
@@ -775,6 +777,7 @@ function SellerLeadForm({
               addLabel={`Add "${normalizeCatalogName(values.vehicleBrand)}" as a brand`}
               isLoading={brandsQuery.isLoading}
               isAdding={createBrandMutation.isPending}
+              portalContainer={catalogPortalContainer}
               onValueChange={updateBrand}
               onAdd={addBrand}
               required
@@ -801,6 +804,7 @@ function SellerLeadForm({
               disabled={!selectedBrand}
               isLoading={modelsQuery.isLoading}
               isAdding={createModelMutation.isPending}
+              portalContainer={catalogPortalContainer}
               onValueChange={updateModel}
               onAdd={addModel}
               required
@@ -844,6 +848,7 @@ function SellerLeadForm({
               disabled={!selectedModel}
               isLoading={variantsQuery.isLoading}
               isAdding={createVariantMutation.isPending}
+              portalContainer={catalogPortalContainer}
               onValueChange={(value) => updateField("vehicleVariant", value)}
               onAdd={addVariant}
               canAdd={Boolean(

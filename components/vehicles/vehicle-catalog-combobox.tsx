@@ -24,6 +24,7 @@ export function VehicleCatalogCombobox({
   addLabel,
   disabled = false,
   required = false,
+  portalContainer,
   isLoading = false,
   isAdding = false,
   canAdd,
@@ -38,6 +39,7 @@ export function VehicleCatalogCombobox({
   addLabel: string;
   disabled?: boolean;
   required?: boolean;
+  portalContainer?: HTMLElement | ShadowRoot | null;
   isLoading?: boolean;
   isAdding?: boolean;
   canAdd: boolean;
@@ -65,7 +67,7 @@ export function VehicleCatalogCombobox({
         disabled={disabled}
         required={required}
       />
-      <ComboboxContent>
+      <ComboboxContent portalContainer={portalContainer}>
         <ComboboxEmpty>
           {isLoading ? "Loading options..." : emptyLabel}
         </ComboboxEmpty>

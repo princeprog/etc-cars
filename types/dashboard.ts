@@ -19,6 +19,11 @@ export interface DashboardInventoryQuality {
 }
 
 export interface DashboardMetrics {
+  activeInventory: number
+  activeSellerLeads: number
+  sellerLeadsRequiringAction: number
+  inspectionsPending: number
+  approvedLeadsAwaitingConversion: number
   availableVehicles: number
   reservedVehicles: number
   soldVehicles: number
@@ -26,6 +31,26 @@ export interface DashboardMetrics {
   monthlyRevenue: string
   monthlyProfit: string
   inventoryQuality: DashboardInventoryQuality
+}
+
+export interface DashboardTrendPoint {
+  label: string
+  periodStart: string
+  vehiclesAcquired: number
+  vehiclesSold: number
+}
+
+export type DashboardSellerLeadPipelineStatus =
+  | "New Inquiry"
+  | "Contacted"
+  | "Inspection Scheduled"
+  | "Evaluated"
+  | "Negotiating"
+  | "Approved to Buy"
+
+export interface DashboardSellerLeadPipelineItem {
+  status: DashboardSellerLeadPipelineStatus
+  count: number
 }
 
 export interface DashboardFollowUpQueueItem {
@@ -58,6 +83,14 @@ export interface DashboardBuyerLeadQueueItem {
 
 export interface DashboardResponse {
   metrics: DashboardMetrics
+  analytics: {
+    acquisitionSalesTrend: {
+      twelveWeeks: DashboardTrendPoint[]
+      sixMonths: DashboardTrendPoint[]
+      oneYear: DashboardTrendPoint[]
+    }
+    sellerLeadPipeline: DashboardSellerLeadPipelineItem[]
+  }
   queues: {
     overdueFollowUps: DashboardFollowUpQueueItem[]
     dueTodayFollowUps: DashboardFollowUpQueueItem[]

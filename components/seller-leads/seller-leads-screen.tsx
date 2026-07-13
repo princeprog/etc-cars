@@ -4,10 +4,10 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { format, formatDistanceToNow } from "date-fns";
 import {
-  AlertTriangleIcon,
   CalendarPlusIcon,
-  Clock3Icon,
+  ClipboardCheckIcon,
   EyeIcon,
+  FileTextIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
@@ -122,7 +122,6 @@ import {
   VehicleCatalogCombobox,
 } from "../vehicles/vehicle-catalog-combobox";
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers";
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel";
 
 const INSPECTION_KEYS = [
   "engine",
@@ -166,7 +165,7 @@ type SellerLeadFormValues = {
 type SellerLeadNextActionCta = {
   label: string;
   helper: string;
-  action: "convert" | "evaluate" | "follow-up";
+  action: "convert" | "inspection" | "decision" | "view" | "follow-up";
 };
 
 function getEmptyInspectionFindings(): SellerLeadFormValues["inspectionFindings"] {
@@ -343,82 +342,7 @@ function buildConvertVehicleHref(lead: SellerLead) {
   return `/vehicles/new?${params.toString()}`;
 }
 
-function getSellerLeadStage(status: SellerLeadStatus) {
-  switch (status) {
-    case "New Inquiry":
-      return "Intake";
-    case "Contacted":
-      return "Qualified Seller";
-    case "Inspection Scheduled":
-      return "Inspection Queue";
-    case "Evaluated":
-      return "Financial Review";
-    case "Negotiating":
-      return "Negotiation";
-    case "Approved to Buy":
-      return "Approved";
-    case "Purchased":
-      return "Converted";
-    case "Rejected":
-      return "Closed Lost";
-    default:
-      return "Pipeline";
-  }
-}
-
-function getSellerLeadNextAction(lead: SellerLead) {
-  if (lead.pipeline?.nextAction) {
-    return lead.pipeline.nextAction.label;
-  }
-
-  if (lead.status === "Purchased" || lead.status === "Rejected") {
-    return "No immediate action";
-  }
-
-  if (lead.status === "New Inquiry") {
-    return "Make first contact";
-  }
-
-  if (!lead.inspectionCompletedAt && lead.status !== "Contacted") {
-    return "Schedule or complete inspection";
-  }
-
-  if (!lead.decision) {
-    return "Lock buy decision";
-  }
-
-  if (lead.status === "Approved to Buy") {
-    return "Convert to vehicle";
-  }
-
-  return "Review inspection and decide";
-}
-
 function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
-  if (lead.pipeline?.nextAction) {
-    if (lead.pipeline.nextAction.target === "vehicle_create") {
-      return {
-        label: "Convert to Vehicle",
-        helper: lead.pipeline.nextAction.description,
-        action: "convert" as const,
-      };
-    }
-
-    if (lead.pipeline.nextAction.target === "follow_up") {
-      return {
-        label: "Schedule Follow-Up",
-        helper: "Create a dated task so the next seller contact is clear.",
-        action: "follow-up" as const,
-      };
-    }
-
-    return {
-      label: lead.pipeline.nextAction.label,
-      helper: `${lead.pipeline.nextAction.description} This opens the seller workflow.`,
-      action: "evaluate" as const,
-    };
-  }
-
   if (lead.status === "Approved to Buy") {
     return {
       label: "Convert to Vehicle",
@@ -429,16 +353,24 @@ function getSellerLeadNextActionCta(lead: SellerLead): SellerLeadNextActionCta {
 
   if (lead.status === "Purchased" || lead.status === "Rejected") {
     return {
-      label: "View Workflow",
+      label: "View Record",
       helper: "Review the completed acquisition record.",
-      action: "evaluate" as const,
+      action: "view" as const,
+    };
+  }
+
+  if (lead.status === "Evaluated" || lead.status === "Negotiating") {
+    return {
+      label: "Review Decision",
+      helper: "Use inspection results to decide the acquisition path.",
+      action: "decision" as const,
     };
   }
 
   return {
-    label: "Continue Workflow",
-    helper: "Continue inspection, pricing, approval, or decision work.",
-    action: "evaluate" as const,
+    label: "Start Inspection",
+    helper: "Inspect the vehicle before acquisition review.",
+    action: "inspection" as const,
   };
 }
 
@@ -449,7 +381,9 @@ function SellerLeadNextActionIcon({
 }) {
   if (action === "follow-up") return <CalendarPlusIcon />;
   if (action === "convert") return <ShuffleIcon />;
-  return <PencilIcon />;
+  if (action === "inspection") return <ClipboardCheckIcon />;
+  if (action === "decision") return <PencilIcon />;
+  return <FileTextIcon />;
 }
 
 function getDefaultSellerFollowUpDueAt() {
@@ -478,46 +412,6 @@ function isSellerLeadStale(lead: SellerLead) {
   );
 }
 
-function getSellerLeadBlocker(lead: SellerLead) {
-  if (lead.pipeline?.blockers.length) {
-    return lead.pipeline.blockers[0]?.description ?? null;
-  }
-
-  if (
-    !lead.inspectionCompletedAt &&
-    lead.status !== "New Inquiry" &&
-    lead.status !== "Rejected"
-  ) {
-    return "Inspection details are still incomplete.";
-  }
-
-  if (
-    !lead.decision &&
-    lead.status !== "New Inquiry" &&
-    lead.status !== "Contacted"
-  ) {
-    return "A buy decision has not been locked yet.";
-  }
-
-  if (lead.status === "Approved to Buy" && !lead.approvedToBuyAt) {
-    return "This lead is marked approved but does not have approval timing recorded.";
-  }
-
-  return null;
-}
-
-function getSellerLeadWarning(lead: SellerLead) {
-  if (lead.pipeline?.warnings.length) {
-    return lead.pipeline.warnings[0]?.description ?? null;
-  }
-
-  if (isSellerLeadStale(lead)) {
-    return "This seller lead has gone stale and should be reviewed before the opportunity cools off.";
-  }
-
-  return null;
-}
-
 function getSellerLeadStatusBadgeVariant(
   status: SellerLeadStatus,
 ): "default" | "secondary" | "outline" | "destructive" {
@@ -532,30 +426,50 @@ function getSellerLeadStatusBadgeVariant(
   }
 }
 
-function getDecisionBadgeVariant(
-  decision: SellerLeadDecision | null,
-): "default" | "secondary" | "outline" | "destructive" {
-  switch (decision) {
-    case "Buy":
-      return "secondary";
-    case "Walk Away":
-      return "destructive";
+function getSellerLeadStatusClassName(status: SellerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300";
+    case "Contacted":
+      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300";
+    case "Inspection Scheduled":
+      return "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300";
+    case "Evaluated":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300";
+    case "Negotiating":
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
+    case "Approved to Buy":
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300";
+    case "Purchased":
+      return "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-300";
+    case "Rejected":
+      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300";
     default:
-      return "outline";
+      return "";
   }
 }
 
-function getAssigneeLabel(
-  assigneeUserId: string | null,
-  currentUserId?: string,
-) {
-  if (!assigneeUserId) return "Unassigned";
-  if (assigneeUserId === currentUserId) return "You";
-  return "Assigned";
-}
-
-function formatPercent(value: string | null) {
-  return value ? `${value}%` : "—";
+function getSellerLeadStatusTextClassName(status: SellerLeadStatus) {
+  switch (status) {
+    case "New Inquiry":
+      return "text-sky-700 dark:text-sky-300";
+    case "Contacted":
+      return "text-slate-700 dark:text-slate-300";
+    case "Inspection Scheduled":
+      return "text-violet-700 dark:text-violet-300";
+    case "Evaluated":
+      return "text-indigo-700 dark:text-indigo-300";
+    case "Negotiating":
+      return "text-amber-700 dark:text-amber-300";
+    case "Approved to Buy":
+      return "text-emerald-700 dark:text-emerald-300";
+    case "Purchased":
+      return "text-teal-700 dark:text-teal-300";
+    case "Rejected":
+      return "text-rose-700 dark:text-rose-300";
+    default:
+      return "";
+  }
 }
 
 function formatInspectionLabel(key: InspectionKey) {
@@ -957,9 +871,7 @@ export function AcquisitionEvaluationForm({
     <div className="space-y-6">
       <section className="space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-foreground">
-            Decision
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">Decision</h3>
           <p className="text-sm text-muted-foreground">
             Record the current acquisition direction after inspection.
           </p>
@@ -1071,57 +983,6 @@ export function AcquisitionEvaluationForm({
   );
 }
 
-function AcquisitionSummaryCard({ lead }: { lead: SellerLead }) {
-  const rows = [
-    { label: "Seller asking", value: formatVehicleMoney(lead.askingPrice) },
-    { label: "Status", value: lead.status },
-    { label: "Decision", value: lead.decision ?? "Pending" },
-  ];
-
-  return (
-    <Card className="border-border/70 shadow-xs">
-      <CardHeader className="border-b">
-        <CardTitle className="text-base">Review Summary</CardTitle>
-        <CardDescription>
-          Current seller asking price, workflow status, and decision state.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 pt-6">
-        {rows.map((row) => (
-          <div
-            key={row.label}
-            className="flex items-center justify-between gap-4 text-sm"
-          >
-            <span className="text-muted-foreground">{row.label}</span>
-            <span className="font-medium text-foreground">{row.value}</span>
-          </div>
-        ))}
-        <Separator />
-        <div className="space-y-2 rounded-xl border bg-muted/20 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">Decision</span>
-            <Badge variant={getDecisionBadgeVariant(lead.decision)}>
-              {lead.decision ?? "Pending"}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">Approval</span>
-            <Badge
-              variant={
-                lead.status === "Approved to Buy" || lead.status === "Purchased"
-                  ? "secondary"
-                  : "outline"
-              }
-            >
-              {lead.approvedToBuyAt ? "Approved" : "Not approved"}
-            </Badge>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function SellerLeadsScreen() {
   const router = useRouter();
   const authQuery = useAuthenticatedUserQuery();
@@ -1135,7 +996,6 @@ export function SellerLeadsScreen() {
   >("all");
   const [page, setPage] = React.useState(1);
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [viewLead, setViewLead] = React.useState<SellerLead | null>(null);
   const [followUpLead, setFollowUpLead] = React.useState<SellerLead | null>(
     null,
   );
@@ -1169,6 +1029,16 @@ export function SellerLeadsScreen() {
 
     if (cta.action === "follow-up") {
       setFollowUpLead(lead);
+      return;
+    }
+
+    if (cta.action === "inspection") {
+      router.push(`/seller-leads/${lead.id}/inspection`);
+      return;
+    }
+
+    if (cta.action === "decision") {
+      router.push(`/seller-leads/${lead.id}/decision`);
       return;
     }
 
@@ -1223,7 +1093,7 @@ export function SellerLeadsScreen() {
               </h2>
               <p className="text-sm text-muted-foreground">
                 Track acquisition opportunities, see the next required step, and
-                continue each seller workflow from one place.
+                open the right task page from one place.
               </p>
             </div>
             <Button onClick={() => setCreateOpen(true)}>
@@ -1378,6 +1248,7 @@ export function SellerLeadsScreen() {
                             variant={getSellerLeadStatusBadgeVariant(
                               lead.status,
                             )}
+                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getSellerLeadStatusClassName(lead.status)}`}
                           >
                             {lead.status}
                           </Badge>
@@ -1410,18 +1281,32 @@ export function SellerLeadsScreen() {
                                 Lead actions
                               </DropdownMenuLabel>
                               <DropdownMenuItem
-                                onClick={() => setViewLead(lead)}
-                              >
-                                <EyeIcon />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
                                 onClick={() =>
                                   router.push(`/seller-leads/${lead.id}`)
                                 }
                               >
+                                <EyeIcon />
+                                View Record
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/seller-leads/${lead.id}/inspection`,
+                                  )
+                                }
+                              >
+                                <ClipboardCheckIcon />
+                                Inspect Vehicle
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  router.push(
+                                    `/seller-leads/${lead.id}/decision`,
+                                  )
+                                }
+                              >
                                 <PencilIcon />
-                                Continue Workflow
+                                Review Decision
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => setFollowUpLead(lead)}
@@ -1448,6 +1333,7 @@ export function SellerLeadsScreen() {
                                   <DropdownMenuRadioItem
                                     key={status}
                                     value={status}
+                                    className={`font-medium ${getSellerLeadStatusTextClassName(status)}`}
                                     disabled={updateMutation.isPending}
                                     onSelect={(event) => {
                                       event.preventDefault();
@@ -1544,111 +1430,6 @@ export function SellerLeadsScreen() {
             </form>
           </SheetContent>
         </Sheet>
-
-        <Dialog
-          open={Boolean(viewLead)}
-          onOpenChange={(open) => !open && setViewLead(null)}
-        >
-          <DialogContent className="max-w-3xl">
-            {viewLead ? (
-              <>
-                <DialogHeader>
-                  <DialogTitle>{viewLead.sellerName}</DialogTitle>
-                  <DialogDescription>
-                    {getSellerLeadVehicleLabel(viewLead)}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-6">
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <Card className="border-border/70 shadow-none">
-                      <CardHeader className="border-b">
-                        <CardTitle className="text-base">
-                          Lead Snapshot
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3 pt-6 text-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">Contact</span>
-                          <span>{viewLead.contactNumber}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">Stage</span>
-                          <span>
-                            {viewLead.pipeline?.stageLabel ??
-                              getSellerLeadStage(viewLead.status)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">
-                            Assignee
-                          </span>
-                          <span>
-                            {getAssigneeLabel(
-                              viewLead.assigneeUserId,
-                              currentUserId,
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">
-                            Next step
-                          </span>
-                          <span>{getSellerLeadNextAction(viewLead)}</span>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-muted-foreground">
-                            Decision
-                          </span>
-                          <span>{viewLead.decision ?? "Pending"}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <AcquisitionSummaryCard lead={viewLead} />
-                  </div>
-                  <div className="grid gap-3">
-                    <Alert>
-                      <Clock3Icon className="size-4" />
-                      <AlertTitle>Next action</AlertTitle>
-                      <AlertDescription>
-                        {getSellerLeadNextAction(viewLead)}
-                      </AlertDescription>
-                    </Alert>
-                    {getSellerLeadBlocker(viewLead) ? (
-                      <Alert variant="destructive">
-                        <AlertTriangleIcon className="size-4" />
-                        <AlertTitle>Blocker</AlertTitle>
-                        <AlertDescription>
-                          {getSellerLeadBlocker(viewLead)}
-                        </AlertDescription>
-                      </Alert>
-                    ) : null}
-                    {getSellerLeadWarning(viewLead) ? (
-                      <Alert>
-                        <AlertTriangleIcon className="size-4" />
-                        <AlertTitle>Warning</AlertTitle>
-                        <AlertDescription>
-                          {getSellerLeadWarning(viewLead)}
-                        </AlertDescription>
-                      </Alert>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Notes
-                    </p>
-                    <p className="text-sm text-foreground">
-                      {viewLead.notes ?? "No notes recorded."}
-                    </p>
-                  </div>
-                  <ActivityHistoryPanel
-                    entityType="seller_lead"
-                    entityId={viewLead.id}
-                  />
-                </div>
-              </>
-            ) : null}
-          </DialogContent>
-        </Dialog>
 
         <Dialog
           open={Boolean(followUpLead)}

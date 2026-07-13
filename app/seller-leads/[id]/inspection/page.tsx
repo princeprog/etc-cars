@@ -1,4 +1,4 @@
-import { SellerLeadInspectionPage } from "@/components/seller-leads/seller-lead-evaluation-page";
+import { SellerLeadInspectionPage } from "@/components/seller-leads/seller-lead-inspection-page";
 
 export default async function SellerLeadInspectionRoute({
   params,

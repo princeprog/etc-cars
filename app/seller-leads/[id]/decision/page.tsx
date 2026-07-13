@@ -1,4 +1,4 @@
-import { SellerLeadDecisionPage } from "@/components/seller-leads/seller-lead-evaluation-page";
+import { SellerLeadDecisionPage } from "@/components/seller-leads/seller-lead-decision-page";
 
 export default async function SellerLeadDecisionRoute({
   params,

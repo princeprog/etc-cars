@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import {
   AlertTriangleIcon,
@@ -654,6 +655,7 @@ function ConversionAction({ lead }: { lead: SellerLead }) {
 }
 
 function DecisionWorkspace({ lead }: { lead: SellerLead }) {
+  const router = useRouter();
   const updateMutation = useUpdateSellerLeadMutation();
   const [decisionNote, setDecisionNote] = React.useState(
     lead.decisionNote ?? "",
@@ -678,14 +680,17 @@ function DecisionWorkspace({ lead }: { lead: SellerLead }) {
   }
 
   function applyDecision(action: DecisionAction) {
-    void save(
-      {
-        decision: action.decision,
-        decisionNote: decisionNote.trim() || null,
-        status: action.status,
-      },
-      action.successMessage,
-    );
+    void (async () => {
+      await save(
+        {
+          decision: action.decision,
+          decisionNote: decisionNote.trim() || null,
+          status: action.status,
+        },
+        `${action.successMessage}. Returning to seller lead overview.`,
+      );
+      router.push(`/seller-leads/${lead.id}`);
+    })();
   }
 
   return (

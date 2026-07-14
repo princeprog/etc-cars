@@ -6,11 +6,14 @@ import { format } from "date-fns";
 import {
   ArrowLeftIcon,
   CalendarIcon,
+  CheckCircle2Icon,
+  ClockIcon,
   ClipboardCheckIcon,
   ClipboardListIcon,
   FileTextIcon,
   GavelIcon,
   PencilIcon,
+  PhoneCallIcon,
   UserIcon,
 } from "lucide-react";
 
@@ -50,6 +53,14 @@ type DetailRow = {
   label: string;
   value: string;
   href?: string;
+};
+
+type TimelineItem = {
+  title: string;
+  description: string;
+  timestamp: string;
+  icon: typeof CheckCircle2Icon;
+  tone: "success" | "primary" | "violet" | "warning";
 };
 
 const INSPECTION_LABELS: Record<string, string> = {
@@ -181,6 +192,65 @@ function getKeyFindings(lead: SellerLead) {
       rating: finding.rating,
       notes: finding.notes,
     }));
+}
+
+function getTimelineItems(lead: SellerLead) {
+  const draft = getInspectionDraft(lead);
+  const metrics = getInspectionMetrics(draft);
+  const items: TimelineItem[] = [];
+
+  if (lead.inspectionCompletedAt) {
+    items.push({
+      title: "Inspection completed",
+      description: `Inspection recorded with overall score of ${metrics.score} / 100.`,
+      timestamp: lead.inspectionCompletedAt,
+      icon: CheckCircle2Icon,
+      tone: "success",
+    });
+  }
+
+  if (lead.status === "Evaluated" || lead.status === "Negotiating") {
+    items.push({
+      title: `Lead status moved to ${lead.status}`,
+      description: "Status updated based on completed inspection.",
+      timestamp: lead.latestActivityAt ?? lead.updatedAt,
+      icon: FileTextIcon,
+      tone: "primary",
+    });
+  }
+
+  if (lead.decision) {
+    items.push({
+      title: `Decision recorded as ${lead.decision}`,
+      description: lead.decisionNote ?? "Acquisition direction was saved.",
+      timestamp: lead.updatedAt,
+      icon: GavelIcon,
+      tone: lead.decision === "Walk Away" ? "warning" : "primary",
+    });
+  }
+
+  items.push({
+    title: "Seller contacted",
+    description: "Seller lead intake and contact details were recorded.",
+    timestamp: lead.createdAt,
+    icon: PhoneCallIcon,
+    tone: "violet",
+  });
+
+  if (lead.status !== "Purchased" && lead.status !== "Rejected") {
+    items.push({
+      title: "Follow-up available",
+      description: "Schedule the next seller conversation when more context is needed.",
+      timestamp: lead.latestActivityAt ?? lead.updatedAt,
+      icon: CalendarIcon,
+      tone: "warning",
+    });
+  }
+
+  return items.sort(
+    (left, right) =>
+      new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+  );
 }
 
 function formatDateTime(value: string | null) {
@@ -535,6 +605,55 @@ function DecisionSnapshot({ lead }: { lead: SellerLead }) {
   );
 }
 
+function ActivityTimeline({ lead }: { lead: SellerLead }) {
+  const items = getTimelineItems(lead);
+
+  return (
+    <Card size="sm" className="rounded-lg">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ClockIcon />
+          Activity Timeline
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col">
+          {items.map((item, index) => {
+            const Icon = item.icon;
+
+            return (
+              <div
+                key={`${item.title}-${item.timestamp}`}
+                className={cn(
+                  "grid gap-4 py-3 text-sm md:grid-cols-[auto_1fr_1.6fr_auto] md:items-center",
+                  index > 0 && "border-t",
+                )}
+              >
+                <div
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-full text-white",
+                    item.tone === "success" && "bg-emerald-500",
+                    item.tone === "primary" && "bg-primary",
+                    item.tone === "violet" && "bg-violet-500",
+                    item.tone === "warning" && "bg-amber-500",
+                  )}
+                >
+                  <Icon className="size-4" />
+                </div>
+                <p className="font-semibold">{item.title}</p>
+                <p className="text-muted-foreground">{item.description}</p>
+                <p className="text-muted-foreground md:text-right">
+                  {formatDateTime(item.timestamp)}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function PageHeader({ lead }: { lead: SellerLead }) {
   const task = getPrimaryTask(lead);
   const Icon = task.icon;
@@ -594,6 +713,7 @@ function SellerLeadOverview({ lead }: { lead: SellerLead }) {
           <DecisionSnapshot lead={lead} />
         </div>
       </div>
+      <ActivityTimeline lead={lead} />
     </div>
   );
 }

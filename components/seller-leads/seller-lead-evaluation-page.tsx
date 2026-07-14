@@ -415,7 +415,10 @@ function DetailCard({
               <dt className="text-muted-foreground">{row.label}</dt>
               <dd className="min-w-0 font-medium">
                 {row.href ? (
-                  <Link className="truncate text-primary hover:underline" href={row.href}>
+                  <Link
+                    className="block truncate text-primary hover:underline"
+                    href={row.href}
+                  >
                     {row.value}
                   </Link>
                 ) : (
@@ -490,58 +493,105 @@ function InspectionSnapshot({ lead }: { lead: SellerLead }) {
           Inspection Snapshot
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-5 px-5 pb-4 text-sm lg:grid-cols-[1fr_0.85fr]">
-        <dl className="grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
-          <SnapshotRow
-            label="Inspection Recorded"
-            value={formatDateTime(lead.inspectionCompletedAt)}
-          />
-          <SnapshotRow label="Fair Components" value={String(metrics.counts.fair)} />
-          <SnapshotRow
-            label="Overall Score"
-            value={`${metrics.score} / 100`}
-            valueClassName="text-amber-600"
-          />
-          <SnapshotRow label="Poor Components" value={String(metrics.counts.poor)} />
-          <SnapshotRow
-            label="Readiness"
-            value={getReadinessLabel(metrics.readiness)}
-            badgeClassName={
-              metrics.readiness === "Needs Review"
-                ? "border-amber-200 bg-amber-50 text-amber-700"
-                : "border-emerald-200 bg-emerald-50 text-emerald-700"
-            }
-          />
-        </dl>
-        <div className="grid grid-cols-[7rem_1fr] gap-3">
-          <p className="text-muted-foreground">Key Findings</p>
-          {findings.length > 0 ? (
-            <ul className="flex flex-col gap-1">
-              {findings.slice(0, 4).map((finding) => (
-                <li key={finding.key} className="flex gap-2">
-                  <span aria-hidden="true">-</span>
-                  <span>
-                    {finding.label}:{" "}
-                    <span
-                      className={cn(
-                        "font-medium capitalize",
-                        finding.rating === "poor"
-                          ? "text-rose-600"
-                          : "text-amber-600",
-                      )}
-                    >
-                      {finding.rating}
+      <CardContent className="px-5 pb-4 text-sm">
+        <div className="grid gap-x-7 gap-y-3 xl:grid-cols-[minmax(17.5rem,1.1fr)_minmax(10rem,0.75fr)_minmax(12rem,1fr)]">
+          <div className="grid content-start gap-3">
+            <InspectionMetric label="Inspection Recorded">
+              {formatDateTime(lead.inspectionCompletedAt)}
+            </InspectionMetric>
+            <InspectionMetric
+              label="Overall Score"
+              valueClassName="whitespace-nowrap text-amber-600"
+            >
+              {metrics.score} / 100
+            </InspectionMetric>
+            <InspectionMetric label="Readiness">
+              <Badge
+                variant="outline"
+                className={
+                  metrics.readiness === "Needs Review"
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                }
+              >
+                {getReadinessLabel(metrics.readiness)}
+              </Badge>
+            </InspectionMetric>
+          </div>
+          <div className="grid content-start gap-3">
+            <InspectionMetric
+              label="Fair Components"
+              className="grid-cols-[7.75rem_minmax(0,1fr)]"
+            >
+              {metrics.counts.fair}
+            </InspectionMetric>
+            <InspectionMetric
+              label="Poor Components"
+              className="grid-cols-[7.75rem_minmax(0,1fr)]"
+            >
+              {metrics.counts.poor}
+            </InspectionMetric>
+          </div>
+          <InspectionMetric
+            label="Key Findings"
+            className="grid-cols-[6.5rem_minmax(0,1fr)]"
+          >
+            {findings.length > 0 ? (
+              <ul className="flex flex-col gap-1">
+                {findings.slice(0, 4).map((finding) => (
+                  <li key={finding.key} className="flex min-w-0 gap-2">
+                    <span aria-hidden="true" className="shrink-0">
+                      -
                     </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="font-medium">No key findings recorded.</p>
-          )}
+                    <span className="min-w-0">
+                      {finding.label}:{" "}
+                      <span
+                        className={cn(
+                          "font-medium capitalize",
+                          finding.rating === "poor"
+                            ? "text-rose-600"
+                            : "text-amber-600",
+                        )}
+                      >
+                        {finding.rating}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              "No key findings recorded."
+            )}
+          </InspectionMetric>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function InspectionMetric({
+  label,
+  children,
+  className,
+  valueClassName,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "grid min-w-0 grid-cols-[7.75rem_minmax(0,1fr)] items-start gap-3",
+        className,
+      )}
+    >
+      <div className="text-muted-foreground">{label}</div>
+      <div className={cn("min-w-0 font-semibold", valueClassName)}>
+        {children}
+      </div>
+    </div>
   );
 }
 

@@ -1,10 +1,20 @@
 "use client";
 
-import { CircleIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ClipboardPenLineIcon,
+  CircleIcon,
+  WrenchIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
@@ -134,17 +144,32 @@ export function InspectionFindingsPanel({
     {
       id: "major-issues",
       label: "Major Issues",
+      description:
+        "Document visible damage, warning signs, missing parts, paperwork problems, or mechanical concerns.",
       key: "majorIssues" as const,
+      icon: AlertTriangleIcon,
+      placeholder:
+        "Example: Left fender repaint marks, weak A/C cooling, delayed transmission response.",
     },
     {
       id: "recommended-repairs",
       label: "Recommended Repairs",
+      description:
+        "List repair work, replacement parts, detailing, or verification needed before acquisition.",
       key: "recommendedRepairs" as const,
+      icon: WrenchIcon,
+      placeholder:
+        "Example: Replace front tires, service brakes, request OR/CR copy, deep clean interior.",
     },
     {
       id: "inspector-notes",
       label: "Inspector Notes",
+      description:
+        "Add overall inspection context, seller remarks, test drive notes, or decision guidance.",
       key: "inspectorNotes" as const,
+      icon: ClipboardPenLineIcon,
+      placeholder:
+        "Example: Seller is flexible on price. Unit is usable but needs repair allowance.",
     },
   ];
 
@@ -156,28 +181,34 @@ export function InspectionFindingsPanel({
         </CardTitle>
       </CardHeader>
       <CardContent className="py-3">
-        <FieldGroup className="gap-2">
+        <FieldGroup className="gap-3">
           {fields.map((field) => (
             <Field
               key={field.id}
-              orientation="responsive"
-              className="items-start gap-2"
+              className="gap-2 rounded-md border bg-muted/20 p-3"
             >
-              <FieldLabel
-                htmlFor={field.id}
-                className="pt-2 text-xs md:w-32 md:min-w-32 md:shrink-0"
-              >
-                {field.label}
-              </FieldLabel>
+              <div className="flex items-start gap-3">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
+                  <field.icon className="size-4" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <FieldLabel htmlFor={field.id} className="text-sm font-semibold">
+                    {field.label}
+                  </FieldLabel>
+                  <FieldDescription className="text-xs leading-5">
+                    {field.description}
+                  </FieldDescription>
+                </div>
+              </div>
               <Textarea
                 id={field.id}
-                rows={1}
+                rows={3}
                 value={draft[field.key]}
                 onChange={(event) =>
                   onChange({ ...draft, [field.key]: event.target.value })
                 }
-                placeholder="Record any damage, mechanical concerns, document issues, or other observations."
-                className="h-11 min-h-11 resize-none overflow-hidden py-1.5 text-xs leading-4"
+                placeholder={field.placeholder}
+                className="min-h-24 resize-y bg-background text-sm leading-6"
               />
             </Field>
           ))}

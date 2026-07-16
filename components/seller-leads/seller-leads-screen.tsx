@@ -136,6 +136,20 @@ const INSPECTION_KEYS = [
   "papers",
 ] as const;
 
+const SELLER_LEAD_INQUIRY_SOURCES = [
+  "Facebook Marketplace",
+  "Facebook Page",
+  "Website",
+  "Walk-in",
+  "Referral",
+  "Phone Call",
+  "SMS / Viber",
+  "WhatsApp",
+  "Car Listing Platform",
+  "Existing Customer",
+  "Other",
+] as const;
+
 type InspectionKey = (typeof INSPECTION_KEYS)[number];
 
 type SellerLeadFormValues = {
@@ -323,6 +337,17 @@ function getSellerLeadVehicleLabel(lead: SellerLead) {
   ]
     .filter(Boolean)
     .join(" • ");
+}
+
+function getInquirySourceOptions(currentValue: string) {
+  if (
+    !currentValue ||
+    SELLER_LEAD_INQUIRY_SOURCES.some((source) => source === currentValue)
+  ) {
+    return SELLER_LEAD_INQUIRY_SOURCES;
+  }
+
+  return [currentValue, ...SELLER_LEAD_INQUIRY_SOURCES];
 }
 
 function buildConvertVehicleHref(lead: SellerLead) {
@@ -784,12 +809,21 @@ function SellerLeadForm({
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
             <FieldLabel htmlFor="inquirySource">Inquiry source</FieldLabel>
-            <Input
-              id="inquirySource"
+            <Select
               value={values.inquirySource}
-              onChange={(e) => updateField("inquirySource", e.target.value)}
-              placeholder="Facebook Marketplace"
-            />
+              onValueChange={(value) => updateField("inquirySource", value)}
+            >
+              <SelectTrigger id="inquirySource">
+                <SelectValue placeholder="Select inquiry source" />
+              </SelectTrigger>
+              <SelectContent>
+                {getInquirySourceOptions(values.inquirySource).map((source) => (
+                  <SelectItem key={source} value={source}>
+                    {source}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
           <Field>
             <FieldLabel htmlFor="region">Region</FieldLabel>

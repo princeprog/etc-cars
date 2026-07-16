@@ -124,8 +124,6 @@ type SaleFormValues = {
   saleDate: string;
   finalSaleAmount: string;
   agentName: string;
-  commissionOverrideAmount: string;
-  commissionOverrideReason: string;
   buyerClosingNote: string;
 };
 
@@ -155,8 +153,6 @@ function getEmptySaleFormValues(defaultAgentName = ""): SaleFormValues {
     saleDate: "",
     finalSaleAmount: "",
     agentName: defaultAgentName,
-    commissionOverrideAmount: "",
-    commissionOverrideReason: "",
     buyerClosingNote: "",
   };
 }
@@ -276,18 +272,16 @@ function getSaleStatusClassName(status: Exclude<SalesFilterStatus, "all">) {
   }
 }
 
+const FIXED_COMMISSION_AMOUNT = "10000.00";
+
 function getCommissionPreview(values: SaleFormValues, currentUserName?: string) {
   const effectiveAgentName =
     values.agentName.trim() || currentUserName?.trim() || "";
-  const defaultAmount = effectiveAgentName ? "5000.00" : null;
-  const overrideAmount = values.commissionOverrideAmount.trim() || null;
-  const finalAmount = effectiveAgentName
-    ? (overrideAmount ?? defaultAmount ?? "0.00")
-    : "0.00";
+  const defaultAmount = effectiveAgentName ? FIXED_COMMISSION_AMOUNT : null;
+  const finalAmount = effectiveAgentName ? FIXED_COMMISSION_AMOUNT : "0.00";
 
   return {
     defaultAmount,
-    overrideAmount,
     finalAmount,
   };
 }
@@ -943,8 +937,7 @@ function SalesForm({
             Commission & Closing
           </h3>
           <p className="text-sm text-muted-foreground">
-            Record the sales agent and any override details required for final
-            commission locking.
+            Record the sales agent, fixed commission, and closing details.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -957,33 +950,18 @@ function SalesForm({
               onChange={(e) => updateField("agentName", e.target.value)}
             />
           </Field>
-          <Field>
-            <FieldLabel htmlFor="commissionOverrideAmount">
-              Commission override amount
-            </FieldLabel>
-            <Input
-              id="commissionOverrideAmount"
-              value={values.commissionOverrideAmount}
-              onChange={(e) =>
-                updateField("commissionOverrideAmount", e.target.value)
-              }
-              placeholder="1500"
-            />
-          </Field>
+          <div className="rounded-lg border bg-muted/20 px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              Sales commission
+            </p>
+            <p className="mt-1 text-base font-semibold text-foreground">
+              {formatMoney(FIXED_COMMISSION_AMOUNT)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Fixed sales commission applied when an agent is assigned.
+            </p>
+          </div>
         </div>
-        <Field>
-          <FieldLabel htmlFor="commissionOverrideReason">
-            Commission override reason
-          </FieldLabel>
-          <Input
-            id="commissionOverrideReason"
-            value={values.commissionOverrideReason}
-            onChange={(e) =>
-              updateField("commissionOverrideReason", e.target.value)
-            }
-            placeholder="Used only when override amount is entered"
-          />
-        </Field>
         <Field>
           <FieldLabel htmlFor="buyerClosingNote">Buyer closing note</FieldLabel>
           <Textarea
@@ -1251,20 +1229,16 @@ function SaleReviewDialog({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex min-w-0 flex-col gap-1">
                     <span className="text-xs text-muted-foreground">
-                      Default Commission
+                      Fixed Commission
                     </span>
                     <span className="truncate text-base font-medium">
                       {formatMoney(commissionPreview.defaultAmount)}
                     </span>
                   </div>
                   <div className="flex min-w-0 flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">
-                      Override Commission
-                    </span>
+                    <span className="text-xs text-muted-foreground">Rule</span>
                     <span className="truncate text-base font-medium">
-                      {commissionPreview.overrideAmount
-                        ? formatMoney(commissionPreview.overrideAmount)
-                        : "-"}
+                      Standard vehicle sale
                     </span>
                   </div>
                 </div>
@@ -1652,8 +1626,6 @@ export function SalesScreen() {
         : null,
       finalSaleAmount: form.finalSaleAmount || null,
       agentName: form.agentName || currentUserName || null,
-      commissionOverrideAmount: form.commissionOverrideAmount || null,
-      commissionOverrideReason: form.commissionOverrideReason || null,
       buyerClosingNote: form.buyerClosingNote || null,
     };
   }
@@ -1668,8 +1640,6 @@ export function SalesScreen() {
         : "",
       finalSaleAmount: draft.finalSaleAmount ?? "",
       agentName: draft.agentName ?? currentUserName,
-      commissionOverrideAmount: draft.commissionOverrideAmount ?? "",
-      commissionOverrideReason: draft.commissionOverrideReason ?? "",
       buyerClosingNote:
         draft.buyerClosingNote ?? draft.buyerLead.closingNote ?? "",
     });
@@ -1746,8 +1716,6 @@ export function SalesScreen() {
         saleDate: new Date(form.saleDate).toISOString(),
         finalSaleAmount: form.finalSaleAmount,
         agentName: form.agentName || currentUserName || null,
-        commissionOverrideAmount: form.commissionOverrideAmount || null,
-        commissionOverrideReason: form.commissionOverrideReason || null,
         buyerClosingNote: form.buyerClosingNote || null,
       },
       {

@@ -398,7 +398,7 @@ function DetailCard({
   rows: DetailRow[];
 }) {
   return (
-    <Card size="sm" className="gap-0 rounded-lg py-0">
+    <Card size="sm" className="h-full gap-0 rounded-lg py-0">
       <CardHeader className="px-5 py-3">
         <CardTitle className="flex items-center gap-2 text-base">
           {icon}
@@ -486,7 +486,7 @@ function InspectionSnapshot({ lead }: { lead: SellerLead }) {
   const findings = getKeyFindings(lead);
 
   return (
-    <Card size="sm" className="gap-0 rounded-lg py-0">
+    <Card size="sm" className="h-full gap-0 rounded-lg py-0">
       <CardHeader className="px-5 py-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <ClipboardListIcon className="size-4" />
@@ -543,7 +543,7 @@ function InspectionSnapshot({ lead }: { lead: SellerLead }) {
                     <span aria-hidden="true" className="shrink-0">
                       -
                     </span>
-                    <span className="min-w-0">
+                    <span className="min-w-0 break-words">
                       {finding.label}:{" "}
                       <span
                         className={cn(
@@ -624,7 +624,7 @@ function SnapshotRow({
 
 function DecisionSnapshot({ lead }: { lead: SellerLead }) {
   return (
-    <Card size="sm" className="gap-0 rounded-lg py-0">
+    <Card size="sm" className="h-full gap-0 rounded-lg py-0">
       <CardHeader className="px-5 py-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <GavelIcon className="size-4" />
@@ -749,19 +749,15 @@ function PageHeader({ lead }: { lead: SellerLead }) {
 
 function SellerLeadOverview({ lead }: { lead: SellerLead }) {
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+    <div className="flex h-svh min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4 pb-8 md:h-[calc(100svh-1rem)] md:p-6 md:pb-8">
       <PageHeader lead={lead} />
       <LeadSummary lead={lead} />
       <RecommendedTaskCard lead={lead} />
-      <div className="grid items-start gap-4 xl:grid-cols-[0.9fr_1fr]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <SellerInformationCard lead={lead} />
-          <VehicleInformationCard lead={lead} />
-        </div>
-        <div className="flex min-w-0 flex-col gap-4">
-          <InspectionSnapshot lead={lead} />
-          <DecisionSnapshot lead={lead} />
-        </div>
+      <div className="grid items-stretch gap-4 xl:grid-cols-[0.9fr_1fr]">
+        <SellerInformationCard lead={lead} />
+        <InspectionSnapshot lead={lead} />
+        <VehicleInformationCard lead={lead} />
+        <DecisionSnapshot lead={lead} />
       </div>
       <ActivityTimeline lead={lead} />
     </div>

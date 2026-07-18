@@ -68,11 +68,11 @@ function SummaryItem({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-col items-start gap-1 border-t px-5 py-4 first:border-t-0 sm:border-t-0 sm:border-l sm:first:border-l-0",
+        "flex min-w-0 flex-col items-start gap-1 bg-card px-4 py-3",
         className,
       )}
     >
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="w-full text-xs text-muted-foreground">{label}</p>
       {children}
     </div>
   );
@@ -87,23 +87,29 @@ function LeadInspectionSummary({ lead }: { lead: SellerLead }) {
     : "Not scheduled";
 
   return (
-    <Card size="sm" className="gap-0 rounded-lg py-0">
-      <CardContent className="grid p-0 sm:grid-cols-2 xl:grid-cols-[1fr_1.35fr_1fr_1.25fr_1.1fr_1.05fr_1.1fr]">
+    <Card size="sm" className="gap-0 overflow-hidden rounded-lg py-0">
+      <CardContent className="grid gap-px bg-border p-0 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
         <SummaryItem label="Seller">
-          <p className="truncate font-semibold" title={lead.sellerName}>
+          <p
+            className="w-full truncate font-semibold"
+            title={lead.sellerName}
+          >
             {lead.sellerName}
           </p>
         </SummaryItem>
         <SummaryItem label="Vehicle">
-          <p className="truncate font-semibold" title={getVehicleTitle(lead)}>
+          <p
+            className="w-full truncate font-semibold"
+            title={getVehicleTitle(lead)}
+          >
             {getVehicleTitle(lead)}
           </p>
-          <p className="truncate text-sm text-muted-foreground">
+          <p className="w-full truncate text-sm text-muted-foreground">
             {lead.vehicleVariant || "Variant not recorded"}
           </p>
         </SummaryItem>
         <SummaryItem label="Seller Asking Price">
-          <p className="text-lg font-semibold">
+          <p className="w-full truncate text-lg font-semibold">
             {formatSellerLeadMoney(lead.askingPrice)}
           </p>
         </SummaryItem>
@@ -121,12 +127,14 @@ function LeadInspectionSummary({ lead }: { lead: SellerLead }) {
           </Badge>
         </SummaryItem>
         <SummaryItem label="Assigned Inspector">
-          <p className="truncate font-semibold">
+          <p className="w-full truncate font-semibold">
             {lead.assigneeUserId ? "Assigned" : "Unassigned"}
           </p>
         </SummaryItem>
         <SummaryItem label="Appointment">
-          <p className="text-sm font-medium leading-snug">{appointment}</p>
+          <p className="w-full break-words text-sm font-medium leading-snug">
+            {appointment}
+          </p>
         </SummaryItem>
       </CardContent>
     </Card>
@@ -185,15 +193,24 @@ function InspectionWorkspace({ lead }: { lead: SellerLead }) {
 
       <LeadInspectionSummary lead={lead} />
 
-      <div className="grid items-start gap-4 xl:grid-cols-[1.35fr_1fr]">
-        <SellerLeadInspectionChecklist draft={draft} onChange={setDraft} />
-        <div className="flex min-w-0 flex-col gap-4">
-          <InspectionProgressPanel draft={draft} />
-          <InspectionFindingsPanel draft={draft} onChange={setDraft} />
+      <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[1.35fr_1fr] xl:items-start">
+        <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
+          <div className="order-1 xl:order-none">
+            <SellerLeadInspectionChecklist draft={draft} onChange={setDraft} />
+          </div>
+          <div className="order-4 xl:order-none">
+            <InspectionSummaryPanel draft={draft} onChange={setDraft} />
+          </div>
+        </div>
+        <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
+          <div className="order-2 xl:order-none">
+            <InspectionProgressPanel draft={draft} />
+          </div>
+          <div className="order-3 xl:order-none">
+            <InspectionFindingsPanel draft={draft} onChange={setDraft} />
+          </div>
         </div>
       </div>
-
-      <InspectionSummaryPanel draft={draft} onChange={setDraft} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
         <p className="text-xs text-muted-foreground sm:mr-2">

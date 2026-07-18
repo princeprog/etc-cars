@@ -1,20 +1,10 @@
 "use client";
 
-import {
-  AlertTriangleIcon,
-  ClipboardPenLineIcon,
-  CircleIcon,
-  WrenchIcon,
-} from "lucide-react";
+import { CircleIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
@@ -144,32 +134,23 @@ export function InspectionFindingsPanel({
     {
       id: "major-issues",
       label: "Major Issues",
-      description:
-        "Document visible damage, warning signs, missing parts, paperwork problems, or mechanical concerns.",
       key: "majorIssues" as const,
-      icon: AlertTriangleIcon,
       placeholder:
-        "Example: Left fender repaint marks, weak A/C cooling, delayed transmission response.",
+        "Describe damage, warning signs, missing parts, or mechanical concerns.",
     },
     {
       id: "recommended-repairs",
       label: "Recommended Repairs",
-      description:
-        "List repair work, replacement parts, detailing, or verification needed before acquisition.",
       key: "recommendedRepairs" as const,
-      icon: WrenchIcon,
       placeholder:
-        "Example: Replace front tires, service brakes, request OR/CR copy, deep clean interior.",
+        "List recommended repairs, replacement parts, or verification needed.",
     },
     {
       id: "inspector-notes",
       label: "Inspector Notes",
-      description:
-        "Add overall inspection context, seller remarks, test drive notes, or decision guidance.",
       key: "inspectorNotes" as const,
-      icon: ClipboardPenLineIcon,
       placeholder:
-        "Example: Seller is flexible on price. Unit is usable but needs repair allowance.",
+        "Add relevant inspection context, seller remarks, or test-drive notes.",
     },
   ];
 
@@ -183,32 +164,19 @@ export function InspectionFindingsPanel({
       <CardContent className="py-3">
         <FieldGroup className="gap-3">
           {fields.map((field) => (
-            <Field
-              key={field.id}
-              className="gap-2 rounded-md border bg-muted/20 p-3"
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-background text-muted-foreground">
-                  <field.icon className="size-4" />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                  <FieldLabel htmlFor={field.id} className="text-sm font-semibold">
-                    {field.label}
-                  </FieldLabel>
-                  <FieldDescription className="text-xs leading-5">
-                    {field.description}
-                  </FieldDescription>
-                </div>
-              </div>
+            <Field key={field.id} className="gap-1.5">
+              <FieldLabel htmlFor={field.id} className="text-sm font-medium">
+                {field.label}
+              </FieldLabel>
               <Textarea
                 id={field.id}
-                rows={3}
+                rows={2}
                 value={draft[field.key]}
                 onChange={(event) =>
                   onChange({ ...draft, [field.key]: event.target.value })
                 }
                 placeholder={field.placeholder}
-                className="min-h-24 resize-y bg-background text-sm leading-6"
+                className="min-h-16 resize-y text-sm leading-5"
               />
             </Field>
           ))}

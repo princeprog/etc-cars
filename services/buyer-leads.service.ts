@@ -5,7 +5,6 @@ import type {
   BuyerLeadsResponse,
   BuyerLeadListFilters,
   CreateBuyerLeadPayload,
-  LinkBuyerLeadVehiclePayload,
   UpdateBuyerLeadPayload,
 } from "@/types/buyer-leads"
 
@@ -41,21 +40,5 @@ export function updateBuyerLead(id: string, payload: UpdateBuyerLeadPayload) {
   return apiRequest<BuyerLeadResponse, UpdateBuyerLeadPayload>(API_ENDPOINTS.buyerLeads.byId(id), {
     method: "PATCH",
     body: payload,
-  })
-}
-
-export function linkBuyerLeadVehicle(id: string, payload: LinkBuyerLeadVehiclePayload) {
-  return apiRequest<BuyerLeadResponse, LinkBuyerLeadVehiclePayload>(
-    API_ENDPOINTS.buyerLeads.vehicleLinks(id),
-    {
-      method: "POST",
-      body: payload,
-    },
-  )
-}
-
-export function unlinkBuyerLeadVehicle(id: string, vehicleId: string) {
-  return apiRequest<BuyerLeadResponse>(API_ENDPOINTS.buyerLeads.vehicleLinkByVehicleId(id, vehicleId), {
-    method: "DELETE",
   })
 }

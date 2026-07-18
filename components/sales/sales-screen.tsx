@@ -6,13 +6,16 @@ import { format, formatDistanceToNow } from "date-fns";
 import {
   BadgeDollarSignIcon,
   BarChart3Icon,
+  CalendarIcon,
   CarFrontIcon,
+  CircleCheckIcon,
   CheckIcon,
   CircleUserRoundIcon,
   ClipboardCheckIcon,
   DollarSignIcon,
   FileTextIcon,
   Loader2Icon,
+  LockIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
@@ -21,6 +24,7 @@ import {
   RotateCcwIcon,
   SaveIcon,
   SearchIcon,
+  ScaleIcon,
   TagsIcon,
   Trash2Icon,
   TriangleAlertIcon,
@@ -105,6 +109,7 @@ import { useSalesBuyerLeadSearchQuery } from "@/hooks/queries/sales/use-sales-bu
 import { useSalesSummaryQuery } from "@/hooks/queries/sales/use-sales-summary-query";
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query";
 import { getApiErrorMessage } from "@/types/api";
+import { cn } from "@/lib/utils";
 import type { BuyerLead } from "@/types/buyer-leads";
 import type {
   SaleDraft,
@@ -977,6 +982,47 @@ function SalesForm({
   );
 }
 
+function ReviewPanelTitle({
+  icon: Icon,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+}) {
+  return (
+    <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-normal">
+      <Icon className="size-4 text-primary" />
+      {children}
+    </CardTitle>
+  );
+}
+
+function ReviewInfoItem({
+  label,
+  children,
+  valueClassName,
+}: {
+  label: string;
+  children: React.ReactNode;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <span className="text-xs font-medium text-muted-foreground">
+        {label}
+      </span>
+      <div
+        className={cn(
+          "min-h-5 text-sm font-semibold text-foreground [overflow-wrap:anywhere]",
+          valueClassName,
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 function SaleReviewDialog({
   open,
   onOpenChange,
@@ -1019,13 +1065,33 @@ function SaleReviewDialog({
   const minimumPriceLabel = vehicle?.minimumAcceptablePrice
     ? formatMoney(vehicle.minimumAcceptablePrice)
     : "N/A";
+  const targetPriceAmount = parseMoney(vehicle?.targetSellingPrice);
+  const priceDifference =
+    targetPriceAmount !== null && finalSaleAmountNumber !== null
+      ? finalSaleAmountNumber - targetPriceAmount
+      : null;
+  const priceDifferenceLabel =
+    priceDifference !== null
+      ? formatMoney(formatAmountInputValue(priceDifference))
+      : "N/A";
+  const saleMeetsTarget =
+    targetPriceAmount !== null &&
+    finalSaleAmountNumber !== null &&
+    finalSaleAmountNumber >= targetPriceAmount;
+  const priceValidationLabel = belowMinimum
+    ? "Sale amount is below minimum."
+    : saleMeetsTarget
+      ? "Sale amount meets the target price."
+      : "Sale amount is within acceptable range.";
+  const closingNote =
+    form.buyerClosingNote.trim() || "No closing note entered.";
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-h-[calc(100vh-2rem)] gap-5 overflow-y-auto p-5 data-[size=default]:sm:max-w-5xl sm:max-w-5xl sm:p-6">
+      <AlertDialogContent className="grid max-h-[calc(100vh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 data-[size=default]:sm:max-w-5xl sm:max-w-5xl">
         <AlertDialogCancel
           aria-label="Close review"
-          className="absolute right-4 top-4"
+          className="absolute right-5 top-5"
           disabled={pending}
           size="icon"
           variant="ghost"
@@ -1033,111 +1099,168 @@ function SaleReviewDialog({
           <XIcon />
         </AlertDialogCancel>
 
-        <AlertDialogHeader className="pr-10">
-          <AlertDialogMedia className="rounded-full bg-primary/10 text-primary">
+        <AlertDialogHeader className="grid-cols-[auto_1fr] grid-rows-none items-start gap-x-6 border-b px-6 py-6 pr-14 text-left sm:place-items-start">
+          <AlertDialogMedia className="mb-0 rounded-full bg-primary text-primary-foreground shadow-xs">
             <ClipboardCheckIcon />
           </AlertDialogMedia>
-          <AlertDialogTitle className="text-2xl">
-            Review Sale Before Finalizing
-          </AlertDialogTitle>
-          <AlertDialogDescription className="max-w-md">
-            Confirm the buyer, vehicle, final amount, commission, and closing
-            details before creating this sale. The vehicle link will be created
-            automatically when needed.
-          </AlertDialogDescription>
+          <div className="flex min-w-0 flex-col gap-2">
+            <AlertDialogTitle className="text-2xl font-semibold leading-tight">
+              Review Sale Before Finalizing
+            </AlertDialogTitle>
+            <AlertDialogDescription className="max-w-xl text-sm leading-6">
+              Verify the buyer, vehicle, sale amount, commission, and closing
+              details before recording this sale.
+            </AlertDialogDescription>
+          </div>
         </AlertDialogHeader>
 
-        <div className="flex flex-col gap-3">
-          <Card size="sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <CircleUserRoundIcon className="size-4" />
-                </span>
-                1. Buyer Details
+        <div className="flex flex-col gap-4 overflow-y-auto px-6 py-5">
+          <Card
+            className="min-h-30 rounded-lg border-primary/20 bg-primary/5 shadow-none"
+            size="sm"
+          >
+            <CardHeader className="pb-0">
+              <CardTitle className="text-sm font-semibold uppercase tracking-normal">
+                Sale Overview
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Buyer Name
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr_1.05fr_1.15fr]">
+                <ReviewInfoItem
+                  label="Final Sale Amount"
+                  valueClassName="text-3xl font-semibold leading-none text-primary"
+                >
+                  {formatMoney(form.finalSaleAmount)}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Sale Date">
+                  <span className="flex items-center gap-2">
+                    <CalendarIcon className="size-4 text-primary" />
+                    {saleDateLabel}
                   </span>
-                  <span className="truncate text-base font-medium">
-                    {buyerLead?.buyerName ?? "Not selected"}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Agent">
+                  <span className="flex items-center gap-2">
+                    <CircleUserRoundIcon className="size-4 text-primary" />
+                    {effectiveAgentName}
                   </span>
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Contact Number
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Commission">
+                  <span className="flex items-center gap-2">
+                    <PercentIcon className="size-4 text-primary" />
+                    {formatMoney(commissionPreview.finalAmount)} fixed
                   </span>
-                  <span className="truncate text-base font-medium">
-                    {buyerLead?.contactNumber ?? "N/A"}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Lead Status
-                  </span>
-                  <div>
-                    <Badge variant="secondary">
-                      {buyerLead?.status ?? "N/A"}
-                    </Badge>
-                  </div>
-                </div>
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Sale Status">
+                  <Badge className="border-emerald-200 bg-emerald-100 text-emerald-700">
+                    <span className="size-2 rounded-full bg-emerald-600" />
+                    Ready to finalize
+                  </Badge>
+                </ReviewInfoItem>
               </div>
             </CardContent>
           </Card>
 
-          <Card size="sm">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="min-h-40 rounded-lg shadow-none" size="sm">
+              <CardHeader>
+                <ReviewPanelTitle icon={CircleUserRoundIcon}>
+                  Buyer
+                </ReviewPanelTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-[1fr_1.2fr]">
+                <ReviewInfoItem label="Buyer Name">
+                  {buyerLead?.buyerName ?? "Not selected"}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Contact Number">
+                  {buyerLead?.contactNumber ?? "N/A"}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Lead Status">
+                  <Badge className="border-sky-200 bg-sky-100 text-sky-700">
+                    {buyerLead?.status ?? "N/A"}
+                  </Badge>
+                </ReviewInfoItem>
+              </CardContent>
+            </Card>
+
+            <Card className="min-h-40 rounded-lg shadow-none" size="sm">
+              <CardHeader>
+                <ReviewPanelTitle icon={CarFrontIcon}>
+                  Vehicle
+                </ReviewPanelTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 sm:grid-cols-[1fr_1.2fr]">
+                <ReviewInfoItem label="Stock Number">
+                  {vehicle?.stockNumber ?? "Not selected"}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Brand / Model">
+                  {vehicle
+                    ? `${vehicle.brand} ${vehicle.model}`
+                    : "Not selected"}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Year / Variant">
+                  {vehicle
+                    ? [vehicle.year, vehicle.variant].filter(Boolean).join(" • ")
+                    : "N/A"}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Inventory Status">
+                  {vehicle?.status ? (
+                    <Badge className="border-emerald-200 bg-emerald-100 text-emerald-700">
+                      {vehicle.status}
+                    </Badge>
+                  ) : (
+                    "N/A"
+                  )}
+                </ReviewInfoItem>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="min-h-36 rounded-lg shadow-none" size="sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <CarFrontIcon className="size-4" />
-                </span>
-                2. Vehicle Details
-              </CardTitle>
+              <ReviewPanelTitle icon={ScaleIcon}>
+                Price Validation
+              </ReviewPanelTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="grid gap-4 sm:grid-cols-[1fr_1.5fr_1fr]">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Stock Number
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1.2fr_1fr_1.25fr]">
+                <ReviewInfoItem label="Final Sale Amount">
+                  {formatMoney(form.finalSaleAmount)}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Target Price">
+                  {targetPriceLabel}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Minimum Acceptable Price">
+                  {minimumPriceLabel}
+                </ReviewInfoItem>
+                <ReviewInfoItem label="Price Difference">
+                  {priceDifferenceLabel}
+                </ReviewInfoItem>
+                <div
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold",
+                    belowMinimum
+                      ? "bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+                      : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex size-9 shrink-0 items-center justify-center rounded-full border-2",
+                      belowMinimum ? "border-amber-500" : "border-emerald-600",
+                    )}
+                  >
+                    {belowMinimum ? (
+                      <TriangleAlertIcon className="size-5" />
+                    ) : (
+                      <CircleCheckIcon className="size-5" />
+                    )}
                   </span>
-                  <span className="truncate text-base font-medium">
-                    {vehicle?.stockNumber ?? "Not selected"}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Brand / Model
-                  </span>
-                  <span className="truncate text-base font-medium">
-                    {vehicle
-                      ? `${vehicle.brand} ${vehicle.model}`
-                      : "Not selected"}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Year / Variant
-                  </span>
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-base font-medium">
-                      {vehicle
-                        ? [vehicle.year, vehicle.variant]
-                            .filter(Boolean)
-                            .join(" • ")
-                        : "N/A"}
-                    </span>
-                    {vehicle?.status ? (
-                      <Badge variant="secondary">{vehicle.status}</Badge>
-                    ) : null}
-                  </div>
+                  {priceValidationLabel}
                 </div>
               </div>
+
               {vehicleRequiresAutoLink ? (
-                <Alert>
+                <Alert className="mt-4">
                   <CarFrontIcon />
                   <AlertTitle>Vehicle will be linked automatically</AlertTitle>
                   <AlertDescription>
@@ -1146,59 +1269,9 @@ function SaleReviewDialog({
                   </AlertDescription>
                 </Alert>
               ) : null}
-            </CardContent>
-          </Card>
-
-          <Card size="sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-3">
-                <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <TagsIcon className="size-4" />
-                </span>
-                3. Sale Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              <div className="grid gap-4 md:grid-cols-[1.2fr_1.4fr_1fr]">
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Sale Date
-                  </span>
-                  <span className="truncate text-base font-medium">
-                    {saleDateLabel}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    Final Sale Amount
-                  </span>
-                  <span className="truncate text-2xl font-semibold text-primary">
-                    {formatMoney(form.finalSaleAmount)}
-                  </span>
-                </div>
-                <div className="flex min-w-0 flex-col gap-3 md:border-l md:pl-4">
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">
-                      Target Price
-                    </span>
-                    <span className="truncate text-sm font-medium">
-                      {targetPriceLabel}
-                    </span>
-                  </div>
-                  <Separator />
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">
-                      Minimum Acceptable Price
-                    </span>
-                    <span className="truncate text-sm font-medium">
-                      {minimumPriceLabel}
-                    </span>
-                  </div>
-                </div>
-              </div>
 
               {belowMinimum ? (
-                <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
                   <TriangleAlertIcon />
                   <AlertTitle>
                     This sale amount is below the minimum acceptable price
@@ -1215,94 +1288,102 @@ function SaleReviewDialog({
             </CardContent>
           </Card>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <Card size="sm">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="min-h-44 rounded-lg shadow-none" size="sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <PercentIcon className="size-4" />
-                  </span>
-                  4. Commission
-                </CardTitle>
+                <ReviewPanelTitle icon={PercentIcon}>
+                  Commission
+                </ReviewPanelTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">
-                      Fixed Commission
-                    </span>
-                    <span className="truncate text-base font-medium">
-                      {formatMoney(commissionPreview.defaultAmount)}
-                    </span>
-                  </div>
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <span className="text-xs text-muted-foreground">Rule</span>
-                    <span className="truncate text-base font-medium">
-                      Standard vehicle sale
-                    </span>
-                  </div>
+              <CardContent className="flex flex-col gap-3">
+                <div className="grid gap-3 sm:grid-cols-[1fr_1.1fr]">
+                  <ReviewInfoItem label="Fixed Sales Commission">
+                    {formatMoney(commissionPreview.defaultAmount)}
+                  </ReviewInfoItem>
+                  <ReviewInfoItem label="Commission Rule">
+                    Standard vehicle sale
+                  </ReviewInfoItem>
+                  <ReviewInfoItem label="Agent">
+                    {effectiveAgentName}
+                  </ReviewInfoItem>
                 </div>
                 <Separator />
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm font-medium text-muted-foreground">
                     Final Payout
                   </span>
-                  <span className="truncate text-xl font-semibold text-primary">
+                  <span className="text-lg font-semibold text-primary">
                     {formatMoney(commissionPreview.finalAmount)}
                   </span>
                 </div>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <span className="text-xs text-muted-foreground">Agent</span>
-                  <span className="truncate text-sm font-medium">
-                    {effectiveAgentName}
-                  </span>
-                </div>
+                <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <LockIcon className="size-4" />
+                  Commission is fixed by the dealership policy.
+                </p>
               </CardContent>
             </Card>
 
-            <Card size="sm">
+            <Card className="min-h-44 rounded-lg shadow-none" size="sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <span className="inline-flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <FileTextIcon className="size-4" />
-                  </span>
-                  5. Closing Note
-                </CardTitle>
+                <ReviewPanelTitle icon={FileTextIcon}>
+                  Closing Details
+                </ReviewPanelTitle>
               </CardHeader>
-              <CardContent>
-                <div className="flex min-h-28 flex-col gap-2">
-                  <span className="text-xs text-muted-foreground">Note</span>
-                  <p className="text-sm leading-relaxed">
-                    {form.buyerClosingNote.trim() ||
-                      "No closing note entered."}
-                  </p>
-                </div>
+              <CardContent className="flex flex-col gap-2">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Buyer Closing Note
+                </span>
+                <Textarea
+                  className="min-h-24 resize-none bg-muted/20"
+                  readOnly
+                  value={closingNote}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This note will be saved with the sale record and visible in
+                  the activity history.
+                </p>
               </CardContent>
             </Card>
           </div>
+
+          <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            <TriangleAlertIcon />
+            <AlertTitle>
+              Finalizing will record the sale, mark the vehicle as sold, and
+              create the {formatMoney(FIXED_COMMISSION_AMOUNT)} agent
+              commission.
+            </AlertTitle>
+            <AlertDescription className="text-amber-800 dark:text-amber-300">
+              This action cannot be undone from this screen.
+            </AlertDescription>
+          </Alert>
         </div>
 
-        <AlertDialogFooter className="pt-1">
-          <AlertDialogCancel disabled={pending}>
-            <PencilIcon data-icon="inline-start" />
-            Edit Details
-          </AlertDialogCancel>
-          <AlertDialogAction
-            disabled={pending}
-            onClick={(event) => {
-              event.preventDefault();
-              onConfirm();
-            }}
-          >
-            <CheckIcon data-icon="inline-start" />
-            {belowMinimum ? "Finalize Below Minimum" : "Finalize Sale"}
-          </AlertDialogAction>
+        <AlertDialogFooter className="items-center border-t bg-background px-6 py-4 sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            All required sale details have been verified.
+          </p>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <AlertDialogCancel disabled={pending}>
+              <PencilIcon data-icon="inline-start" />
+              Back to Edit
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending}
+              onClick={(event) => {
+                event.preventDefault();
+                onConfirm();
+              }}
+            >
+              <CheckIcon data-icon="inline-start" />
+              {belowMinimum ? "Finalize Below Minimum" : "Finalize Sale"}
+            </AlertDialogAction>
+          </div>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 }
-
 function DeleteSaleDraftDialog({
   draft,
   open,
@@ -2177,7 +2258,7 @@ export function SalesScreen() {
               <SheetDescription>
                 {activeDraftId
                   ? "Review the saved details, update the draft, or finalize it when ready."
-                  : "Close a deal, save a draft, or move the linked vehicle into sold inventory."}
+                  : "Close a deal, save a draft, or move the selected vehicle into sold inventory."}
               </SheetDescription>
             </SheetHeader>
             <form

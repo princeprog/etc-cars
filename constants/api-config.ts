@@ -27,9 +27,6 @@ export const API_ENDPOINTS = {
   buyerLeads: {
     root: "/buyer-leads",
     byId: (id: string) => `/buyer-leads/${id}`,
-    vehicleLinks: (id: string) => `/buyer-leads/${id}/vehicle-links`,
-    vehicleLinkByVehicleId: (id: string, vehicleId: string) =>
-      `/buyer-leads/${id}/vehicle-links/${vehicleId}`,
   },
   vehicles: {
     root: "/vehicles",

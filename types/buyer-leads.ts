@@ -56,10 +56,6 @@ export interface CreateBuyerLeadPayload {
 
 export type UpdateBuyerLeadPayload = Partial<CreateBuyerLeadPayload>
 
-export interface LinkBuyerLeadVehiclePayload {
-  vehicleId: string
-}
-
 export interface BuyerLeadResponse {
   buyerLead: BuyerLead
 }

@@ -1,6 +1,5 @@
 export type LeadPipelineActionTarget =
   | "follow_up"
-  | "vehicle_link"
   | "sale_finalization"
   | "lead_edit"
   | "vehicle_create"
@@ -35,10 +34,6 @@ export interface LeadPipelineState {
     openFollowUpCount: number
     latestFollowUpAt: string | null
     latestCompletedFollowUpAt: string | null
-    linkedVehicleCount?: number
-    availableLinkedVehicleCount?: number
-    reservedLinkedVehicleCount?: number
-    soldLinkedVehicleCount?: number
     finalizedSaleCount?: number
     vehicleCreated?: boolean
     staleAfterDays: number

@@ -53,11 +53,13 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldTitle,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { PhilippinePhoneInput } from "@/components/ui/philippine-phone-input";
 import {
   NativeSelect,
   NativeSelectOption,
@@ -98,6 +100,11 @@ import {
 } from "@/hooks/mutations/vehicle-catalog/use-vehicle-catalog-mutations";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query";
+import {
+  formatPhilippineMobileNumberInput,
+  getPhilippineMobileNumberError,
+  PHILIPPINE_MOBILE_NUMBER_PREFIX,
+} from "@/lib/philippine-phone";
 import {
   useVehicleCatalogBrandsQuery,
   useVehicleCatalogModelsQuery,
@@ -177,6 +184,10 @@ type SellerLeadFormValues = {
   >;
 };
 
+type SellerLeadFormErrors = {
+  contactNumber?: string;
+};
+
 type SellerLeadNextActionCta = {
   label: string;
   helper: string;
@@ -201,7 +212,7 @@ function getEmptyInspectionFindings(): SellerLeadFormValues["inspectionFindings"
 function getEmptySellerLeadFormValues(): SellerLeadFormValues {
   return {
     sellerName: "",
-    contactNumber: "",
+    contactNumber: PHILIPPINE_MOBILE_NUMBER_PREFIX,
     email: "",
     facebookName: "",
     inquirySource: "",
@@ -244,7 +255,7 @@ export function getSellerLeadFormValues(
 ): SellerLeadFormValues {
   return {
     sellerName: lead.sellerName,
-    contactNumber: lead.contactNumber,
+    contactNumber: formatPhilippineMobileNumberInput(lead.contactNumber),
     email: lead.email ?? "",
     facebookName: lead.facebookName ?? "",
     inquirySource: lead.inquirySource ?? "",
@@ -327,6 +338,19 @@ export function parseUpdateSellerLeadPayload(
     decision: values.decision || null,
     decisionNote: values.decisionNote || null,
   };
+}
+
+function getSellerLeadFormErrors(
+  values: SellerLeadFormValues,
+): SellerLeadFormErrors {
+  return {
+    contactNumber:
+      getPhilippineMobileNumberError(values.contactNumber) ?? undefined,
+  };
+}
+
+function hasSellerLeadFormErrors(errors: SellerLeadFormErrors) {
+  return Boolean(errors.contactNumber);
 }
 
 function getSellerLeadVehicleLabel(lead: SellerLead) {
@@ -506,12 +530,17 @@ function formatInspectionLabel(key: InspectionKey) {
 function SellerLeadForm({
   values,
   onChange,
+  errors,
+  onErrorsChange,
 }: {
   values: SellerLeadFormValues;
   onChange: (values: SellerLeadFormValues) => void;
+  errors?: SellerLeadFormErrors;
+  onErrorsChange?: (errors: SellerLeadFormErrors) => void;
 }) {
   const [catalogPortalContainer, setCatalogPortalContainer] =
     React.useState<HTMLDivElement | null>(null);
+  const contactNumberError = errors?.contactNumber;
   const brandsQuery = useVehicleCatalogBrandsQuery();
   const selectedBrand = findCatalogItemByName(
     brandsQuery.data?.items ?? [],
@@ -532,6 +561,23 @@ function SellerLeadForm({
     value: SellerLeadFormValues[K],
   ) {
     onChange({ ...values, [key]: value });
+  }
+
+  function updateContactNumber(value: string) {
+    const nextValues = {
+      ...values,
+      contactNumber: formatPhilippineMobileNumberInput(value),
+    };
+
+    onChange(nextValues);
+
+    if (contactNumberError) {
+      onErrorsChange?.(getSellerLeadFormErrors(nextValues));
+    }
+  }
+
+  function validateContactNumber() {
+    onErrorsChange?.(getSellerLeadFormErrors(values));
   }
 
   function updateBrand(value: string) {
@@ -636,15 +682,22 @@ function SellerLeadForm({
               required
             />
           </Field>
-          <Field>
+          <Field data-invalid={Boolean(contactNumberError)}>
             <FieldLabel htmlFor="contactNumber">Contact number</FieldLabel>
-            <Input
+            <PhilippinePhoneInput
               id="contactNumber"
               value={values.contactNumber}
-              onChange={(e) => updateField("contactNumber", e.target.value)}
-              placeholder="0917 123 4567"
+              onChange={updateContactNumber}
+              onBlur={validateContactNumber}
+              aria-invalid={Boolean(contactNumberError)}
+              aria-describedby={
+                contactNumberError ? "sellerContactNumberError" : undefined
+              }
               required
             />
+            <FieldError id="sellerContactNumberError">
+              {contactNumberError}
+            </FieldError>
           </Field>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -1043,6 +1096,8 @@ export function SellerLeadsScreen() {
   const [createForm, setCreateForm] = React.useState<SellerLeadFormValues>(
     getEmptySellerLeadFormValues,
   );
+  const [createFormErrors, setCreateFormErrors] =
+    React.useState<SellerLeadFormErrors>({});
 
   const filters = React.useMemo<SellerLeadListFilters>(
     () => ({
@@ -1111,6 +1166,13 @@ export function SellerLeadsScreen() {
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const nextErrors = getSellerLeadFormErrors(createForm);
+    setCreateFormErrors(nextErrors);
+
+    if (hasSellerLeadFormErrors(nextErrors)) {
+      return;
+    }
+
     await createMutation.mutateAsync(
       parseSellerLeadPayload(createForm, currentUserId ?? null),
       {
@@ -1118,6 +1180,7 @@ export function SellerLeadsScreen() {
           toast.success("Seller lead created");
           setCreateOpen(false);
           setCreateForm(getEmptySellerLeadFormValues());
+          setCreateFormErrors({});
         },
       },
     );
@@ -1415,7 +1478,16 @@ export function SellerLeadsScreen() {
           ) : null}
         </Card>
 
-        <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <Sheet
+          open={createOpen}
+          onOpenChange={(open) => {
+            setCreateOpen(open);
+
+            if (!open) {
+              setCreateFormErrors({});
+            }
+          }}
+        >
           <SheetContent
             side="right"
             onPointerDownOutside={(event) => event.preventDefault()}
@@ -1443,6 +1515,8 @@ export function SellerLeadsScreen() {
                   <SellerLeadForm
                     values={createForm}
                     onChange={setCreateForm}
+                    errors={createFormErrors}
+                    onErrorsChange={setCreateFormErrors}
                   />
                 </div>
               </div>

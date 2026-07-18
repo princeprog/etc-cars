@@ -30,9 +30,6 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import {
   Dialog,
@@ -248,13 +245,6 @@ function getAssigneeLabel(
   return "Assigned"
 }
 
-function getBuyerLeadPreviewLabel(values: BuyerLeadFormValues) {
-  return {
-    buyer: values.buyerName || "Not set",
-    contact: values.contactNumber || "No contact number yet",
-    channel: values.inquirySource || "Source not set",
-  }
-}
 
 function getBuyerLeadStage(status: BuyerLeadStatus) {
   switch (status) {
@@ -649,7 +639,6 @@ export function BuyerLeadsScreen() {
   const total = buyerLeadsQuery.data?.total ?? 0
   const totalPages = buyerLeadsQuery.data?.totalPages ?? 1
   const availableVehicles = vehiclesQuery.data?.vehicles ?? []
-  const createPreview = getBuyerLeadPreviewLabel(createForm)
 
   function handleNextActionClick(lead: BuyerLead) {
     const cta = getBuyerLeadNextActionCta(lead)
@@ -1019,89 +1008,17 @@ export function BuyerLeadsScreen() {
               onSubmit={handleCreateSubmit}
               className="flex min-h-0 flex-1 flex-col"
             >
-              <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
-                <div className="min-h-0 overflow-y-auto px-6 py-6">
-                  <div className="space-y-5">
-                    <ApiErrorAlert
-                      title="Unable to create buyer lead"
-                      message={getApiErrorMessage(createMutation.error, "")}
-                    />
-                    <BuyerLeadForm
-                      values={createForm}
-                      onChange={setCreateForm}
-                    />
-                  </div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+                <div className="space-y-5">
+                  <ApiErrorAlert
+                    title="Unable to create buyer lead"
+                    message={getApiErrorMessage(createMutation.error, "")}
+                  />
+                  <BuyerLeadForm
+                    values={createForm}
+                    onChange={setCreateForm}
+                  />
                 </div>
-                <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
-                  <div className="space-y-4">
-                    <Card className="border-border/70 py-0 shadow-none">
-                      <CardHeader className="border-b py-4">
-                        <CardTitle className="text-base">
-                          Lead Summary
-                        </CardTitle>
-                        <CardDescription>
-                          Live preview of the demand details you&apos;re
-                          capturing.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4 py-4">
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Buyer
-                          </p>
-                          <p className="text-sm font-medium text-foreground">
-                            {createPreview.buyer}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Contact
-                          </p>
-                          <p className="text-sm font-medium text-foreground">
-                            {createPreview.contact}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Inquiry Source
-                          </p>
-                          <p className="text-sm font-medium text-foreground">
-                            {createPreview.channel}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Desired Budget
-                          </p>
-                          <p className="text-sm font-medium text-foreground">
-                            {formatVehicleMoney(createForm.desiredBudget)}
-                          </p>
-                        </div>
-                        <Separator />
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                            Status
-                          </p>
-                          <Badge
-                            variant={getBuyerLeadStatusBadgeVariant(
-                              createForm.status,
-                            )}
-                            className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(createForm.status)}`}
-                          >
-                            {createForm.status}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <div className="rounded-xl border border-border/70 bg-background/80 px-4 py-3 text-sm text-muted-foreground">
-                      Use this drawer for quick demand intake. Vehicle matching
-                      can be done later from the buyer lead row action.
-                    </div>
-                  </div>
-                </aside>
               </div>
               <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">

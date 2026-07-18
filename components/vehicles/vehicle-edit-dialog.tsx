@@ -49,7 +49,7 @@ function VehicleEditDialogForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <ApiErrorAlert title="Unable to update vehicle" message={getApiErrorMessage(updateMutation.error, "")} />
-      <VehicleForm values={values} onChange={setValues} />
+      <VehicleForm values={values} onChange={setValues} showStatusField={false} />
       <DialogFooter>
         <SubmitButton type="submit" pending={updateMutation.isPending} pendingLabel="Saving changes">
           Save changes

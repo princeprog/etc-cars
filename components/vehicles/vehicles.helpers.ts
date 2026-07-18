@@ -89,7 +89,10 @@ export function buildCreateVehiclePayload(values: VehicleFormValues): CreateVehi
 }
 
 export function buildUpdateVehiclePayload(values: VehicleFormValues): UpdateVehiclePayload {
-  return buildCreateVehiclePayload(values)
+  const payload = buildCreateVehiclePayload(values)
+
+  delete payload.status
+  return payload
 }
 
 export function filterVehicles(

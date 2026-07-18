@@ -155,7 +155,11 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
                   title="Unable to update vehicle"
                   message={getApiErrorMessage(updateMutation.error, "")}
                 />
-                <VehicleForm values={values} onChange={setValues} />
+                <VehicleForm
+                  values={values}
+                  onChange={setValues}
+                  showStatusField={false}
+                />
               </div>
               <div className="flex flex-col gap-3 border-t bg-muted/20 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">

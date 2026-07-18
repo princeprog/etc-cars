@@ -65,11 +65,13 @@ export function VehicleForm({
   onChange,
   includeSoldStatus = false,
   showStockNumberField = true,
+  showStatusField = true,
 }: {
   values: VehicleFormValues;
   onChange: (values: VehicleFormValues) => void;
   includeSoldStatus?: boolean;
   showStockNumberField?: boolean;
+  showStatusField?: boolean;
 }) {
   const availableStatuses = includeSoldStatus
     ? VEHICLE_STATUSES
@@ -204,9 +206,7 @@ export function VehicleForm({
             intake, listing, and sales.
           </p>
         </div>
-        <div
-          className={`grid gap-4 ${showStockNumberField ? "md:grid-cols-2" : "md:grid-cols-1"}`}
-        >
+        <div className="grid gap-4 md:grid-cols-2">
           {showStockNumberField ? (
             <Field>
               <FieldLabel htmlFor="stockNumber">Stock number</FieldLabel>
@@ -221,30 +221,33 @@ export function VehicleForm({
               </FieldDescription>
             </Field>
           ) : null}
-          <Field>
-            <FieldLabel htmlFor="status">Inventory status</FieldLabel>
-            <Select
-              value={values.status}
-              onValueChange={(value) =>
-                updateField("status", value as VehicleStatus)
-              }
-            >
-              <SelectTrigger id="status">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableStatuses.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldDescription>
-              Use <span className="font-medium text-foreground">Available</span>{" "}
-              only when pricing and photos are already complete.
-            </FieldDescription>
-          </Field>
+          {showStatusField ? (
+            <Field>
+              <FieldLabel htmlFor="status">Inventory status</FieldLabel>
+              <Select
+                value={values.status}
+                onValueChange={(value) =>
+                  updateField("status", value as VehicleStatus)
+                }
+              >
+                <SelectTrigger id="status">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>
+                      {status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldDescription>
+                Use{" "}
+                <span className="font-medium text-foreground">Available</span>{" "}
+                only when pricing and photos are already complete.
+              </FieldDescription>
+            </Field>
+          ) : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">

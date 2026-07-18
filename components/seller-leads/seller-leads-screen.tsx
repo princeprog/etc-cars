@@ -55,6 +55,7 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
+  FieldTitle,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -808,15 +809,18 @@ function SellerLeadForm({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
-            <FieldLabel htmlFor="inquirySource">Inquiry source</FieldLabel>
+            <FieldTitle id="inquirySourceLabel">Inquiry source</FieldTitle>
             <Select
               value={values.inquirySource}
               onValueChange={(value) => updateField("inquirySource", value)}
             >
-              <SelectTrigger id="inquirySource">
+              <SelectTrigger
+                id="inquirySource"
+                aria-labelledby="inquirySourceLabel inquirySource"
+              >
                 <SelectValue placeholder="Select inquiry source" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent portalContainer={catalogPortalContainer}>
                 {getInquirySourceOptions(values.inquirySource).map((source) => (
                   <SelectItem key={source} value={source}>
                     {source}
@@ -836,17 +840,20 @@ function SellerLeadForm({
           </Field>
         </div>
         <Field>
-          <FieldLabel htmlFor="sellerStatus">Status</FieldLabel>
+          <FieldTitle id="sellerStatusLabel">Status</FieldTitle>
           <Select
             value={values.status}
             onValueChange={(value) =>
               updateField("status", value as SellerLeadStatus)
             }
           >
-            <SelectTrigger id="sellerStatus">
+            <SelectTrigger
+              id="sellerStatus"
+              aria-labelledby="sellerStatusLabel sellerStatus"
+            >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent portalContainer={catalogPortalContainer}>
               {SELLER_LEAD_STATUSES.map((status) => (
                 <SelectItem key={status} value={status}>
                   {status}
@@ -1411,6 +1418,9 @@ export function SellerLeadsScreen() {
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
           <SheetContent
             side="right"
+            onPointerDownOutside={(event) => event.preventDefault()}
+            onFocusOutside={(event) => event.preventDefault()}
+            onInteractOutside={(event) => event.preventDefault()}
             className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
           >
             <SheetHeader className="border-b px-6 py-5 pr-14">

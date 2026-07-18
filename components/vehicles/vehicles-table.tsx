@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Spinner } from "@/components/ui/spinner"
 import { useUpdateVehicleMutation } from "@/hooks/mutations/vehicles/use-update-vehicle-mutation"
 import { getApiErrorMessage } from "@/types/api"
 import { VEHICLE_STATUSES, type Vehicle, type VehicleStatus } from "@/types/vehicles"
@@ -184,6 +185,10 @@ export function VehiclesTable({
 }) {
   const updateVehicleMutation = useUpdateVehicleMutation()
   const [selectedVehicleIds, setSelectedVehicleIds] = React.useState<string[]>([])
+  const [pendingStatusChange, setPendingStatusChange] = React.useState<{
+    vehicleId: string
+    status: VehicleStatus
+  } | null>(null)
 
   const allSelected = vehicles.length > 0 && selectedVehicleIds.length === vehicles.length
   const someSelected = selectedVehicleIds.length > 0 && selectedVehicleIds.length < vehicles.length
@@ -218,6 +223,8 @@ export function VehiclesTable({
     }
 
     try {
+      setPendingStatusChange({ vehicleId: vehicle.id, status: nextStatus })
+
       await updateVehicleMutation.mutateAsync({
         id: vehicle.id,
         payload: {
@@ -228,6 +235,8 @@ export function VehiclesTable({
       toast.success(`Vehicle moved to ${nextStatus}`)
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Unable to update vehicle status"))
+    } finally {
+      setPendingStatusChange(null)
     }
   }
 
@@ -409,23 +418,41 @@ export function VehiclesTable({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel>Update status</DropdownMenuLabel>
-                  <DropdownMenuRadioGroup value={vehicle.status}>
+                  <DropdownMenuRadioGroup
+                    value={
+                      pendingStatusChange?.vehicleId === vehicle.id
+                        ? pendingStatusChange.status
+                        : vehicle.status
+                    }
+                  >
                     {VEHICLE_STATUSES.map((status) => {
                       const disabled =
                         status === "Sold" ||
                         updateVehicleMutation.isPending
+                      const isUpdatingStatus =
+                        updateVehicleMutation.isPending &&
+                        pendingStatusChange?.vehicleId === vehicle.id &&
+                        pendingStatusChange.status === status
 
                       return (
                         <DropdownMenuRadioItem
                           key={status}
                           value={status}
+                          className={
+                            isUpdatingStatus
+                              ? "[&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden"
+                              : undefined
+                          }
                           disabled={disabled}
                           onSelect={(event) => {
                             event.preventDefault()
                             void handleStatusChange(vehicle, status)
                           }}
                         >
-                          {status}
+                          <span className="truncate">{status}</span>
+                          {isUpdatingStatus ? (
+                            <Spinner className="pointer-events-none absolute right-2 size-4 text-muted-foreground" />
+                          ) : null}
                         </DropdownMenuRadioItem>
                       )
                     })}

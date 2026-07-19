@@ -30,65 +30,88 @@ import {
 } from "lucide-react";
 
 const data = {
-  navMain: [
+  navGroups: [
     {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: <LayoutDashboardIcon />,
+      label: "Workspace",
+      items: [
+        {
+          title: "Dashboard",
+          url: "/dashboard",
+          icon: <LayoutDashboardIcon />,
+        },
+      ],
     },
     {
-      title: "Vehicles",
-      url: "/vehicles",
-      icon: <CarFrontIcon />,
+      label: "Inventory & Leads",
+      items: [
+        {
+          title: "Vehicles",
+          url: "/vehicles",
+          icon: <CarFrontIcon />,
+        },
+        {
+          title: "Seller Leads",
+          url: "/seller-leads",
+          icon: <ScanSearchIcon />,
+        },
+        {
+          title: "Buyer Leads",
+          url: "/buyer-leads",
+          icon: <ShoppingBagIcon />,
+        },
+      ],
     },
     {
-      title: "Seller Leads",
-      url: "/seller-leads",
-      icon: <ScanSearchIcon />,
+      label: "Operations",
+      items: [
+        {
+          title: "Follow-Ups",
+          url: "/follow-ups",
+          icon: <BellRingIcon />,
+        },
+        {
+          title: "Sales",
+          url: "/sales",
+          icon: <HandCoinsIcon />,
+        },
+        {
+          title: "Bills & Expenses",
+          url: "/bills-expenses",
+          icon: <ReceiptTextIcon />,
+        },
+      ],
     },
     {
-      title: "Buyer Leads",
-      url: "/buyer-leads",
-      icon: <ShoppingBagIcon />,
-    },
-    {
-      title: "Follow-Ups",
-      url: "/follow-ups",
-      icon: <BellRingIcon />,
-    },
-    {
-      title: "Sales",
-      url: "/sales",
-      icon: <HandCoinsIcon />,
-    },
-    {
-      title: "Bills & Expenses",
-      url: "/bills-expenses",
-      icon: <ReceiptTextIcon />,
-    },
-    {
-      title: "Reports",
-      url: "/reports",
-      icon: <ChartColumnIcon />,
-    },
-    {
-      title: "Activity History",
-      url: "/activity-history",
-      icon: <ClipboardListIcon />,
+      label: "Insights",
+      items: [
+        {
+          title: "Reports",
+          url: "/reports",
+          icon: <ChartColumnIcon />,
+        },
+        {
+          title: "Activity History",
+          url: "/activity-history",
+          icon: <ClipboardListIcon />,
+        },
+      ],
     },
   ],
-  adminNav: [
-    {
-      title: "Staff",
-      url: "/staff",
-      icon: <UsersRoundIcon />,
-    },
-    {
-      title: "Settings",
-      url: "/settings",
-      icon: <SettingsIcon />,
-    },
-  ],
+  adminGroup: {
+    label: "Administration",
+    items: [
+      {
+        title: "Staff",
+        url: "/staff",
+        icon: <UsersRoundIcon />,
+      },
+      {
+        title: "Settings",
+        url: "/settings",
+        icon: <SettingsIcon />,
+      },
+    ],
+  },
 };
 
 export function AppSidebar({
@@ -137,9 +160,14 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain label="Workspace" items={data.navMain} />
+        {data.navGroups.map((group) => (
+          <NavMain key={group.label} label={group.label} items={group.items} />
+        ))}
         {user.role === "admin" ? (
-          <NavMain label="Administration" items={data.adminNav} />
+          <NavMain
+            label={data.adminGroup.label}
+            items={data.adminGroup.items}
+          />
         ) : null}
       </SidebarContent>
       <SidebarFooter>

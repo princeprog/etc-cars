@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -179,6 +180,25 @@ const RECURRING_FREQUENCY_OPTIONS: Array<{
   { value: "yearly", label: "Yearly" },
 ]
 
+const WEEKDAY_OPTIONS = [
+  { value: "1", label: "Monday" },
+  { value: "2", label: "Tuesday" },
+  { value: "3", label: "Wednesday" },
+  { value: "4", label: "Thursday" },
+  { value: "5", label: "Friday" },
+  { value: "6", label: "Saturday" },
+  { value: "7", label: "Sunday" },
+] as const
+
+const MONTH_DAY_OPTIONS = Array.from({ length: 31 }, (_, index) => {
+  const day = index + 1
+
+  return {
+    value: String(day),
+    label: getOrdinalDay(day),
+  }
+})
+
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10)
 }
@@ -213,6 +233,81 @@ function dateToDateString(date: Date | undefined) {
   const day = String(date.getDate()).padStart(2, "0")
 
   return `${year}-${month}-${day}`
+}
+
+function getOrdinalDay(day: number) {
+  const suffix =
+    day % 100 >= 11 && day % 100 <= 13
+      ? "th"
+      : day % 10 === 1
+        ? "st"
+        : day % 10 === 2
+          ? "nd"
+          : day % 10 === 3
+            ? "rd"
+            : "th"
+
+  return `${day}${suffix}`
+}
+
+function getRecurringDueDayOptions(frequency: ExpenseRuleFrequency) {
+  return frequency === "weekly" ? WEEKDAY_OPTIONS : MONTH_DAY_OPTIONS
+}
+
+function getSafeDueDayForFrequency(
+  frequency: ExpenseRuleFrequency,
+  dueDay: string,
+) {
+  const numericDueDay = Number(dueDay)
+
+  if (!Number.isInteger(numericDueDay) || numericDueDay < 1) {
+    return "1"
+  }
+
+  if (frequency === "weekly" && numericDueDay > 7) {
+    return "1"
+  }
+
+  if (frequency !== "weekly" && numericDueDay > 31) {
+    return "31"
+  }
+
+  return dueDay
+}
+
+function getRecurringDueDayLabel(
+  frequency: ExpenseRuleFrequency,
+  dueDay: number | string,
+) {
+  const value = String(dueDay)
+
+  if (frequency === "weekly") {
+    return WEEKDAY_OPTIONS.find((option) => option.value === value)?.label ?? value
+  }
+
+  return getOrdinalDay(Number(value))
+}
+
+function getYearlyAnchorMonthLabel(startDate: string) {
+  const date = dateStringToDate(startDate)
+
+  if (!date) {
+    return "the start date month"
+  }
+
+  return new Intl.DateTimeFormat("en-US", { month: "long" }).format(date)
+}
+
+function getRecurringDueDayDescription(values: RecurringFormValues) {
+  if (values.frequency === "weekly") {
+    return "Weekly bills repeat on the selected weekday."
+  }
+
+  if (values.frequency === "monthly") {
+    return "If a month has fewer days, the bill uses the last day of that month."
+  }
+
+  return `Yearly bills repeat every ${getYearlyAnchorMonthLabel(values.startDate)} on the selected day. If that month has fewer days, the bill uses the last day.`
 }
 
 function getEmptyExpenseForm(): ExpenseFormValues {
@@ -1170,7 +1265,8 @@ function RecurringRulesTable({
                   {formatFrequency(rule.frequency)}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  Due day {rule.dueDay} · Starts {formatDate(rule.startDate)}
+                  Due {getRecurringDueDayLabel(rule.frequency, rule.dueDay)} ·
+                  Starts {formatDate(rule.startDate)}
                 </span>
               </div>
             </TableCell>
@@ -1448,14 +1544,23 @@ function RecurringRuleSheet({
                     The system creates current and upcoming bill instances only.
                   </p>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   <Field>
                     <FieldLabel>Frequency</FieldLabel>
                     <Select
                       value={values.frequency}
-                      onValueChange={(value) =>
-                        update("frequency", value as ExpenseRuleFrequency)
-                      }
+                      onValueChange={(value) => {
+                        const frequency = value as ExpenseRuleFrequency
+
+                        onChange({
+                          ...values,
+                          frequency,
+                          dueDay: getSafeDueDayForFrequency(
+                            frequency,
+                            values.dueDay,
+                          ),
+                        })
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1471,12 +1576,29 @@ function RecurringRuleSheet({
                   </Field>
                   <Field data-invalid={errors.dueDay ? true : undefined}>
                     <FieldLabel htmlFor="recurringDueDay">Due day</FieldLabel>
-                    <Input
-                      id="recurringDueDay"
-                      value={values.dueDay}
-                      onChange={(event) => update("dueDay", event.target.value)}
-                      inputMode="numeric"
-                    />
+                    <Select
+                      value={getSafeDueDayForFrequency(
+                        values.frequency,
+                        values.dueDay,
+                      )}
+                      onValueChange={(value) => update("dueDay", value)}
+                    >
+                      <SelectTrigger id="recurringDueDay">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent portalContainer={selectPortalContainer}>
+                        {getRecurringDueDayOptions(values.frequency).map(
+                          (option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ),
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FieldDescription>
+                      {getRecurringDueDayDescription(values)}
+                    </FieldDescription>
                     <FieldError>{errors.dueDay}</FieldError>
                   </Field>
                   <Field data-invalid={errors.startDate ? true : undefined}>

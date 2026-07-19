@@ -471,8 +471,8 @@ export function VehicleForm({
                   Upload JPG, PNG, or WEBP images
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Maximum file size is 5MB per photo. Files are stored locally
-                  for now.
+                  Maximum file size is 5MB per photo. Files are stored in
+                  Cloudinary.
                 </p>
               </div>
               <div className="flex items-center gap-2">

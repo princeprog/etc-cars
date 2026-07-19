@@ -24,6 +24,7 @@ export const INSPECTION_KEYS = [
 export type InspectionKey = (typeof INSPECTION_KEYS)[number];
 export type InspectionRating = "good" | "fair" | "poor" | null;
 export type OverallCondition = "good" | "fair" | "poor";
+export type CalculatedOverallCondition = OverallCondition | "pending";
 
 export type DetailedInspectionItem = {
   id: string;
@@ -274,6 +275,25 @@ const RATING_PRIORITY: Record<Exclude<InspectionRating, null>, number> = {
   poor: 3,
 };
 
+export function getCalculatedOverallCondition(
+  draft: InspectionDraft,
+): CalculatedOverallCondition {
+  const checked = ALL_INSPECTION_ITEMS.map((item) => draft.items[item.id])
+    .filter((value) => value.rating !== null)
+    .map((value) => value.rating);
+
+  if (checked.length === 0) return "pending";
+  if (checked.includes("poor")) return "poor";
+  if (checked.includes("fair")) return "fair";
+  return "good";
+}
+
+function getOverallConditionForStorage(draft: InspectionDraft) {
+  const condition = getCalculatedOverallCondition(draft);
+
+  return condition === "pending" ? "fair" : condition;
+}
+
 export function getInspectionMetrics(draft: InspectionDraft) {
   const values = ALL_INSPECTION_ITEMS.map((item) => draft.items[item.id]);
   const checked = values.filter((value) => value.rating !== null);
@@ -299,6 +319,7 @@ export function getInspectionMetrics(draft: InspectionDraft) {
     completion,
     score,
     counts,
+    overallCondition: getCalculatedOverallCondition(draft),
     requiredRemaining: values.length - checked.length,
     readiness:
       counts.poor > 0 || checked.length < values.length
@@ -342,9 +363,14 @@ function aggregateFindings(
 export function buildInspectionPayload(
   draft: InspectionDraft,
 ): UpdateSellerLeadPayload {
+  const draftForStorage = {
+    ...draft,
+    overallCondition: getOverallConditionForStorage(draft),
+  };
+
   return {
     inspectionFindings: aggregateFindings(draft),
-    inspectionNotes: `${INSPECTION_STORAGE_MARKER}${JSON.stringify(draft)}`,
+    inspectionNotes: `${INSPECTION_STORAGE_MARKER}${JSON.stringify(draftForStorage)}`,
   };
 }
 

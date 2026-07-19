@@ -67,7 +67,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -132,6 +137,16 @@ type SaleFormValues = {
   buyerClosingNote: string;
 };
 
+const SALE_FORM_ERROR_FIELDS = [
+  "buyerLeadId",
+  "vehicleId",
+  "saleDate",
+  "finalSaleAmount",
+] as const;
+
+type SaleFormErrorField = (typeof SALE_FORM_ERROR_FIELDS)[number];
+type SaleFormErrors = Partial<Record<SaleFormErrorField, string>>;
+
 type BuyerLeadOption = {
   value: string;
   buyerName: string;
@@ -160,6 +175,36 @@ function getEmptySaleFormValues(defaultAgentName = ""): SaleFormValues {
     agentName: defaultAgentName,
     buyerClosingNote: "",
   };
+}
+
+function getSaleFormErrors(values: SaleFormValues): SaleFormErrors {
+  const errors: SaleFormErrors = {};
+  const finalSaleAmount = parseMoney(values.finalSaleAmount);
+
+  if (!values.buyerLeadId) {
+    errors.buyerLeadId = "Select a buyer lead before reviewing the sale.";
+  }
+
+  if (!values.vehicleId) {
+    errors.vehicleId = "Select the vehicle being sold before reviewing the sale.";
+  }
+
+  if (!values.saleDate) {
+    errors.saleDate = "Enter the sale date and time before reviewing the sale.";
+  }
+
+  if (!values.finalSaleAmount.trim()) {
+    errors.finalSaleAmount =
+      "Enter the final sale amount before reviewing the sale.";
+  } else if (finalSaleAmount === null || finalSaleAmount <= 0) {
+    errors.finalSaleAmount = "Enter a valid sale amount greater than zero.";
+  }
+
+  return errors;
+}
+
+function hasSaleFormErrors(errors: SaleFormErrors) {
+  return Object.keys(errors).length > 0;
 }
 
 function formatMoney(value?: string | null) {
@@ -295,10 +340,12 @@ function FinalSaleAmountInput({
   value,
   selectedVehicle,
   onChange,
+  error,
 }: {
   value: string;
   selectedVehicle?: Vehicle;
   onChange: (value: string) => void;
+  error?: string;
 }) {
   const pricingRange = getVehiclePricingRange(selectedVehicle);
   const numericAmount = parseMoney(value);
@@ -308,7 +355,7 @@ function FinalSaleAmountInput({
     numericAmount < pricingRange!.minimum;
 
   return (
-    <Field data-invalid={isBelowMinimum ? true : undefined}>
+    <Field data-invalid={error || isBelowMinimum ? true : undefined}>
       <FieldLabel htmlFor="finalSaleAmount">Final sale amount</FieldLabel>
       <Input
         id="finalSaleAmount"
@@ -316,9 +363,11 @@ function FinalSaleAmountInput({
         onChange={(event) => onChange(event.target.value)}
         placeholder="1250000"
         inputMode="decimal"
-        aria-invalid={isBelowMinimum ? true : undefined}
+        aria-invalid={error || isBelowMinimum ? true : undefined}
+        aria-describedby={error ? "finalSaleAmountError" : undefined}
         required
       />
+      <FieldError id="finalSaleAmountError">{error}</FieldError>
     </Field>
   );
 }
@@ -467,6 +516,7 @@ function SalesForm({
   selectedVehicle,
   selectedVehicleOption,
   currentUserName,
+  errors,
 }: {
   values: SaleFormValues;
   onChange: (values: SaleFormValues) => void;
@@ -480,6 +530,7 @@ function SalesForm({
   selectedVehicle?: Vehicle;
   selectedVehicleOption?: SalesVehicleOption;
   currentUserName?: string;
+  errors?: SaleFormErrors;
 }) {
   const buyerLeadInputRef = React.useRef<HTMLInputElement | null>(null);
   const vehicleInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -604,7 +655,7 @@ function SalesForm({
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field>
+          <Field data-invalid={errors?.buyerLeadId ? true : undefined}>
             <FieldLabel htmlFor="saleBuyerLeadId">Buyer lead</FieldLabel>
             <div className="space-y-2">
               {selectedBuyerLead ? (
@@ -663,92 +714,99 @@ function SalesForm({
                 </div>
               ) : null}
               {!selectedBuyerLead || buyerLeadSearchVisible ? (
-              <div className="relative">
-                <Input
-                  id="saleBuyerLeadId"
-                  ref={buyerLeadInputRef}
-                  value={buyerLeadSearch}
-                  placeholder={
-                    selectedBuyerLead
-                      ? "Search to replace buyer lead"
-                      : "Search buyer lead"
-                  }
-                  onFocus={() => setBuyerLeadPickerOpen(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => {
-                      setBuyerLeadPickerOpen(false);
+                <div className="relative">
+                  <Input
+                    id="saleBuyerLeadId"
+                    ref={buyerLeadInputRef}
+                    value={buyerLeadSearch}
+                    aria-invalid={errors?.buyerLeadId ? true : undefined}
+                    aria-describedby={
+                      errors?.buyerLeadId ? "saleBuyerLeadIdError" : undefined
+                    }
+                    placeholder={
+                      selectedBuyerLead
+                        ? "Search to replace buyer lead"
+                        : "Search buyer lead"
+                    }
+                    onFocus={() => setBuyerLeadPickerOpen(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => {
+                        setBuyerLeadPickerOpen(false);
 
-                      if (selectedBuyerLead) {
-                        setBuyerLeadSearchVisible(false);
-                        onBuyerLeadSearchChange("");
-                      }
-                    }, 120);
-                  }}
-                  onChange={(event) => {
-                    onBuyerLeadSearchChange(event.target.value);
-                    setBuyerLeadPickerOpen(true);
-                  }}
-                />
-                {buyerLeadPickerOpen ? (
-                  <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-md border bg-popover shadow-md">
-                    <div className="border-b px-3 py-2 text-xs text-muted-foreground">
-                      {buyerLeadSearchPending
-                        ? "Searching buyer leads..."
-                        : buyerLeadSearchError
-                          ? "Unable to load buyer leads"
-                          : selectedBuyerLead
-                            ? "Search by buyer name or contact number to replace the selected buyer"
-                            : "Search by buyer name or contact number"}
-                    </div>
-                    {buyerLeadSearch.trim() &&
-                    !buyerLeadSearchPending &&
-                    buyerLeadOptions.length === 0 ? (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                        No buyer leads found.
+                        if (selectedBuyerLead) {
+                          setBuyerLeadSearchVisible(false);
+                          onBuyerLeadSearchChange("");
+                        }
+                      }, 120);
+                    }}
+                    onChange={(event) => {
+                      onBuyerLeadSearchChange(event.target.value);
+                      setBuyerLeadPickerOpen(true);
+                    }}
+                  />
+                  {buyerLeadPickerOpen ? (
+                    <div className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-md border bg-popover shadow-md">
+                      <div className="border-b px-3 py-2 text-xs text-muted-foreground">
+                        {buyerLeadSearchPending
+                          ? "Searching buyer leads..."
+                          : buyerLeadSearchError
+                            ? "Unable to load buyer leads"
+                            : selectedBuyerLead
+                              ? "Search by buyer name or contact number to replace the selected buyer"
+                              : "Search by buyer name or contact number"}
                       </div>
-                    ) : null}
-                    {!buyerLeadSearch.trim() && !buyerLeadSearchPending ? (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">
-                        {selectedBuyerLead
-                          ? "Start typing to replace the selected buyer lead."
-                          : "Start typing to search buyer leads."}
+                      {buyerLeadSearch.trim() &&
+                      !buyerLeadSearchPending &&
+                      buyerLeadOptions.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          No buyer leads found.
+                        </div>
+                      ) : null}
+                      {!buyerLeadSearch.trim() && !buyerLeadSearchPending ? (
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          {selectedBuyerLead
+                            ? "Start typing to replace the selected buyer lead."
+                            : "Start typing to search buyer leads."}
+                        </div>
+                      ) : null}
+                      <div className="p-1">
+                        {buyerLeadOptions.map((lead) => (
+                          <button
+                            key={lead.value}
+                            type="button"
+                            className="flex w-full items-start justify-between gap-3 rounded-sm px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground"
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                              updateField("buyerLeadId", lead.value);
+                              onBuyerLeadSearchChange("");
+                              setBuyerLeadSearchVisible(false);
+                              setBuyerLeadPickerOpen(false);
+                              buyerLeadInputRef.current?.blur();
+                            }}
+                          >
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-medium text-foreground">
+                                {lead.buyerName}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {lead.contactNumber}
+                                {lead.email ? ` • ${lead.email}` : ""}
+                              </span>
+                            </span>
+                            <Badge variant="secondary" className="shrink-0">
+                              {lead.status}
+                            </Badge>
+                          </button>
+                        ))}
                       </div>
-                    ) : null}
-                    <div className="p-1">
-                      {buyerLeadOptions.map((lead) => (
-                        <button
-                          key={lead.value}
-                          type="button"
-                          className="flex w-full items-start justify-between gap-3 rounded-sm px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground"
-                          onMouseDown={(event) => {
-                            event.preventDefault();
-                            updateField("buyerLeadId", lead.value);
-                            onBuyerLeadSearchChange("");
-                            setBuyerLeadSearchVisible(false);
-                            setBuyerLeadPickerOpen(false);
-                            buyerLeadInputRef.current?.blur();
-                          }}
-                        >
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-foreground">
-                              {lead.buyerName}
-                            </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {lead.contactNumber}
-                              {lead.email ? ` • ${lead.email}` : ""}
-                            </span>
-                          </span>
-                          <Badge variant="secondary" className="shrink-0">
-                            {lead.status}
-                          </Badge>
-                        </button>
-                      ))}
                     </div>
-                  </div>
-                ) : null}
-              </div>
+                  ) : null}
+                </div>
               ) : null}
             </div>
+            <FieldError id="saleBuyerLeadIdError">
+              {errors?.buyerLeadId}
+            </FieldError>
             <ApiErrorAlert
               title="Unable to search buyer leads"
               message={getApiErrorMessage(
@@ -757,7 +815,7 @@ function SalesForm({
               )}
             />
           </Field>
-          <Field>
+          <Field data-invalid={errors?.vehicleId ? true : undefined}>
             <FieldLabel htmlFor="saleVehicleId">Vehicle</FieldLabel>
             <div className="space-y-2">
               {selectedVehicleOption && !vehiclePickerVisible ? (
@@ -827,6 +885,10 @@ function SalesForm({
                       ref={vehicleInputRef}
                       value={vehicleSearch}
                       disabled={!hasSelectedBuyerLead || !hasVehicleOptions}
+                      aria-invalid={errors?.vehicleId ? true : undefined}
+                      aria-describedby={
+                        errors?.vehicleId ? "saleVehicleIdError" : undefined
+                      }
                       placeholder={
                         !hasSelectedBuyerLead
                           ? "Select buyer lead first"
@@ -907,24 +969,31 @@ function SalesForm({
                 </p>
               ) : null}
             </div>
+            <FieldError id="saleVehicleIdError">
+              {errors?.vehicleId}
+            </FieldError>
           </Field>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field>
+          <Field data-invalid={errors?.saleDate ? true : undefined}>
             <FieldLabel htmlFor="saleDate">Sale date</FieldLabel>
             <Input
               id="saleDate"
               type="datetime-local"
               value={values.saleDate}
               onChange={(e) => updateField("saleDate", e.target.value)}
+              aria-invalid={errors?.saleDate ? true : undefined}
+              aria-describedby={errors?.saleDate ? "saleDateError" : undefined}
               required
             />
+            <FieldError id="saleDateError">{errors?.saleDate}</FieldError>
           </Field>
           <FinalSaleAmountInput
             value={values.finalSaleAmount}
             selectedVehicle={selectedVehicle}
             onChange={(nextValue) => updateField("finalSaleAmount", nextValue)}
+            error={errors?.finalSaleAmount}
           />
         </div>
         <FinalSalePricingHelper
@@ -968,13 +1037,18 @@ function SalesForm({
           </div>
         </div>
         <Field>
-          <FieldLabel htmlFor="buyerClosingNote">Buyer closing note</FieldLabel>
+          <FieldLabel htmlFor="buyerClosingNote">
+            Buyer closing note{" "}
+            <span className="font-normal text-muted-foreground">
+              (optional)
+            </span>
+          </FieldLabel>
           <Textarea
             id="buyerClosingNote"
             rows={5}
             value={values.buyerClosingNote}
             onChange={(e) => updateField("buyerClosingNote", e.target.value)}
-            placeholder="Buyer completed down payment and confirmed release schedule for unit pickup."
+            placeholder="Add handoff notes, release schedule, or payment context if needed."
           />
         </Field>
       </section>
@@ -1339,7 +1413,7 @@ function SaleReviewDialog({
                   value={closingNote}
                 />
                 <p className="text-xs text-muted-foreground">
-                  This note will be saved with the sale record and visible in
+                  Optional notes are saved with the sale record and visible in
                   the activity history.
                 </p>
               </CardContent>
@@ -1461,6 +1535,7 @@ export function SalesScreen() {
   const [form, setForm] = React.useState<SaleFormValues>(() =>
     getEmptySaleFormValues(),
   );
+  const [showFormErrors, setShowFormErrors] = React.useState(false);
   const [buyerLeadSearch, setBuyerLeadSearch] = React.useState("");
   const [debouncedBuyerLeadSearch, setDebouncedBuyerLeadSearch] =
     React.useState("");
@@ -1680,9 +1755,19 @@ export function SalesScreen() {
     createMutation.isPending ||
     updateDraftMutation.isPending ||
     finalizeDraftMutation.isPending;
+  const formErrors = React.useMemo(
+    () => (showFormErrors ? getSaleFormErrors(form) : {}),
+    [form, showFormErrors],
+  );
+  const formErrorMessages = SALE_FORM_ERROR_FIELDS.flatMap((field) => {
+    const message = formErrors[field];
+
+    return message ? [message] : [];
+  });
 
   const resetCreateSaleState = React.useCallback(() => {
     setForm(getEmptySaleFormValues(currentUserName));
+    setShowFormErrors(false);
     setBuyerLeadSearch("");
     setDebouncedBuyerLeadSearch("");
     setReviewSaleOpen(false);
@@ -1726,6 +1811,7 @@ export function SalesScreen() {
     });
     setBuyerLeadSearch("");
     setDebouncedBuyerLeadSearch("");
+    setShowFormErrors(false);
     setReviewSaleOpen(false);
     setCreateOpen(true);
   }
@@ -1811,6 +1897,17 @@ export function SalesScreen() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const nextErrors = getSaleFormErrors(form);
+    setShowFormErrors(hasSaleFormErrors(nextErrors));
+
+    if (hasSaleFormErrors(nextErrors)) {
+      setReviewSaleOpen(false);
+      toast.error("Please complete the required sale details first.");
+      return;
+    }
+
+    setShowFormErrors(false);
     setReviewSaleOpen(true);
   }
 
@@ -2263,6 +2360,7 @@ export function SalesScreen() {
             </SheetHeader>
             <form
               onSubmit={handleSubmit}
+              noValidate
               className="flex min-h-0 flex-1 flex-col"
             >
               <div className="min-h-0 flex-1 overflow-y-auto">
@@ -2289,6 +2387,21 @@ export function SalesScreen() {
                         "",
                       )}
                     />
+                    {formErrorMessages.length ? (
+                      <Alert className="border-destructive/30 bg-destructive/5 text-destructive">
+                        <TriangleAlertIcon />
+                        <AlertTitle>
+                          Complete the required sale details
+                        </AlertTitle>
+                        <AlertDescription>
+                          <ul className="list-disc space-y-1 pl-4">
+                            {formErrorMessages.map((message) => (
+                              <li key={message}>{message}</li>
+                            ))}
+                          </ul>
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
                     <SalesForm
                       values={form}
                       onChange={(nextValues) => {
@@ -2321,6 +2434,7 @@ export function SalesScreen() {
                       selectedVehicle={selectedPricingVehicle}
                       selectedVehicleOption={selectedVehicleOption}
                       currentUserName={currentUserName}
+                      errors={formErrors}
                     />
                   </div>
                 </div>

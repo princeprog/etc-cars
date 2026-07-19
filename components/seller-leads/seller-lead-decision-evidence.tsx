@@ -30,6 +30,7 @@ import type { SellerLead } from "@/types/seller-leads";
 import {
   formatSellerLeadMoney,
   getVehicleTitle,
+  type CalculatedOverallCondition,
 } from "./seller-lead-inspection-model";
 import {
   getDecisionInspectionData,
@@ -199,6 +200,18 @@ function conditionBadgeClassName(rating: ConditionBreakdownRow["rating"]) {
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
+function overallConditionLabel(condition: CalculatedOverallCondition) {
+  if (condition === "pending") return "Pending";
+  return condition.charAt(0).toUpperCase() + condition.slice(1);
+}
+
+function overallConditionClassName(condition: CalculatedOverallCondition) {
+  if (condition === "good") return "text-emerald-700";
+  if (condition === "fair") return "text-amber-700";
+  if (condition === "poor") return "text-rose-700";
+  return "text-slate-600";
+}
+
 function InspectionSummary({ lead }: { lead: SellerLead }) {
   const { draft, metrics } = getDecisionInspectionData(lead);
   const recordedAt = lead.inspectionCompletedAt
@@ -235,8 +248,8 @@ function InspectionSummary({ lead }: { lead: SellerLead }) {
           <span className="font-normal text-muted-foreground"> / 100</span>
         </Metric>
         <Metric icon={StarIcon} label="Overall condition">
-          <span className="capitalize text-amber-700">
-            {draft.overallCondition}
+          <span className={overallConditionClassName(metrics.overallCondition)}>
+            {overallConditionLabel(metrics.overallCondition)}
           </span>
         </Metric>
         <Metric icon={WrenchIcon} label="Estimated repair cost">

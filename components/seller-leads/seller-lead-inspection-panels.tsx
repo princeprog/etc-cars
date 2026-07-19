@@ -12,21 +12,13 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   getInspectionMetrics,
+  type CalculatedOverallCondition,
   type InspectionDraft,
-  type OverallCondition,
 } from "./seller-lead-inspection-model";
 
 function CountRow({
@@ -56,6 +48,27 @@ function CountRow({
       <span>{count}</span>
     </div>
   );
+}
+
+function overallConditionLabel(condition: CalculatedOverallCondition) {
+  if (condition === "pending") return "Pending";
+  return condition.charAt(0).toUpperCase() + condition.slice(1);
+}
+
+function overallConditionBadgeClassName(condition: CalculatedOverallCondition) {
+  if (condition === "good") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (condition === "fair") {
+    return "border-amber-200 bg-amber-50 text-amber-700";
+  }
+
+  if (condition === "poor") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
 export function InspectionProgressPanel({ draft }: { draft: InspectionDraft }) {
@@ -194,11 +207,6 @@ export function InspectionSummaryPanel({
   onChange: (draft: InspectionDraft) => void;
 }) {
   const metrics = getInspectionMetrics(draft);
-  const conditions: Array<{ value: OverallCondition; label: string }> = [
-    { value: "good", label: "Good" },
-    { value: "fair", label: "Fair" },
-    { value: "poor", label: "Poor" },
-  ];
 
   return (
     <Card size="sm" className="gap-0 rounded-lg py-0">
@@ -210,25 +218,18 @@ export function InspectionSummaryPanel({
       <CardContent className="grid gap-0 py-2 sm:grid-cols-2 xl:grid-cols-4">
         <div className="flex min-w-0 flex-col gap-2 px-4 py-1">
           <p className="text-xs font-medium">Overall Condition</p>
-          <Select
-            value={draft.overallCondition}
-            onValueChange={(value: OverallCondition) =>
-              onChange({ ...draft, overallCondition: value })
-            }
+          <Badge
+            variant="outline"
+            className={cn(
+              "mt-1 w-fit",
+              overallConditionBadgeClassName(metrics.overallCondition),
+            )}
           >
-            <SelectTrigger size="sm" className="w-full">
-              <SelectValue placeholder="Select condition" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {conditions.map((condition) => (
-                  <SelectItem key={condition.value} value={condition.value}>
-                    {condition.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            {overallConditionLabel(metrics.overallCondition)}
+          </Badge>
+          <p className="text-xs text-muted-foreground">
+            Calculated from checklist ratings.
+          </p>
         </div>
         <div className="flex min-w-0 flex-col gap-2 border-t px-4 py-3 sm:border-t-0 sm:border-l sm:py-1">
           <p className="text-xs font-medium">Estimated Repair Cost</p>

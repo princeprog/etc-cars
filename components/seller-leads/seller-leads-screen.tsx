@@ -17,21 +17,13 @@ import {
 import { toast } from "sonner";
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ApiErrorAlert } from "@/components/operations/api-error-alert";
 import { EmptyState } from "@/components/operations/empty-state";
 import { ListPagination } from "@/components/operations/list-pagination";
-import { ModuleLoadingState } from "@/components/operations/module-loading-state";
 import { SubmitButton } from "@/components/operations/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +63,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -353,15 +346,10 @@ function hasSellerLeadFormErrors(errors: SellerLeadFormErrors) {
   return Boolean(errors.contactNumber);
 }
 
-function getSellerLeadVehicleLabel(lead: SellerLead) {
-  return [
-    lead.vehicleBrand,
-    lead.vehicleModel,
-    lead.vehicleYear ? String(lead.vehicleYear) : "",
-    lead.vehicleVariant ?? "",
-  ]
-    .filter(Boolean)
-    .join(" • ");
+function getSellerLeadFilterKey(
+  filters: Omit<SellerLeadListFilters, "page" | "pageSize">,
+) {
+  return `${filters.search ?? ""}:${filters.status ?? "all"}`;
 }
 
 function getInquirySourceOptions(currentValue: string) {
@@ -525,6 +513,95 @@ function getSellerLeadStatusTextClassName(status: SellerLeadStatus) {
 function formatInspectionLabel(key: InspectionKey) {
   if (key === "ac") return "A/C";
   return key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function SellerLeadsTableSkeleton() {
+  const rows = Array.from({ length: 7 });
+
+  return (
+    <div
+      role="status"
+      aria-label="Loading seller leads"
+      aria-busy="true"
+      className="overflow-hidden"
+    >
+      <div className="flex flex-col gap-3 border-b bg-muted/20 px-4 py-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0 space-y-2">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-3 w-72 max-w-full" />
+        </div>
+        <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+          <span className="size-2 animate-pulse rounded-full bg-primary/70" />
+          Loading seller leads
+        </div>
+      </div>
+      <Table className="min-w-[820px] border-collapse">
+        <TableHeader className="bg-muted/30">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+              Seller
+            </TableHead>
+            <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+              Vehicle
+            </TableHead>
+            <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+              Asking
+            </TableHead>
+            <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+              Next Action
+            </TableHead>
+            <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+              Status
+            </TableHead>
+            <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+              Updated
+            </TableHead>
+            <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">
+              Actions
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((_, index) => (
+            <TableRow key={index} className="hover:bg-transparent">
+              <TableCell className="px-4 py-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-3 w-28" />
+                </div>
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                <Skeleton className="h-4 w-24" />
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                <Skeleton className="h-9 w-32" />
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                <Skeleton className="h-6 w-24 rounded-full" />
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                <div className="flex justify-end">
+                  <Skeleton className="size-8 rounded-md" />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 function SellerLeadForm({
@@ -1099,14 +1176,44 @@ export function SellerLeadsScreen() {
   const [createFormErrors, setCreateFormErrors] =
     React.useState<SellerLeadFormErrors>({});
 
+  const immediateSellerLeadFilterValues = React.useMemo<
+    Omit<SellerLeadListFilters, "page" | "pageSize">
+  >(
+    () => ({
+      search: searchTerm.trim() || undefined,
+      status: activeFilter,
+    }),
+    [activeFilter, searchTerm],
+  );
+  const [debouncedSellerLeadFilterValues, setDebouncedSellerLeadFilterValues] =
+    React.useState<Omit<SellerLeadListFilters, "page" | "pageSize">>(
+      immediateSellerLeadFilterValues,
+    );
+  const immediateSellerLeadFilterKey = getSellerLeadFilterKey(
+    immediateSellerLeadFilterValues,
+  );
+  const debouncedSellerLeadFilterKey = getSellerLeadFilterKey(
+    debouncedSellerLeadFilterValues,
+  );
+  const isDebouncingSellerLeadFilters =
+    immediateSellerLeadFilterKey !== debouncedSellerLeadFilterKey;
+
+  React.useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSellerLeadFilterValues(immediateSellerLeadFilterValues);
+      setPage(1);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [immediateSellerLeadFilterValues]);
+
   const filters = React.useMemo<SellerLeadListFilters>(
     () => ({
       page,
       pageSize: 10,
-      search: searchTerm.trim() || undefined,
-      status: activeFilter,
+      ...debouncedSellerLeadFilterValues,
     }),
-    [activeFilter, page, searchTerm],
+    [debouncedSellerLeadFilterValues, page],
   );
   const sellerLeadsQuery = useSellerLeadsQuery(filters);
 
@@ -1114,6 +1221,13 @@ export function SellerLeadsScreen() {
   const leads = sellerLeadsQuery.data?.sellerLeads ?? [];
   const total = sellerLeadsQuery.data?.total ?? 0;
   const totalPages = sellerLeadsQuery.data?.totalPages ?? 1;
+  const isLoadingSellerLeads =
+    sellerLeadsQuery.isPending ||
+    sellerLeadsQuery.isFetching ||
+    isDebouncingSellerLeadFilters;
+  const hasActiveSellerLeadFilters =
+    Boolean(debouncedSellerLeadFilterValues.search) ||
+    debouncedSellerLeadFilterValues.status !== "all";
 
   function handleNextActionClick(lead: SellerLead) {
     const cta = getSellerLeadNextActionCta(lead);
@@ -1212,20 +1326,17 @@ export function SellerLeadsScreen() {
                 <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={searchTerm}
-                  onChange={(event) => {
-                    setSearchTerm(event.target.value);
-                    setPage(1);
-                  }}
+                  onChange={(event) => setSearchTerm(event.target.value)}
                   placeholder="Search seller, contact, or vehicle"
+                  aria-label="Search seller leads"
                   className="pl-9"
                 />
               </div>
               <Select
                 value={activeFilter}
-                onValueChange={(value) => {
-                  setActiveFilter(value as SellerLeadStatus | "all");
-                  setPage(1);
-                }}
+                onValueChange={(value) =>
+                  setActiveFilter(value as SellerLeadStatus | "all")
+                }
               >
                 <SelectTrigger className="w-full md:w-[240px]">
                   <SelectValue placeholder="Filter by status" />
@@ -1242,26 +1353,30 @@ export function SellerLeadsScreen() {
               <Button
                 variant="outline"
                 onClick={() => {
+                  const resetFilters = {
+                    search: undefined,
+                    status: "all" as const,
+                  };
+
                   setSearchTerm("");
                   setActiveFilter("all");
+                  setDebouncedSellerLeadFilterValues(resetFilters);
                   setPage(1);
                 }}
               >
                 Reset
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Showing {leads.length} of {total} seller leads
-            </p>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <p>Showing {leads.length} of {total} seller leads</p>
+            </div>
           </div>
         </section>
 
         <Card className="overflow-hidden border-border/70 py-0 shadow-xs">
           <CardContent className="p-0">
-            {sellerLeadsQuery.isPending ? (
-              <div className="p-6">
-                <ModuleLoadingState label="Loading seller leads" />
-              </div>
+            {isLoadingSellerLeads ? (
+              <SellerLeadsTableSkeleton />
             ) : sellerLeadsQuery.error ? (
               <div className="p-6">
                 <ApiErrorAlert
@@ -1459,13 +1574,21 @@ export function SellerLeadsScreen() {
             ) : (
               <div className="p-6">
                 <EmptyState
-                  title="No seller leads yet"
-                  description="Add the first seller lead to start the acquisition workflow."
+                  title={
+                    hasActiveSellerLeadFilters
+                      ? "No seller leads match this view"
+                      : "No seller leads yet"
+                  }
+                  description={
+                    hasActiveSellerLeadFilters
+                      ? "Adjust the search or status filter to broaden the results."
+                      : "Add the first seller lead to start the acquisition workflow."
+                  }
                 />
               </div>
             )}
           </CardContent>
-          {!sellerLeadsQuery.isPending &&
+          {!isLoadingSellerLeads &&
           !sellerLeadsQuery.error &&
           total > 0 ? (
             <ListPagination

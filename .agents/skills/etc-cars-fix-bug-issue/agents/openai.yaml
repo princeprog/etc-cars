@@ -1,0 +1,4 @@
+interface:
+  display_name: "ETC Cars Fix Bug Issue"
+  short_description: "Fix assigned ETC Cars GitHub bug issues"
+  default_prompt: "Use $etc-cars-fix-bug-issue to fetch my assigned bug issue, fix it, push the commits, and update the issue label."

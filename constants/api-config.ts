@@ -68,6 +68,32 @@ export const API_ENDPOINTS = {
     draftById: (id: string) => `/sales/drafts/${id}`,
     finalizeDraft: (id: string) => `/sales/drafts/${id}/finalize`,
   },
+  expenses: {
+    root: "/expenses",
+    byId: (id: string) => `/expenses/${id}`,
+    markPaid: (id: string) => `/expenses/${id}/mark-paid`,
+    void: (id: string) => `/expenses/${id}/void`,
+  },
+  expenseCategories: {
+    root: "/expense-categories",
+    byId: (id: string) => `/expense-categories/${id}`,
+  },
+  expenseRecurringRules: {
+    root: "/expense-recurring-rules",
+    byId: (id: string) => `/expense-recurring-rules/${id}`,
+    deactivate: (id: string) => `/expense-recurring-rules/${id}/deactivate`,
+  },
+  expenseReports: {
+    monthly: "/expense-reports/monthly",
+    export: "/expense-reports/export",
+  },
+  notifications: {
+    root: "/notifications",
+    unreadCount: "/notifications/unread-count",
+    byIdRead: (id: string) => `/notifications/${id}/read`,
+    byIdUnread: (id: string) => `/notifications/${id}/unread`,
+    markAllRead: "/notifications/mark-all-read",
+  },
   reports: {
     overview: "/reports/overview",
     sales: "/reports/sales",

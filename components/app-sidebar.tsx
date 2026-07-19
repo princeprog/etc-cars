@@ -22,6 +22,7 @@ import {
   ClipboardListIcon,
   HandCoinsIcon,
   LayoutDashboardIcon,
+  ReceiptTextIcon,
   ScanSearchIcon,
   SettingsIcon,
   ShoppingBagIcon,
@@ -59,6 +60,11 @@ const data = {
       title: "Sales",
       url: "/sales",
       icon: <HandCoinsIcon />,
+    },
+    {
+      title: "Bills & Expenses",
+      url: "/bills-expenses",
+      icon: <ReceiptTextIcon />,
     },
     {
       title: "Reports",

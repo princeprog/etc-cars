@@ -511,10 +511,13 @@ export function BillsExpensesScreen() {
     frequency:
       frequency === "one_time" || frequency === "all" ? "all" : frequency,
   })
-  const reportQuery = useExpenseReportQuery({
-    status,
-    categoryId,
-  })
+  const reportQuery = useExpenseReportQuery(
+    {
+      status,
+      categoryId,
+    },
+    isAdmin,
+  )
 
   const createExpenseMutation = useCreateExpenseMutation()
   const updateExpenseMutation = useUpdateExpenseMutation()
@@ -675,7 +678,7 @@ export function BillsExpensesScreen() {
     expensesQuery.isFetching ||
     categoriesQuery.isFetching ||
     rulesQuery.isFetching ||
-    reportQuery.isFetching
+    (isAdmin && reportQuery.isFetching)
 
   return (
     <AuthenticatedAppShell title="Bills & Expenses">
@@ -700,7 +703,9 @@ export function BillsExpensesScreen() {
               onClick={() => {
                 void expensesQuery.refetch()
                 void rulesQuery.refetch()
-                void reportQuery.refetch()
+                if (isAdmin) {
+                  void reportQuery.refetch()
+                }
               }}
             >
               <RefreshCcwIcon
@@ -732,8 +737,9 @@ export function BillsExpensesScreen() {
         </header>
 
         <ExpenseSummaryCards
-          isLoading={reportQuery.isPending}
-          summary={reportQuery.data?.summary}
+          isAdmin={isAdmin}
+          isLoading={isAdmin && reportQuery.isPending}
+          summary={isAdmin ? reportQuery.data?.summary : undefined}
         />
 
         <Card className="overflow-hidden rounded-lg p-0 shadow-none">
@@ -934,9 +940,11 @@ export function BillsExpensesScreen() {
 }
 
 function ExpenseSummaryCards({
+  isAdmin,
   isLoading,
   summary,
 }: {
+  isAdmin: boolean
   isLoading: boolean
   summary?: {
     totalExpenses: number
@@ -949,6 +957,18 @@ function ExpenseSummaryCards({
     dueWithinSevenDaysAmount: string
   }
 }) {
+  if (!isAdmin) {
+    return (
+      <Alert className="border-border/70 bg-background">
+        <ShieldCheckIcon />
+        <AlertTitle>Expense reports require admin access</AlertTitle>
+        <AlertDescription>
+          Please contact your administrator if you believe you should have permission to view expense reports.
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
   const cards = [
     {
       title: "Expected This Month",

@@ -86,6 +86,9 @@ const MODULE_OPTIONS = [
   { value: "buyer_lead", label: "Buyer Lead" },
   { value: "seller_lead", label: "Seller Lead" },
   { value: "follow_up", label: "Follow-Up" },
+  { value: "expense", label: "Expenses" },
+  { value: "expense_category", label: "Expense Categories" },
+  { value: "expense_recurring_rule", label: "Recurring Expenses" },
   { value: "user", label: "System" },
 ]
 
@@ -132,6 +135,12 @@ function getModuleIcon(entityType: string) {
       return UserIcon
     case "follow_up":
       return CalendarDaysIcon
+    case "expense":
+      return ShoppingCartIcon
+    case "expense_category":
+      return TagIcon
+    case "expense_recurring_rule":
+      return RefreshCcwIcon
     case "user":
       return ShieldCheckIcon
     default:
@@ -176,6 +185,12 @@ function getModuleBadgeClassName(entityType: string) {
       return "border-amber-200 bg-amber-50 text-amber-700"
     case "follow_up":
       return "border-cyan-200 bg-cyan-50 text-cyan-700"
+    case "expense":
+      return "border-rose-200 bg-rose-50 text-rose-700"
+    case "expense_category":
+      return "border-indigo-200 bg-indigo-50 text-indigo-700"
+    case "expense_recurring_rule":
+      return "border-teal-200 bg-teal-50 text-teal-700"
     case "user":
       return "border-slate-200 bg-slate-100 text-slate-700"
     default:
@@ -198,6 +213,12 @@ function getIconFrameClassName(entityType: string, severity: ActivitySeverity) {
       return "bg-amber-50 text-amber-600"
     case "follow_up":
       return "bg-cyan-50 text-cyan-600"
+    case "expense":
+      return "bg-rose-50 text-rose-600"
+    case "expense_category":
+      return "bg-indigo-50 text-indigo-600"
+    case "expense_recurring_rule":
+      return "bg-teal-50 text-teal-600"
     case "user":
       return "bg-slate-100 text-slate-600"
     default:

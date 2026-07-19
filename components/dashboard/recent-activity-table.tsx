@@ -9,6 +9,8 @@ import {
   ChevronRightIcon,
   ClipboardCheckIcon,
   HandCoinsIcon,
+  RefreshCcwIcon,
+  TagIcon,
   UserRoundIcon,
 } from "lucide-react"
 
@@ -29,10 +31,21 @@ import type {
   ActivityHistoryEvent,
 } from "@/types/activity-history"
 
-const ACTIVITY_PRESENTATION: Record<
-  ActivityEntityType,
-  { label: string; icon: LucideIcon; badge: string; iconClassName: string }
-> = {
+type ActivityPresentation = {
+  label: string
+  icon: LucideIcon
+  badge: string
+  iconClassName: string
+}
+
+const DEFAULT_ACTIVITY_PRESENTATION: ActivityPresentation = {
+  label: "Activity",
+  icon: ClipboardCheckIcon,
+  badge: "border-border bg-muted text-muted-foreground",
+  iconClassName: "text-muted-foreground",
+}
+
+const ACTIVITY_PRESENTATION: Partial<Record<ActivityEntityType | string, ActivityPresentation>> = {
   seller_lead: {
     label: "Seller Lead",
     icon: UserRoundIcon,
@@ -62,6 +75,24 @@ const ACTIVITY_PRESENTATION: Record<
     icon: CalendarClockIcon,
     badge: "border-violet-100 bg-violet-50 text-violet-700",
     iconClassName: "text-violet-700",
+  },
+  expense: {
+    label: "Expense",
+    icon: HandCoinsIcon,
+    badge: "border-rose-100 bg-rose-50 text-rose-700",
+    iconClassName: "text-rose-700",
+  },
+  expense_category: {
+    label: "Expense Category",
+    icon: TagIcon,
+    badge: "border-indigo-100 bg-indigo-50 text-indigo-700",
+    iconClassName: "text-indigo-700",
+  },
+  expense_recurring_rule: {
+    label: "Recurring Expense",
+    icon: RefreshCcwIcon,
+    badge: "border-teal-100 bg-teal-50 text-teal-700",
+    iconClassName: "text-teal-700",
   },
   user: {
     label: "User",
@@ -128,7 +159,8 @@ export function RecentActivityTable({
 }
 
 function ActivityRow({ event }: { event: ActivityHistoryEvent }) {
-  const presentation = ACTIVITY_PRESENTATION[event.entityType]
+  const presentation =
+    ACTIVITY_PRESENTATION[event.entityType] ?? DEFAULT_ACTIVITY_PRESENTATION
   const Icon = presentation.icon
 
   return (

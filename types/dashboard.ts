@@ -30,6 +30,25 @@ export interface DashboardMetrics {
   monthlySales: number
   monthlyRevenue: string
   monthlyProfit: string
+  expenses?: {
+    totalExpenses: number
+    totalExpectedAmount: string
+    paidAmount: string
+    unpaidAmount: string
+    overdueCount: number
+    overdueAmount: string
+    dueWithinSevenDaysCount: number
+    dueWithinSevenDaysAmount: string
+    highestSpendingCategory: {
+      categoryId: string
+      categoryName: string
+      count: number
+      expectedAmount: string
+      paidAmount: string
+      unpaidAmount: string
+    } | null
+    asOfDate: string
+  }
   inventoryQuality: DashboardInventoryQuality
 }
 

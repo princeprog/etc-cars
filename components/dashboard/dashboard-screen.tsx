@@ -28,6 +28,7 @@ import { useDashboardQuery } from "@/hooks/queries/dashboard/use-dashboard-query
 import type { ActivityHistoryDateRange } from "@/types/activity-history-page"
 
 import { AcquisitionSalesChart } from "./acquisition-sales-chart"
+import { ExpenseOverviewPanel } from "./expense-overview-panel"
 import { InventoryReadinessChart } from "./inventory-readiness-chart"
 import { NeedsAttentionPanel } from "./needs-attention-panel"
 import { RecentActivityTable } from "./recent-activity-table"
@@ -87,6 +88,10 @@ export function DashboardScreen() {
               overdueFollowUps={
                 dashboardQuery.data.queues.overdueFollowUps.length
               }
+            />
+
+            <ExpenseOverviewPanel
+              expenses={dashboardQuery.data.metrics.expenses}
             />
 
             <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,1fr)]">

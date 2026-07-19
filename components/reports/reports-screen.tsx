@@ -6,7 +6,9 @@ import { format } from "date-fns"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import type { ExpenseReportFilters } from "@/types/expenses"
 import type { ReportFilters } from "@/types/reports"
+import { ExpensesReport } from "./expenses-report"
 import { InventoryReport } from "./inventory-report"
 import { LeadsReport } from "./leads-report"
 import { OverviewReport } from "./overview-report"
@@ -18,7 +20,13 @@ import {
   type ReportFilterState,
 } from "./report-filter-bar"
 
-type ReportTab = "overview" | "sales" | "inventory" | "leads" | "profitability"
+type ReportTab =
+  | "overview"
+  | "sales"
+  | "inventory"
+  | "leads"
+  | "profitability"
+  | "expenses"
 
 const TABS: { value: ReportTab; label: string }[] = [
   { value: "overview", label: "Overview" },
@@ -26,6 +34,7 @@ const TABS: { value: ReportTab; label: string }[] = [
   { value: "inventory", label: "Inventory" },
   { value: "leads", label: "Leads" },
   { value: "profitability", label: "Profitability" },
+  { value: "expenses", label: "Expenses" },
 ]
 
 function AnimatedTabsList({
@@ -148,9 +157,21 @@ export function ReportsScreen() {
     [filters.dateRange],
   )
 
+  const expenseFilters = React.useMemo<ExpenseReportFilters>(
+    () => ({
+      startDate: filters.dateRange?.from
+        ? toDateStr(filters.dateRange.from)
+        : undefined,
+      endDate: filters.dateRange?.to
+        ? toDateStr(filters.dateRange.to)
+        : undefined,
+    }),
+    [filters.dateRange],
+  )
+
   const showFilterBar = activeTab !== "inventory"
   const showGrouping = activeTab === "sales" || activeTab === "profitability"
-  const showAgent = activeTab !== "leads"
+  const showAgent = activeTab !== "leads" && activeTab !== "expenses"
 
   return (
     <AuthenticatedAppShell title="Reports">
@@ -203,6 +224,12 @@ export function ReportsScreen() {
             <ProfitabilityReport
               filters={salesFilters}
               enabled={activeTab === "profitability"}
+            />
+          </TabsContent>
+          <TabsContent value="expenses">
+            <ExpensesReport
+              filters={expenseFilters}
+              enabled={activeTab === "expenses"}
             />
           </TabsContent>
         </Tabs>

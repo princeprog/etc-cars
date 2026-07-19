@@ -77,7 +77,7 @@ export function AdminDashboard({
   return (
     <div className="flex min-w-0 flex-col gap-3">
       <section
-        className="grid min-w-0 gap-3 md:grid-cols-2 2xl:grid-cols-4"
+        className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-4"
         aria-label="Business performance"
       >
         {cards.map((card) => (

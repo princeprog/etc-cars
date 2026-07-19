@@ -185,7 +185,7 @@ function DashboardHeader({
 function DashboardLoadingState() {
   return (
     <div className="flex flex-col gap-3" aria-label="Loading dashboard">
-      <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, index) => (
           <Skeleton key={index} className="h-32" />
         ))}

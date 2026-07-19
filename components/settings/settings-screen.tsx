@@ -10,6 +10,7 @@ import {
   ClipboardClockIcon,
   LockIcon,
   PercentIcon,
+  ReceiptTextIcon,
   ShieldCheckIcon,
   StarIcon,
   UsersRoundIcon,
@@ -56,6 +57,14 @@ const SETTINGS_CARDS: SettingsCard[] = [
     href: "/activity-history",
     actionLabel: "View Activity",
     icon: ClipboardClockIcon,
+  },
+  {
+    title: "Expense Categories",
+    description:
+      "Manage category options used by bills, recurring expenses, and reports.",
+    href: "/settings/expense-categories",
+    actionLabel: "Manage Categories",
+    icon: ReceiptTextIcon,
   },
   {
     title: "Dealership Profile",

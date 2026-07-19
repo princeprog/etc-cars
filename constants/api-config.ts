@@ -4,7 +4,7 @@ if (!apiBaseUrl) {
   throw new Error("NEXT_PUBLIC_API_BASE_URL is required");
 }
 
-export const API_BASE_URL = apiBaseUrl;
+export const API_BASE_URL = apiBaseUrl.replace(/\/+$/, "");
 
 export const API_ENDPOINTS = {
   auth: {

@@ -35,7 +35,7 @@ export function NotificationBell() {
   const unreadCountQuery = useNotificationUnreadCountQuery()
   const notificationsQuery = useNotificationsQuery({
     page: 1,
-    pageSize: 8,
+    pageSize: 5,
   })
   const markReadMutation = useMarkNotificationReadMutation()
   const markUnreadMutation = useMarkNotificationUnreadMutation()
@@ -101,11 +101,11 @@ export function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        sideOffset={10}
-        className="w-[min(calc(100vw-1.5rem),430px)] overflow-hidden rounded-xl border-border/70 p-0 shadow-xl"
+        sideOffset={8}
+        className="w-[min(calc(100vw-1.5rem),360px)] overflow-hidden rounded-xl border-border/70 p-0 shadow-xl"
       >
-        <div className="flex items-center justify-between gap-3 px-5 py-4">
-          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
             Notifications
           </h2>
           <Button
@@ -119,26 +119,26 @@ export function NotificationBell() {
             Mark all as read
           </Button>
         </div>
-        <ScrollArea className="max-h-[360px]">
+        <ScrollArea className="max-h-[280px]">
           {notificationsQuery.isPending ? (
-            <div className="flex flex-col px-5 pb-1">
+            <div className="flex flex-col px-4 pb-1">
               {Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-[48px_minmax(0,1fr)_42px] gap-3 border-b py-3.5 last:border-b-0"
+                  className="grid grid-cols-[40px_minmax(0,1fr)_34px] gap-2.5 border-b py-2.5 last:border-b-0"
                 >
-                  <Skeleton className="size-11 rounded-xl" />
-                  <div className="flex flex-1 flex-col gap-2">
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-3.5 w-full" />
-                    <Skeleton className="h-3.5 w-4/5" />
+                  <Skeleton className="size-9 rounded-lg" />
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Skeleton className="h-3.5 w-2/3" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-4/5" />
                   </div>
-                  <Skeleton className="h-3.5 w-8" />
+                  <Skeleton className="h-3 w-7" />
                 </div>
               ))}
             </div>
           ) : notifications.length ? (
-            <div className="flex flex-col px-5">
+            <div className="flex flex-col px-4">
               {notifications.map((notification) => (
                 <NotificationPreviewRow
                   key={notification.id}
@@ -166,11 +166,11 @@ export function NotificationBell() {
             </div>
           )}
         </ScrollArea>
-        <div className="border-t px-5 py-3 text-center">
+        <div className="border-t px-4 py-2.5 text-center">
           <Button
             asChild
             variant="link"
-            className="h-auto px-0 text-sm font-medium text-primary"
+            className="h-auto px-0 text-xs font-medium text-primary"
           >
             <Link href="/notifications">
               View all notifications
@@ -195,27 +195,27 @@ function NotificationPreviewRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[48px_minmax(0,1fr)_42px_10px] items-start gap-3 border-b py-3.5 last:border-b-0",
+        "grid grid-cols-[40px_minmax(0,1fr)_34px_8px] items-start gap-2.5 border-b py-2.5 last:border-b-0",
         !notification.isRead && "bg-primary/[0.015]",
       )}
     >
       <div
         className={cn(
-          "flex size-11 items-center justify-center rounded-xl",
+          "flex size-9 items-center justify-center rounded-lg",
           getNotificationIconClassName(notification.type),
         )}
       >
-        {renderNotificationIcon(notification.type, "size-5")}
+        {renderNotificationIcon(notification.type, "size-4")}
       </div>
       <button
         type="button"
         className="min-w-0 text-left"
         onClick={onOpen}
       >
-        <p className="truncate text-sm font-semibold text-foreground">
+        <p className="truncate text-xs font-semibold text-foreground">
           {notification.title}
         </p>
-        <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+        <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-muted-foreground">
           {notification.message}
         </p>
       </button>
@@ -229,7 +229,7 @@ function NotificationPreviewRow({
             ? "Mark notification unread"
             : "Mark notification read"
         }
-        className="mt-8 flex size-2.5 items-center justify-center rounded-full"
+        className="mt-7 flex size-2 items-center justify-center rounded-full"
         onClick={onToggleRead}
       >
         <span

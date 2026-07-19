@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { dashboardQueryKeys } from "@/hooks/queries/dashboard/dashboard-query-keys"
 import { expensesQueryKeys } from "@/hooks/queries/expenses/expenses-query-keys"
+import { notificationsQueryKeys } from "@/hooks/queries/notifications/notifications-query-keys"
 import {
   createExpense,
   createExpenseCategory,
@@ -33,7 +34,7 @@ function useExpenseInvalidation() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: expensesQueryKeys.all }),
       queryClient.invalidateQueries({ queryKey: dashboardQueryKeys.summary }),
-      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+      queryClient.invalidateQueries({ queryKey: notificationsQueryKeys.all }),
     ])
   }
 }

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { formatDistanceToNowStrict } from "date-fns"
-import type { LucideIcon } from "lucide-react"
+import Link from "next/link";
+import { formatDistanceToNowStrict } from "date-fns";
+import type { LucideIcon } from "lucide-react";
 import {
   CalendarClockIcon,
   CarFrontIcon,
@@ -12,12 +12,12 @@ import {
   RefreshCcwIcon,
   TagIcon,
   UserRoundIcon,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -25,27 +25,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import type {
   ActivityEntityType,
   ActivityHistoryEvent,
-} from "@/types/activity-history"
+} from "@/types/activity-history";
 
 type ActivityPresentation = {
-  label: string
-  icon: LucideIcon
-  badge: string
-  iconClassName: string
-}
+  label: string;
+  icon: LucideIcon;
+  badge: string;
+  iconClassName: string;
+};
 
 const DEFAULT_ACTIVITY_PRESENTATION: ActivityPresentation = {
   label: "Activity",
   icon: ClipboardCheckIcon,
   badge: "border-border bg-muted text-muted-foreground",
   iconClassName: "text-muted-foreground",
-}
+};
 
-const ACTIVITY_PRESENTATION: Partial<Record<ActivityEntityType | string, ActivityPresentation>> = {
+const ACTIVITY_PRESENTATION: Partial<
+  Record<ActivityEntityType | string, ActivityPresentation>
+> = {
   seller_lead: {
     label: "Seller Lead",
     icon: UserRoundIcon,
@@ -100,21 +102,23 @@ const ACTIVITY_PRESENTATION: Partial<Record<ActivityEntityType | string, Activit
     badge: "border-border bg-muted text-muted-foreground",
     iconClassName: "text-muted-foreground",
   },
-}
+};
 
 export function RecentActivityTable({
   events,
   isLoading,
   hasError,
+  title = "Recent Activity",
 }: {
-  events: ActivityHistoryEvent[]
-  isLoading: boolean
-  hasError: boolean
+  events: ActivityHistoryEvent[];
+  isLoading: boolean;
+  hasError: boolean;
+  title?: string;
 }) {
   return (
     <Card className="gap-0 overflow-hidden py-0 shadow-none">
       <CardHeader className="flex flex-row items-center justify-between border-b px-4 pt-1.5 pb-1.5!">
-        <CardTitle className="text-base">Recent Activity</CardTitle>
+        <CardTitle className="text-base">{title}</CardTitle>
         <Button asChild variant="link" size="sm" className="px-0 text-xs">
           <Link href="/activity-history">
             View all activity
@@ -155,13 +159,13 @@ export function RecentActivityTable({
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function ActivityRow({ event }: { event: ActivityHistoryEvent }) {
   const presentation =
-    ACTIVITY_PRESENTATION[event.entityType] ?? DEFAULT_ACTIVITY_PRESENTATION
-  const Icon = presentation.icon
+    ACTIVITY_PRESENTATION[event.entityType] ?? DEFAULT_ACTIVITY_PRESENTATION;
+  const Icon = presentation.icon;
 
   return (
     <TableRow>
@@ -193,7 +197,7 @@ function ActivityRow({ event }: { event: ActivityHistoryEvent }) {
         })}
       </TableCell>
     </TableRow>
-  )
+  );
 }
 
 function formatActionLabel(actionType: string) {
@@ -203,7 +207,7 @@ function formatActionLabel(actionType: string) {
       .at(-1)
       ?.replaceAll("_", " ")
       .replace(/\b\w/g, (letter) => letter.toUpperCase()) ?? actionType
-  )
+  );
 }
 
 function ActivityRowsSkeleton() {
@@ -216,5 +220,5 @@ function ActivityRowsSkeleton() {
         <Skeleton key={index} className="h-8 w-full" />
       ))}
     </div>
-  )
+  );
 }

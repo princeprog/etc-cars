@@ -26,11 +26,10 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAllActivityHistoryQuery } from "@/hooks/queries/activity-history/use-all-activity-history-query";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
 import { useDashboardQuery } from "@/hooks/queries/dashboard/use-dashboard-query";
-import type { DashboardRange, StaffDashboardResponse } from "@/types/dashboard";
+import type { DashboardRange } from "@/types/dashboard";
 
 import { AdminDashboard } from "./admin-dashboard";
-import { DashboardKpiCard } from "./dashboard-kpi-card";
-import { RecentActivityTable } from "./recent-activity-table";
+import { StaffDashboard } from "./staff-dashboard";
 
 const RANGE_OPTIONS: Array<{ value: DashboardRange; label: string }> = [
   { value: "this_month", label: "This month" },
@@ -95,7 +94,7 @@ export function DashboardScreen() {
         ) : dashboard?.view === "admin" ? (
           <AdminDashboard dashboard={dashboard} activity={activity} />
         ) : dashboard?.view === "staff" ? (
-          <StaffSummary dashboard={dashboard} activity={activity} />
+          <StaffDashboard dashboard={dashboard} activity={activity} />
         ) : null}
       </main>
     </AuthenticatedAppShell>
@@ -176,48 +175,6 @@ function DashboardHeader({
         </Button>
       </div>
     </header>
-  );
-}
-
-function StaffSummary({
-  dashboard,
-  activity,
-}: {
-  dashboard: StaffDashboardResponse;
-  activity: React.ComponentProps<typeof RecentActivityTable>;
-}) {
-  const cards = [
-    {
-      label: "My Open Leads",
-      value: dashboard.assignments.openLeads.toLocaleString(),
-      description: `${dashboard.assignments.activeSellerLeads} seller · ${dashboard.assignments.activeBuyerLeads} buyer`,
-    },
-    {
-      label: "Due Today",
-      value: dashboard.assignments.dueTodayFollowUps.toLocaleString(),
-      description: "Assigned follow-ups due today",
-    },
-    {
-      label: "Overdue Follow-Ups",
-      value: dashboard.assignments.overdueFollowUps.toLocaleString(),
-      description: "Customer actions needing attention",
-    },
-    {
-      label: "My Sales",
-      value: dashboard.personalPerformance.totalSales.toLocaleString(),
-      description: `${dashboard.period.label} closed deals`,
-    },
-  ];
-
-  return (
-    <div className="flex min-w-0 flex-col gap-3">
-      <section className="grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
-        {cards.map((card) => (
-          <DashboardKpiCard key={card.label} {...card} icon={ListChecksIcon} />
-        ))}
-      </section>
-      <RecentActivityTable {...activity} />
-    </div>
   );
 }
 

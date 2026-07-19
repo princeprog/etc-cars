@@ -50,7 +50,7 @@ export function StaffPriorityQueue({
       </CardHeader>
       <CardContent className="p-2 pt-0">
         {items.length === 0 ? (
-          <Empty className="min-h-64 border-0 p-6">
+          <Empty className="border-0 px-6 py-10">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <CalendarClockIcon />

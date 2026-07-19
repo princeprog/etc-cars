@@ -64,6 +64,7 @@ function PipelineGroup({
   items: DashboardPipelineItem[];
 }) {
   const total = items.reduce((sum, item) => sum + item.count, 0);
+  const activeItems = items.filter((item) => item.count > 0);
 
   return (
     <ItemGroup className="gap-1">
@@ -77,25 +78,29 @@ function PipelineGroup({
         </ItemContent>
         <Badge variant="outline">{total}</Badge>
       </Item>
-      {items.map((item) => (
-        <div key={item.status} className="px-2.5 py-1">
-          <div className="flex items-center justify-between gap-3 text-xs">
-            <span className="truncate text-muted-foreground">
-              {item.status}
-            </span>
-            <span className="font-medium tabular-nums">{item.count}</span>
+      {activeItems.length > 0 ? (
+        activeItems.map((item) => (
+          <div key={item.status} className="px-2.5 py-1">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="truncate text-muted-foreground">
+                {item.status}
+              </span>
+              <span className="font-medium tabular-nums">{item.count}</span>
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-sm bg-muted">
+              <div
+                className="h-full rounded-sm bg-primary"
+                style={{ width: `${(item.count / total) * 100}%` }}
+                aria-hidden="true"
+              />
+            </div>
           </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-sm bg-muted">
-            <div
-              className="h-full rounded-sm bg-primary"
-              style={{
-                width: `${total > 0 ? (item.count / total) * 100 : 0}%`,
-              }}
-              aria-hidden="true"
-            />
-          </div>
-        </div>
-      ))}
+        ))
+      ) : (
+        <p className="px-2.5 py-1 text-xs text-muted-foreground">
+          No active {label.toLowerCase()}.
+        </p>
+      )}
     </ItemGroup>
   );
 }

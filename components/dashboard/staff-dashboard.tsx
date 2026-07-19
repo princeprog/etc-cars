@@ -82,19 +82,28 @@ export function StaffDashboard({
         ))}
       </section>
 
-      <section className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <StaffPriorityQueue items={dashboard.priorityQueue} />
-        <StaffLeadPipeline pipelines={dashboard.pipelines} />
-      </section>
-
-      <section className="grid min-w-0 items-start gap-3 xl:grid-cols-2">
-        <InventoryPositionPanel inventory={dashboard.inventory} />
-        <SalesPerformanceChart
-          trend={dashboard.personalPerformance.trend}
-          periodLabel={dashboard.period.label}
-          title="My Sales"
-          description="Your revenue and gross-profit trend for the selected period."
-        />
+      <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-3">
+          <div className="order-1 min-w-0 xl:order-none">
+            <StaffPriorityQueue items={dashboard.priorityQueue} />
+          </div>
+          <div className="order-4 min-w-0 xl:order-none">
+            <SalesPerformanceChart
+              trend={dashboard.personalPerformance.trend}
+              periodLabel={dashboard.period.label}
+              title="My Sales"
+              description="Your revenue and gross-profit trend for the selected period."
+            />
+          </div>
+        </div>
+        <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-3">
+          <div className="order-2 min-w-0 xl:order-none">
+            <StaffLeadPipeline pipelines={dashboard.pipelines} />
+          </div>
+          <div className="order-3 min-w-0 xl:order-none">
+            <InventoryPositionPanel inventory={dashboard.inventory} />
+          </div>
+        </div>
       </section>
 
       <RecentActivityTable {...activity} title="My Recent Activity" />

@@ -143,7 +143,7 @@ export function SalesPerformanceChart({
             </AreaChart>
           </ChartContainer>
         ) : (
-          <Empty className="min-h-64 border-0 p-6">
+          <Empty className="border-0 px-6 py-10">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <ChartNoAxesCombinedIcon />

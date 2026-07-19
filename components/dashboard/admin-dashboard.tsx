@@ -85,20 +85,29 @@ export function AdminDashboard({
         ))}
       </section>
 
-      <section className="grid min-w-0 items-start gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-        <SalesPerformanceChart
-          trend={dashboard.trend}
-          periodLabel={dashboard.period.label}
-        />
-        <AdminAttentionPanel attention={dashboard.attention} />
-      </section>
-
-      <section className="grid min-w-0 items-start gap-3 xl:grid-cols-2">
-        <InventoryPositionPanel
-          inventory={dashboard.inventory}
-          totalInventoryValue={dashboard.inventory.totalInventoryValue}
-        />
-        <LeadHealthPanel health={dashboard.leads.health} />
+      <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-3">
+          <div className="order-1 min-w-0 xl:order-none">
+            <SalesPerformanceChart
+              trend={dashboard.trend}
+              periodLabel={dashboard.period.label}
+            />
+          </div>
+          <div className="order-3 min-w-0 xl:order-none">
+            <InventoryPositionPanel
+              inventory={dashboard.inventory}
+              totalInventoryValue={dashboard.inventory.totalInventoryValue}
+            />
+          </div>
+        </div>
+        <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-3">
+          <div className="order-2 min-w-0 xl:order-none">
+            <AdminAttentionPanel attention={dashboard.attention} />
+          </div>
+          <div className="order-4 min-w-0 xl:order-none">
+            <LeadHealthPanel health={dashboard.leads.health} />
+          </div>
+        </div>
       </section>
 
       <RecentActivityTable {...activity} />

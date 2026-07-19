@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { DatePicker } from "@/components/ui/date-picker"
 import {
   Card,
   CardContent,
@@ -186,6 +187,32 @@ function nowLocalInputValue() {
   const date = new Date()
   date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
   return date.toISOString().slice(0, 16)
+}
+
+function dateStringToDate(value: string) {
+  if (!value) {
+    return undefined
+  }
+
+  const [year, month, day] = value.split("-").map(Number)
+
+  if (!year || !month || !day) {
+    return undefined
+  }
+
+  return new Date(year, month - 1, day)
+}
+
+function dateToDateString(date: Date | undefined) {
+  if (!date) {
+    return ""
+  }
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${year}-${month}-${day}`
 }
 
 function getEmptyExpenseForm(): ExpenseFormValues {
@@ -1456,13 +1483,13 @@ function RecurringRuleSheet({
                     <FieldLabel htmlFor="recurringStartDate">
                       Start date
                     </FieldLabel>
-                    <Input
+                    <DatePicker
                       id="recurringStartDate"
-                      type="date"
-                      value={values.startDate}
-                      onChange={(event) =>
-                        update("startDate", event.target.value)
+                      value={dateStringToDate(values.startDate)}
+                      onChange={(date) =>
+                        update("startDate", dateToDateString(date))
                       }
+                      placeholder="Select start date"
                     />
                     <FieldError>{errors.startDate}</FieldError>
                   </Field>
@@ -1470,11 +1497,11 @@ function RecurringRuleSheet({
                     <FieldLabel htmlFor="recurringEndDate">
                       End date
                     </FieldLabel>
-                    <Input
+                    <DatePicker
                       id="recurringEndDate"
-                      type="date"
-                      value={values.endDate}
-                      onChange={(event) => update("endDate", event.target.value)}
+                      value={dateStringToDate(values.endDate)}
+                      onChange={(date) => update("endDate", dateToDateString(date))}
+                      placeholder="No end date"
                     />
                   </Field>
                 </div>
@@ -1603,30 +1630,30 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
           <>
             <Field>
               <FieldLabel htmlFor="expenseDate">Expense date</FieldLabel>
-              <Input
+              <DatePicker
                 id="expenseDate"
-                type="date"
-                value={values.expenseDate}
-                onChange={(event) =>
+                value={dateStringToDate(values.expenseDate)}
+                onChange={(date) =>
                   onUpdate(
                     "expenseDate" as keyof TValues,
-                    event.target.value as TValues[keyof TValues],
+                    dateToDateString(date) as TValues[keyof TValues],
                   )
                 }
+                placeholder="Select expense date"
               />
             </Field>
             <Field data-invalid={errors.dueDate ? true : undefined}>
               <FieldLabel htmlFor="dueDate">Due date</FieldLabel>
-              <Input
+              <DatePicker
                 id="dueDate"
-                type="date"
-                value={values.dueDate}
-                onChange={(event) =>
+                value={dateStringToDate(values.dueDate)}
+                onChange={(date) =>
                   onUpdate(
                     "dueDate" as keyof TValues,
-                    event.target.value as TValues[keyof TValues],
+                    dateToDateString(date) as TValues[keyof TValues],
                   )
                 }
+                placeholder="Select due date"
               />
               <FieldError>{errors.dueDate}</FieldError>
             </Field>

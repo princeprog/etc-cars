@@ -43,13 +43,17 @@ export function DashboardScreen() {
   const dashboardQuery = useDashboardQuery(range);
   const authQuery = useAuthenticatedUserQuery();
   const dashboard = dashboardQuery.data;
-  const activityQuery = useAllActivityHistoryQuery({
-    page: 1,
-    pageSize: 5,
-    dateRange: range,
-    actorUserId:
-      dashboard?.view === "staff" ? authQuery.data?.user.id : undefined,
-  });
+  const activityQuery = useAllActivityHistoryQuery(
+    {
+      page: 1,
+      pageSize: 5,
+      dateRange: range,
+      actorUserId:
+        dashboard?.view === "staff" ? authQuery.data?.user.id : undefined,
+    },
+    Boolean(dashboard) &&
+      (dashboard?.view !== "staff" || Boolean(authQuery.data?.user.id)),
+  );
 
   const isRefreshing = dashboardQuery.isFetching || activityQuery.isFetching;
   const activity = {

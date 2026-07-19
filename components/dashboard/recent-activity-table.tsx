@@ -17,6 +17,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -138,8 +146,9 @@ export function RecentActivityTable({
             No recent activity has been recorded.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
+          <>
+            <MobileActivityList events={events} />
+            <Table className="hidden lg:table">
               <TableHeader className="[&_th]:h-7">
                 <TableRow className="bg-muted/25 hover:bg-muted/25">
                   <TableHead className="pl-4">Activity</TableHead>
@@ -155,10 +164,51 @@ export function RecentActivityTable({
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </>
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function MobileActivityList({ events }: { events: ActivityHistoryEvent[] }) {
+  return (
+    <ItemGroup className="gap-0 lg:hidden">
+      {events.map((event) => {
+        const presentation =
+          ACTIVITY_PRESENTATION[event.entityType] ??
+          DEFAULT_ACTIVITY_PRESENTATION;
+        const Icon = presentation.icon;
+
+        return (
+          <Item
+            key={event.id}
+            size="sm"
+            className="rounded-none border-0 border-b last:border-b-0"
+          >
+            <ItemMedia
+              variant="icon"
+              className={`size-8 rounded-md bg-muted ${presentation.iconClassName}`}
+            >
+              <Icon aria-hidden="true" />
+            </ItemMedia>
+            <ItemContent className="min-w-0">
+              <ItemTitle>{formatActionLabel(event.actionType)}</ItemTitle>
+              <ItemDescription>{event.summary}</ItemDescription>
+              <p className="text-xs text-muted-foreground">
+                {event.actorDisplayName ?? "System"} ·{" "}
+                {formatDistanceToNowStrict(new Date(event.timestamp), {
+                  addSuffix: true,
+                })}
+              </p>
+            </ItemContent>
+            <Badge variant="outline" className={presentation.badge}>
+              {presentation.label}
+            </Badge>
+          </Item>
+        );
+      })}
+    </ItemGroup>
   );
 }
 

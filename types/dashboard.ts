@@ -1,62 +1,76 @@
 import type {
   VehicleQualityGrade,
   VehicleQualityIssueSeverity,
-} from "./vehicles"
+} from "./vehicles";
+
+export type DashboardRange =
+  "this_month" | "last_30_days" | "last_90_days" | "year_to_date";
+
+export interface DashboardPeriod {
+  key: DashboardRange;
+  label: string;
+  startDate: string;
+  endDate: string;
+  groupBy: "day" | "week" | "month";
+}
 
 export interface DashboardInventoryQualityIssue {
-  code: string
-  label: string
-  severity: VehicleQualityIssueSeverity
-  count: number
+  code: string;
+  label: string;
+  severity: VehicleQualityIssueSeverity;
+  count: number;
 }
 
 export interface DashboardInventoryQuality {
-  averageScore: number
-  totalActiveVehicles: number
-  gradeCounts: Record<VehicleQualityGrade, number>
-  topIssues: DashboardInventoryQualityIssue[]
-  lastEvaluatedAt: string
+  averageScore: number;
+  totalActiveVehicles: number;
+  gradeCounts: Record<VehicleQualityGrade, number>;
+  topIssues: DashboardInventoryQualityIssue[];
+  lastEvaluatedAt: string;
 }
 
-export interface DashboardMetrics {
-  activeInventory: number
-  activeSellerLeads: number
-  sellerLeadsRequiringAction: number
-  inspectionsPending: number
-  approvedLeadsAwaitingConversion: number
-  availableVehicles: number
-  reservedVehicles: number
-  soldVehicles: number
-  monthlySales: number
-  monthlyRevenue: string
-  monthlyProfit: string
-  expenses?: {
-    totalExpenses: number
-    totalExpectedAmount: string
-    paidAmount: string
-    unpaidAmount: string
-    overdueCount: number
-    overdueAmount: string
-    dueWithinSevenDaysCount: number
-    dueWithinSevenDaysAmount: string
-    highestSpendingCategory: {
-      categoryId: string
-      categoryName: string
-      count: number
-      expectedAmount: string
-      paidAmount: string
-      unpaidAmount: string
-    } | null
-    asOfDate: string
-  }
-  inventoryQuality: DashboardInventoryQuality
+export interface DashboardInventory {
+  active: number;
+  statuses: {
+    Incoming: number;
+    Reconditioning: number;
+    Available: number;
+    Reserved: number;
+  };
+  quality: DashboardInventoryQuality;
 }
 
-export interface DashboardTrendPoint {
-  label: string
-  periodStart: string
-  vehiclesAcquired: number
-  vehiclesSold: number
+export interface AdminDashboardInventory extends DashboardInventory {
+  totalInventoryValue: string;
+}
+
+export interface DashboardExpenseSummary {
+  totalExpenses: number;
+  totalExpectedAmount: string;
+  paidAmount: string;
+  unpaidAmount: string;
+  overdueCount: number;
+  overdueAmount: string;
+  dueWithinSevenDaysCount: number;
+  dueWithinSevenDaysAmount: string;
+  highestSpendingCategory: {
+    categoryId: string;
+    categoryName: string;
+    count: number;
+    expectedAmount: string;
+    paidAmount: string;
+    unpaidAmount: string;
+  } | null;
+  asOfDate: string;
+}
+
+export interface DashboardSalesTrendPoint {
+  period: string;
+  periodLabel: string;
+  salesCount: number;
+  revenue: string;
+  grossProfit: string;
+  commissionPayouts?: string;
 }
 
 export type DashboardSellerLeadPipelineStatus =
@@ -65,55 +79,96 @@ export type DashboardSellerLeadPipelineStatus =
   | "Inspection Scheduled"
   | "Evaluated"
   | "Negotiating"
-  | "Approved to Buy"
+  | "Approved to Buy";
 
-export interface DashboardSellerLeadPipelineItem {
-  status: DashboardSellerLeadPipelineStatus
-  count: number
+export type DashboardBuyerLeadPipelineStatus =
+  "New Inquiry" | "Contacted" | "Interested" | "Negotiating" | "Reserved";
+
+export interface DashboardPipelineItem<TStatus extends string = string> {
+  status: TStatus;
+  count: number;
 }
 
-export interface DashboardFollowUpQueueItem {
-  id: string
-  leadType: "buyer" | "seller"
-  sellerLeadId: string | null
-  buyerLeadId: string | null
-  assigneeUserId: string
-  dueAt: string
-  status: "Due" | "Overdue"
-  note: string
+export interface AdminDashboardResponse {
+  view: "admin";
+  period: DashboardPeriod;
+  performance: {
+    totalSales: number;
+    revenue: string;
+    grossProfit: string;
+    grossMarginPercent: string;
+    averageSaleValue: string;
+    expenses: DashboardExpenseSummary;
+    comparison: {
+      salesPercent: string | null;
+      revenuePercent: string | null;
+      grossProfitPercent: string | null;
+    };
+  };
+  inventory: AdminDashboardInventory;
+  leads: {
+    health: {
+      totalBuyerLeads: number;
+      totalSellerLeads: number;
+      buyerWon: number;
+      buyerLost: number;
+      buyerActive: number;
+      buyerConversionRate: string;
+      sellerPurchased: number;
+      sellerRejected: number;
+      sellerActive: number;
+      sellerConversionRate: string;
+    };
+    sellerPipeline: DashboardPipelineItem<DashboardSellerLeadPipelineStatus>[];
+    buyerPipeline: DashboardPipelineItem<DashboardBuyerLeadPipelineStatus>[];
+  };
+  attention: {
+    overdueFollowUps: number;
+    dueTodayFollowUps: number;
+    pendingInspections: number;
+    approvedSellerLeads: number;
+    incompleteListings: number;
+    overdueExpenses: number;
+  };
+  trend: DashboardSalesTrendPoint[];
 }
 
-export interface DashboardSellerLeadQueueItem {
-  id: string
-  sellerName: string
-  vehicleBrand: string
-  vehicleModel: string
-  status: string
-  createdAt: string
+export interface DashboardPriorityItem {
+  id: string;
+  leadType: "buyer" | "seller";
+  leadId: string | null;
+  leadName: string;
+  leadSecondary: string | null;
+  dueAt: string;
+  note: string;
+  urgency: "overdue" | "today" | "upcoming";
 }
 
-export interface DashboardBuyerLeadQueueItem {
-  id: string
-  buyerName: string
-  contactNumber: string
-  status: string
-  createdAt: string
+export interface StaffDashboardResponse {
+  view: "staff";
+  period: DashboardPeriod;
+  assignments: {
+    openLeads: number;
+    activeSellerLeads: number;
+    activeBuyerLeads: number;
+    dueTodayFollowUps: number;
+    overdueFollowUps: number;
+    pendingInspections: number;
+  };
+  personalPerformance: {
+    totalSales: number;
+    revenue: string;
+    grossProfit: string;
+    averageSaleValue: string;
+    comparisonPercent: string | null;
+    trend: DashboardSalesTrendPoint[];
+  };
+  inventory: DashboardInventory;
+  pipelines: {
+    seller: DashboardPipelineItem<DashboardSellerLeadPipelineStatus>[];
+    buyer: DashboardPipelineItem<DashboardBuyerLeadPipelineStatus>[];
+  };
+  priorityQueue: DashboardPriorityItem[];
 }
 
-export interface DashboardResponse {
-  metrics: DashboardMetrics
-  analytics: {
-    acquisitionSalesTrend: {
-      twelveWeeks: DashboardTrendPoint[]
-      sixMonths: DashboardTrendPoint[]
-      oneYear: DashboardTrendPoint[]
-    }
-    sellerLeadPipeline: DashboardSellerLeadPipelineItem[]
-  }
-  queues: {
-    overdueFollowUps: DashboardFollowUpQueueItem[]
-    dueTodayFollowUps: DashboardFollowUpQueueItem[]
-    newSellerLeads: DashboardSellerLeadQueueItem[]
-    newBuyerLeads: DashboardBuyerLeadQueueItem[]
-  }
-}
+export type DashboardResponse = AdminDashboardResponse | StaffDashboardResponse;

@@ -1,14 +1,16 @@
-"use client"
+"use client";
 
-import { useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
-import { getDashboard } from "@/services/dashboard.service"
-import { dashboardQueryKeys } from "./dashboard-query-keys"
+import { getDashboard } from "@/services/dashboard.service";
+import type { DashboardRange } from "@/types/dashboard";
+import { dashboardQueryKeys } from "./dashboard-query-keys";
 
-export function useDashboardQuery() {
+export function useDashboardQuery(range: DashboardRange) {
   return useQuery({
-    queryKey: dashboardQueryKeys.summary,
-    queryFn: getDashboard,
+    queryKey: dashboardQueryKeys.detail(range),
+    queryFn: () => getDashboard(range),
+    placeholderData: keepPreviousData,
     retry: false,
-  })
+  });
 }

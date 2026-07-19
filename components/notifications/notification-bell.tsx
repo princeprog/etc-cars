@@ -6,11 +6,9 @@ import { useRouter } from "next/navigation"
 import { formatDistanceToNow } from "date-fns"
 import {
   BellIcon,
-  CheckCheckIcon,
   CircleAlertIcon,
-  CircleIcon,
   Clock3Icon,
-  ExternalLinkIcon,
+  ChevronRightIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -102,43 +100,46 @@ export function NotificationBell() {
           ) : null}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[380px] p-0">
-        <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-semibold text-foreground">
-              Notifications
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Bills due soon, due today, and overdue.
-            </p>
-          </div>
+      <PopoverContent
+        align="end"
+        sideOffset={14}
+        className="w-[min(calc(100vw-2rem),520px)] overflow-hidden rounded-2xl border-border/70 p-0 shadow-2xl"
+      >
+        <div className="flex items-center justify-between gap-3 px-6 pt-6 pb-4">
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+            Notifications
+          </h2>
           <Button
             type="button"
-            variant="ghost"
+            variant="link"
             size="sm"
+            className="h-auto px-0 text-sm font-medium text-primary"
             disabled={!unreadCount || markAllReadMutation.isPending}
             onClick={markAllRead}
           >
-            <CheckCheckIcon data-icon="inline-start" />
-            Read All
+            Mark all as read
           </Button>
         </div>
-        <ScrollArea className="max-h-[420px]">
+        <ScrollArea className="max-h-[520px]">
           {notificationsQuery.isPending ? (
-            <div className="flex flex-col gap-3 p-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="flex items-start gap-3">
-                  <Skeleton className="size-9 rounded-full" />
+            <div className="flex flex-col px-6 pb-2">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-[64px_minmax(0,1fr)_56px] gap-4 border-b py-5 last:border-b-0"
+                >
+                  <Skeleton className="size-14 rounded-2xl" />
                   <div className="flex flex-1 flex-col gap-2">
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-3 w-1/3" />
+                    <Skeleton className="h-5 w-2/3" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-4/5" />
                   </div>
+                  <Skeleton className="h-4 w-10" />
                 </div>
               ))}
             </div>
           ) : notifications.length ? (
-            <div className="flex flex-col">
+            <div className="flex flex-col px-6">
               {notifications.map((notification) => (
                 <NotificationPreviewRow
                   key={notification.id}
@@ -166,11 +167,15 @@ export function NotificationBell() {
             </div>
           )}
         </ScrollArea>
-        <div className="border-t p-2">
-          <Button asChild variant="ghost" className="w-full justify-between">
+        <div className="border-t px-6 py-4 text-center">
+          <Button
+            asChild
+            variant="link"
+            className="h-auto px-0 text-base font-medium text-primary"
+          >
             <Link href="/notifications">
-              View notification center
-              <ExternalLinkIcon data-icon="inline-end" />
+              View all notifications
+              <ChevronRightIcon data-icon="inline-end" />
             </Link>
           </Button>
         </div>
@@ -191,51 +196,54 @@ function NotificationPreviewRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[36px_minmax(0,1fr)_32px] gap-3 border-b px-4 py-3 last:border-b-0",
-        !notification.isRead && "bg-primary/5",
+        "grid grid-cols-[64px_minmax(0,1fr)_70px_12px] items-start gap-4 border-b py-5 last:border-b-0",
+        !notification.isRead && "bg-primary/[0.015]",
       )}
     >
       <div
         className={cn(
-          "flex size-9 items-center justify-center rounded-full border",
+          "flex size-14 items-center justify-center rounded-2xl",
           getNotificationIconClassName(notification.type),
         )}
       >
-        {renderNotificationIcon(notification.type, "size-4")}
+        {renderNotificationIcon(notification.type, "size-7")}
       </div>
       <button
         type="button"
         className="min-w-0 text-left"
         onClick={onOpen}
       >
-        <div className="flex min-w-0 items-center gap-2">
-          <p className="truncate text-sm font-medium text-foreground">
-            {notification.title}
-          </p>
-          {!notification.isRead ? (
-            <span className="size-2 shrink-0 rounded-full bg-primary" />
-          ) : null}
-        </div>
-        <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+        <p className="truncate text-base font-semibold text-foreground">
+          {notification.title}
+        </p>
+        <p className="mt-1 line-clamp-2 text-base leading-6 text-muted-foreground">
           {notification.message}
         </p>
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          {formatDistanceToNow(new Date(notification.createdAt), {
-            addSuffix: true,
-          })}
-        </p>
       </button>
-      <Button
+      <p className="pt-0.5 text-right text-sm text-muted-foreground">
+        {formatDistanceToNow(new Date(notification.createdAt), {
+          addSuffix: false,
+        })}
+      </p>
+      <button
         type="button"
-        variant="ghost"
-        size="icon-sm"
         aria-label={
-          notification.isRead ? "Mark notification unread" : "Mark notification read"
+          notification.isRead
+            ? "Mark notification unread"
+            : "Mark notification read"
         }
+        className="mt-9 flex size-3 items-center justify-center rounded-full"
         onClick={onToggleRead}
       >
-        {notification.isRead ? <CircleIcon /> : <CheckCheckIcon />}
-      </Button>
+        <span
+          className={cn(
+            "size-2 rounded-full transition-colors",
+            notification.isRead
+              ? "bg-transparent hover:bg-muted-foreground/30"
+              : "bg-primary",
+          )}
+        />
+      </button>
     </div>
   )
 }
@@ -254,10 +262,10 @@ function renderNotificationIcon(type: NotificationType, className: string) {
 function getNotificationIconClassName(type: NotificationType) {
   switch (type) {
     case "expense_overdue":
-      return "border-rose-200 bg-rose-50 text-rose-700"
+      return "bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-300"
     case "expense_due_today":
-      return "border-sky-200 bg-sky-50 text-sky-700"
+      return "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300"
     case "expense_due_soon":
-      return "border-cyan-200 bg-cyan-50 text-cyan-700"
+      return "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300"
   }
 }

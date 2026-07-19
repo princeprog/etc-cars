@@ -8,7 +8,6 @@ import {
   CheckCheckIcon,
   CircleAlertIcon,
   Clock3Icon,
-  ExternalLinkIcon,
   RefreshCcwIcon,
 } from "lucide-react"
 import { toast } from "sonner"
@@ -20,32 +19,40 @@ import { ListPagination } from "@/components/operations/list-pagination"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   useMarkAllNotificationsReadMutation,
   useMarkNotificationReadMutation,
   useMarkNotificationUnreadMutation,
 } from "@/hooks/mutations/notifications/use-notification-mutations"
+import { useNotificationUnreadCountQuery } from "@/hooks/queries/notifications/use-notification-unread-count-query"
 import { useNotificationsQuery } from "@/hooks/queries/notifications/use-notifications-query"
 import { cn } from "@/lib/utils"
 import { getApiErrorMessage } from "@/types/api"
 import type { AppNotification, NotificationType } from "@/types/notifications"
 
 const PAGE_SIZE = 12
+type NotificationTab = "all" | "unread"
 
 export function NotificationsScreen() {
   const [page, setPage] = React.useState(1)
-  const [unreadOnly, setUnreadOnly] = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState<NotificationTab>("all")
+  const unreadOnly = activeTab === "unread"
   const notificationsQuery = useNotificationsQuery({
     page,
     pageSize: PAGE_SIZE,
     unreadOnly,
   })
+  const unreadCountQuery = useNotificationUnreadCountQuery()
   const markReadMutation = useMarkNotificationReadMutation()
   const markUnreadMutation = useMarkNotificationUnreadMutation()
   const markAllReadMutation = useMarkAllNotificationsReadMutation()
   const notifications = notificationsQuery.data?.notifications ?? []
   const pagination = notificationsQuery.data?.pagination
+  const unreadCount = unreadCountQuery.data?.count ?? 0
+  const totalCount = unreadOnly
+    ? unreadCount
+    : (notificationsQuery.data?.pagination.total ?? unreadCount)
 
   async function toggleRead(notification: AppNotification) {
     try {
@@ -85,25 +92,11 @@ export function NotificationsScreen() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 rounded-md border bg-background px-3 py-2">
-              <Switch
-                id="unreadOnly"
-                checked={unreadOnly}
-                onCheckedChange={(checked) => {
-                  setUnreadOnly(checked)
-                  setPage(1)
-                }}
-              />
-              <label
-                htmlFor="unreadOnly"
-                className="text-sm text-muted-foreground"
-              >
-                Unread only
-              </label>
-            </div>
             <Button
               type="button"
               variant="outline"
+              size="icon"
+              aria-label="Refresh notifications"
               disabled={notificationsQuery.isFetching}
               onClick={() => void notificationsQuery.refetch()}
             >
@@ -111,10 +104,10 @@ export function NotificationsScreen() {
                 data-icon="inline-start"
                 className={notificationsQuery.isFetching ? "animate-spin" : ""}
               />
-              Refresh
             </Button>
             <Button
               type="button"
+              variant="outline"
               disabled={markAllReadMutation.isPending}
               onClick={() => void markAllRead()}
             >
@@ -124,9 +117,54 @@ export function NotificationsScreen() {
           </div>
         </header>
 
-        <Card className="overflow-hidden rounded-lg p-0 shadow-none">
-          <CardHeader className="border-b px-5 py-4">
-            <CardTitle className="text-base">Reminder Feed</CardTitle>
+        <Card className="overflow-hidden rounded-2xl border-border/70 p-0 shadow-sm">
+          <CardHeader className="gap-0 border-b p-0">
+            <div className="flex flex-col gap-4 px-5 pt-5 pb-4 md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 flex-col gap-1">
+                <CardTitle className="text-xl">Notifications</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Active bill reminders from the finance workflow.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto justify-start px-0 text-primary md:justify-center"
+                disabled={!unreadCount || markAllReadMutation.isPending}
+                onClick={() => void markAllRead()}
+              >
+                Mark all as read
+              </Button>
+            </div>
+            <div className="px-5">
+              <Tabs
+                value={activeTab}
+                onValueChange={(value) => {
+                  setActiveTab(value as NotificationTab)
+                  setPage(1)
+                }}
+              >
+                <TabsList
+                  variant="line"
+                  className="h-12 w-full justify-start gap-7 rounded-none p-0"
+                >
+                  <TabsTrigger
+                    value="all"
+                    className="h-12 flex-none px-0 text-base"
+                  >
+                    All
+                    <NotificationCount count={totalCount} />
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="unread"
+                    className="h-12 flex-none px-0 text-base"
+                  >
+                    Unread
+                    <NotificationCount count={unreadCount} />
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {notificationsQuery.isPending ? (
@@ -179,55 +217,72 @@ function NotificationListRow({
   notification: AppNotification
   onToggleRead: () => void
 }) {
-  return (
-    <div
-      className={cn(
-        "grid gap-4 border-b px-5 py-4 last:border-b-0 md:grid-cols-[44px_minmax(0,1fr)_auto]",
-        !notification.isRead && "bg-primary/5",
-      )}
-    >
+  const content = (
+    <>
       <div
         className={cn(
-          "flex size-11 items-center justify-center rounded-full border",
+          "flex size-14 items-center justify-center rounded-2xl",
           getNotificationIconClassName(notification.type),
         )}
       >
-        {renderNotificationIcon(notification.type, "size-5")}
+        {renderNotificationIcon(notification.type, "size-7")}
       </div>
-      <div className="flex min-w-0 flex-col gap-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <p className="truncate text-sm font-semibold text-foreground">
+      <div className="min-w-0">
+        <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <p className="truncate text-base font-semibold text-foreground">
             {notification.title}
           </p>
-          {!notification.isRead ? (
-            <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
-              Unread
-            </span>
-          ) : null}
+          <p className="text-sm text-muted-foreground">
+            {formatDistanceToNow(new Date(notification.createdAt), {
+              addSuffix: false,
+            })}
+          </p>
         </div>
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="mt-1 max-w-3xl text-base leading-7 text-muted-foreground">
           {notification.message}
         </p>
-        <p className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(notification.createdAt), {
-            addSuffix: true,
-          })}
-        </p>
       </div>
-      <div className="flex items-center gap-2 md:justify-end">
-        <Button type="button" variant="outline" size="sm" onClick={onToggleRead}>
-          <CheckCheckIcon data-icon="inline-start" />
-          {notification.isRead ? "Mark Unread" : "Mark Read"}
-        </Button>
-        {notification.actionUrl ? (
-          <Button asChild size="sm">
-            <Link href={notification.actionUrl}>
-              Open
-              <ExternalLinkIcon data-icon="inline-end" />
-            </Link>
-          </Button>
-        ) : null}
-      </div>
+    </>
+  )
+
+  return (
+    <div
+      className={cn(
+        "grid grid-cols-[minmax(0,1fr)_28px] items-center gap-4 border-b px-5 py-5 last:border-b-0",
+        !notification.isRead && "bg-primary/[0.025]",
+      )}
+    >
+      {notification.actionUrl ? (
+        <Link
+          href={notification.actionUrl}
+          className="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-4"
+        >
+          {content}
+        </Link>
+      ) : (
+        <div className="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-4">
+          {content}
+        </div>
+      )}
+      <button
+        type="button"
+        aria-label={
+          notification.isRead
+            ? "Mark notification unread"
+            : "Mark notification read"
+        }
+        className="flex size-7 items-center justify-center rounded-full"
+        onClick={onToggleRead}
+      >
+        <span
+          className={cn(
+            "size-2.5 rounded-full transition-colors",
+            notification.isRead
+              ? "bg-transparent hover:bg-muted-foreground/30"
+              : "bg-primary",
+          )}
+        />
+      </button>
     </div>
   )
 }
@@ -236,20 +291,32 @@ function NotificationsSkeleton() {
   return (
     <div className="flex flex-col">
       {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="grid gap-4 border-b px-5 py-4 md:grid-cols-[44px_1fr_220px]">
-          <Skeleton className="size-11 rounded-full" />
+        <div
+          key={index}
+          className="grid grid-cols-[64px_minmax(0,1fr)_28px] gap-4 border-b px-5 py-5"
+        >
+          <Skeleton className="size-14 rounded-2xl" />
           <div className="flex flex-col gap-2">
-            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-5 w-40" />
             <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-4 w-2/3" />
           </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-9 flex-1" />
-            <Skeleton className="h-9 flex-1" />
-          </div>
+          <Skeleton className="size-3 rounded-full" />
         </div>
       ))}
     </div>
+  )
+}
+
+function NotificationCount({ count }: { count: number }) {
+  if (!count) {
+    return null
+  }
+
+  return (
+    <span className="ml-1 flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+      {count > 99 ? "99+" : count}
+    </span>
   )
 }
 
@@ -267,10 +334,10 @@ function renderNotificationIcon(type: NotificationType, className: string) {
 function getNotificationIconClassName(type: NotificationType) {
   switch (type) {
     case "expense_overdue":
-      return "border-rose-200 bg-rose-50 text-rose-700"
+      return "bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-300"
     case "expense_due_today":
-      return "border-sky-200 bg-sky-50 text-sky-700"
+      return "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300"
     case "expense_due_soon":
-      return "border-cyan-200 bg-cyan-50 text-cyan-700"
+      return "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300"
   }
 }

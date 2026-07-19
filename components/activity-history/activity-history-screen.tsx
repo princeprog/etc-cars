@@ -277,6 +277,61 @@ function downloadCsv(filename: string, csv: string) {
   URL.revokeObjectURL(url)
 }
 
+function getMetadataLabel(key: string) {
+  const labels: Record<string, string> = {
+    active: "Account Active",
+    actorUserId: "Actor User ID",
+    email: "Email",
+    fullName: "Full Name",
+    mustChangePassword: "Password Change Required",
+    previousValue: "Previous Value",
+    nextValue: "New Value",
+    userId: "User ID",
+  }
+
+  return labels[key] ?? key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function formatMetadataValue(key: string, value: unknown): string {
+  if (/password/i.test(key) && typeof value === "string") {
+    return value ? "Updated" : "Not set"
+  }
+
+  if (value === null || value === undefined || value === "") {
+    return "Not set"
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No"
+  }
+
+  if (typeof value === "number" || typeof value === "bigint") {
+    return value.toString()
+  }
+
+  if (typeof value === "string") {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.length
+      ? value.map((item) => formatMetadataValue(key, item)).join(", ")
+      : "None"
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+
+    return entries.length
+      ? entries
+          .map(([entryKey, entryValue]) => `${getMetadataLabel(entryKey)}: ${formatMetadataValue(entryKey, entryValue)}`)
+          .join("; ")
+      : "No details"
+  }
+
+  return String(value)
+}
+
 export function ActivityHistoryScreen() {
   const [page, setPage] = React.useState(1)
   const [search, setSearch] = React.useState("")
@@ -760,10 +815,14 @@ function ActivityDetailsDialog({
         <div className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold text-foreground">Metadata</h3>
           {metadataEntries.length ? (
-            <div className="rounded-lg border bg-muted/20 p-3">
-              <pre className="max-h-64 overflow-auto text-xs leading-5 text-muted-foreground">
-                {JSON.stringify(event.metadata, null, 2)}
-              </pre>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {metadataEntries.map(([key, value]) => (
+                <DetailItem
+                  key={key}
+                  label={getMetadataLabel(key)}
+                  value={formatMetadataValue(key, value)}
+                />
+              ))}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No additional metadata was recorded for this activity.</p>

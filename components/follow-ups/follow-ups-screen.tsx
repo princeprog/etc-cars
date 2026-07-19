@@ -673,7 +673,7 @@ export function FollowUpsScreen() {
                       <SortableColumnHeader label="Due Date" sortKey="dueAt" currentSort={sort} onSort={handleSortChange} />
                       <SortableColumnHeader label="Status" sortKey="status" currentSort={sort} onSort={handleSortChange} />
                       <TableHead className="px-4 text-xs font-semibold text-foreground/80">Assignee</TableHead>
-                      <TableHead className="px-4 text-xs font-semibold text-foreground/80">Outcome / Note Preview</TableHead>
+                      <TableHead className="w-[320px] px-4 text-xs font-semibold text-foreground/80">Outcome / Note Preview</TableHead>
                       <SortableColumnHeader label="Updated" sortKey="updatedAt" currentSort={sort} onSort={handleSortChange} />
                       <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">Actions</TableHead>
                     </TableRow>
@@ -688,8 +688,8 @@ export function FollowUpsScreen() {
                       return (
                         <TableRow key={followUp.id} className="hover:bg-muted/15">
                           <TableCell className="px-4 py-3 align-top">
-                            <div className={`space-y-1 border-l-2 pl-3 ${getQueueAccentClassName(followUp.status)}`}>
-                              <p className="font-medium text-foreground">{truncateText(followUp.note, 36)}</p>
+                            <div className={`min-w-0 space-y-1 border-l-2 pl-3 ${getQueueAccentClassName(followUp.status)}`}>
+                              <p className="line-clamp-2 font-medium text-foreground [overflow-wrap:anywhere]">{truncateText(followUp.note, 72)}</p>
                               <p className="text-sm text-muted-foreground">
                                 {followUp.leadType === "seller" ? "Seller workflow" : "Buyer workflow"}
                               </p>
@@ -701,9 +701,9 @@ export function FollowUpsScreen() {
                             </Badge>
                           </TableCell>
                           <TableCell className="px-4 py-3 align-top">
-                            <div className="space-y-1">
-                              <p className="font-medium text-foreground">{followUp.leadName ?? "Lead not found"}</p>
-                              <p className="text-sm text-muted-foreground">{followUp.leadSecondary ?? "No lead context available"}</p>
+                            <div className="min-w-0 space-y-1">
+                              <p className="truncate font-medium text-foreground">{followUp.leadName ?? "Lead not found"}</p>
+                              <p className="line-clamp-2 text-sm text-muted-foreground [overflow-wrap:anywhere]">{followUp.leadSecondary ?? "No lead context available"}</p>
                             </div>
                           </TableCell>
                           <TableCell className="px-4 py-3 align-top">
@@ -722,8 +722,10 @@ export function FollowUpsScreen() {
                             </Badge>
                           </TableCell>
                           <TableCell className="px-4 py-3 align-top text-sm text-foreground">{getAssigneeLabel(followUp.assigneeUserId, currentUserId)}</TableCell>
-                          <TableCell className="px-4 py-3 align-top">
-                            <p className="max-w-[280px] text-sm text-foreground">{truncateText(notePreview, 72)}</p>
+                          <TableCell className="w-[320px] px-4 py-3 align-top">
+                            <p className="line-clamp-2 max-w-[300px] text-sm leading-5 text-foreground break-words [overflow-wrap:anywhere]">
+                              {truncateText(notePreview, 140)}
+                            </p>
                           </TableCell>
                           <TableCell className="px-4 py-3 align-top">
                             <div className="space-y-1">

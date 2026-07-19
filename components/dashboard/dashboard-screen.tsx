@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
+import { NotificationBell } from "@/components/notifications/notification-bell"
 import { SectionCards } from "@/components/section-cards"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -159,6 +160,7 @@ function DashboardHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <NotificationBell />
         <Select
           value={dateRange}
           onValueChange={(value) =>

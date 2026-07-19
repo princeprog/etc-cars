@@ -5,6 +5,7 @@ import { format } from "date-fns"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
 import { cn } from "@/lib/utils"
 import type { ExpenseReportFilters } from "@/types/expenses"
 import type { ReportFilters } from "@/types/reports"
@@ -110,10 +111,25 @@ function toDateStr(d: Date): string {
 }
 
 export function ReportsScreen() {
+  const authQuery = useAuthenticatedUserQuery()
   const [activeTab, setActiveTab] = React.useState<ReportTab>("overview")
   const [filters, setFilters] = React.useState<ReportFilterState>(
     DEFAULT_REPORT_FILTERS,
   )
+  const isAdmin = authQuery.data?.user.role === "admin"
+  const visibleTabs = React.useMemo(
+    () => TABS.filter((tab) => isAdmin || tab.value !== "expenses"),
+    [isAdmin],
+  )
+  const safeActiveTab = !isAdmin && activeTab === "expenses" ? "overview" : activeTab
+
+  function handleTabChange(tab: string) {
+    if (tab === "expenses" && !isAdmin) {
+      return
+    }
+
+    setActiveTab(tab as ReportTab)
+  }
 
   // Sales/profitability: full filter set (date range + groupBy + agent)
   const salesFilters = React.useMemo<ReportFilters>(
@@ -169,9 +185,9 @@ export function ReportsScreen() {
     [filters.dateRange],
   )
 
-  const showFilterBar = activeTab !== "inventory"
-  const showGrouping = activeTab === "sales" || activeTab === "profitability"
-  const showAgent = activeTab !== "leads" && activeTab !== "expenses"
+  const showFilterBar = safeActiveTab !== "inventory"
+  const showGrouping = safeActiveTab === "sales" || safeActiveTab === "profitability"
+  const showAgent = safeActiveTab !== "leads" && safeActiveTab !== "expenses"
 
   return (
     <AuthenticatedAppShell title="Reports">
@@ -185,14 +201,14 @@ export function ReportsScreen() {
         </div>
 
         <Tabs
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as ReportTab)}
+          value={safeActiveTab}
+          onValueChange={handleTabChange}
           className="gap-6"
         >
           <AnimatedTabsList
-            tabs={TABS}
-            activeTab={activeTab}
-            onTabChange={(tab) => setActiveTab(tab as ReportTab)}
+            tabs={visibleTabs}
+            activeTab={safeActiveTab}
+            onTabChange={handleTabChange}
           />
 
           {showFilterBar ? (
@@ -208,30 +224,32 @@ export function ReportsScreen() {
           <TabsContent value="overview">
             <OverviewReport
               filters={overviewFilters}
-              enabled={activeTab === "overview"}
+              enabled={safeActiveTab === "overview"}
             />
           </TabsContent>
           <TabsContent value="sales">
-            <SalesReport filters={salesFilters} enabled={activeTab === "sales"} />
+            <SalesReport filters={salesFilters} enabled={safeActiveTab === "sales"} />
           </TabsContent>
           <TabsContent value="inventory">
-            <InventoryReport filters={{}} enabled={activeTab === "inventory"} />
+            <InventoryReport filters={{}} enabled={safeActiveTab === "inventory"} />
           </TabsContent>
           <TabsContent value="leads">
-            <LeadsReport filters={leadsFilters} enabled={activeTab === "leads"} />
+            <LeadsReport filters={leadsFilters} enabled={safeActiveTab === "leads"} />
           </TabsContent>
           <TabsContent value="profitability">
             <ProfitabilityReport
               filters={salesFilters}
-              enabled={activeTab === "profitability"}
+              enabled={safeActiveTab === "profitability"}
             />
           </TabsContent>
-          <TabsContent value="expenses">
-            <ExpensesReport
-              filters={expenseFilters}
-              enabled={activeTab === "expenses"}
-            />
-          </TabsContent>
+          {isAdmin ? (
+            <TabsContent value="expenses">
+              <ExpensesReport
+                filters={expenseFilters}
+                enabled={isAdmin && safeActiveTab === "expenses"}
+              />
+            </TabsContent>
+          ) : null}
         </Tabs>
       </div>
     </AuthenticatedAppShell>

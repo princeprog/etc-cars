@@ -1262,6 +1262,9 @@ function ExpenseSheet({
   apiError: unknown
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
 }) {
+  const [selectPortalContainer, setSelectPortalContainer] =
+    React.useState<HTMLDivElement | null>(null)
+
   function update<K extends keyof ExpenseFormValues>(
     key: K,
     value: ExpenseFormValues[K],
@@ -1273,6 +1276,9 @@ function ExpenseSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
+        onPointerDownOutside={(event) => event.preventDefault()}
+        onFocusOutside={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
         onOpenAutoFocus={(event) => event.preventDefault()}
         className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[48vw] md:data-[side=right]:max-w-none"
       >
@@ -1286,7 +1292,10 @@ function ExpenseSheet({
           </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div
+            ref={setSelectPortalContainer}
+            className="min-h-0 flex-1 overflow-y-auto px-6 py-6"
+          >
             <FieldGroup className="gap-5">
               <ApiErrorAlert
                 title="Unable to save expense"
@@ -1298,6 +1307,7 @@ function ExpenseSheet({
                 categories={categories}
                 staffUsers={staffUsers}
                 onUpdate={update}
+                portalContainer={selectPortalContainer}
               />
             </FieldGroup>
           </div>
@@ -1353,6 +1363,9 @@ function RecurringRuleSheet({
   apiError: unknown
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
 }) {
+  const [selectPortalContainer, setSelectPortalContainer] =
+    React.useState<HTMLDivElement | null>(null)
+
   function update<K extends keyof RecurringFormValues>(
     key: K,
     value: RecurringFormValues[K],
@@ -1364,6 +1377,9 @@ function RecurringRuleSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
+        onPointerDownOutside={(event) => event.preventDefault()}
+        onFocusOutside={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
         onOpenAutoFocus={(event) => event.preventDefault()}
         className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[48vw] md:data-[side=right]:max-w-none"
       >
@@ -1377,7 +1393,10 @@ function RecurringRuleSheet({
           </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div
+            ref={setSelectPortalContainer}
+            className="min-h-0 flex-1 overflow-y-auto px-6 py-6"
+          >
             <FieldGroup className="gap-5">
               <ApiErrorAlert
                 title="Unable to save recurring rule"
@@ -1390,6 +1409,7 @@ function RecurringRuleSheet({
                 staffUsers={staffUsers}
                 onUpdate={update}
                 hideDateFields
+                portalContainer={selectPortalContainer}
               />
               <Separator />
               <section className="flex flex-col gap-4">
@@ -1413,7 +1433,7 @@ function RecurringRuleSheet({
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent portalContainer={selectPortalContainer}>
                         {RECURRING_FREQUENCY_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
@@ -1495,6 +1515,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
   staffUsers,
   onUpdate,
   hideDateFields = false,
+  portalContainer,
 }: {
   values: TValues
   errors: Partial<Record<keyof TValues, string>>
@@ -1502,6 +1523,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
   staffUsers: AuthenticatedUser[]
   onUpdate: <K extends keyof TValues>(key: K, value: TValues[K]) => void
   hideDateFields?: boolean
+  portalContainer?: HTMLElement | ShadowRoot | null
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -1537,7 +1559,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent portalContainer={portalContainer}>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -1624,7 +1646,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent portalContainer={portalContainer}>
               <SelectItem value={ALL_VALUE}>Unassigned</SelectItem>
               {staffUsers.map((user) => (
                 <SelectItem key={user.id} value={user.id}>

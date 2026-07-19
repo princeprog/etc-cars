@@ -3,7 +3,6 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { formatDistanceToNow } from "date-fns"
 import {
   BellIcon,
   CircleAlertIcon,
@@ -102,44 +101,44 @@ export function NotificationBell() {
       </PopoverTrigger>
       <PopoverContent
         align="end"
-        sideOffset={14}
-        className="w-[min(calc(100vw-2rem),520px)] overflow-hidden rounded-2xl border-border/70 p-0 shadow-2xl"
+        sideOffset={10}
+        className="w-[min(calc(100vw-1.5rem),430px)] overflow-hidden rounded-xl border-border/70 p-0 shadow-xl"
       >
-        <div className="flex items-center justify-between gap-3 px-6 pt-6 pb-4">
-          <h2 className="text-xl font-semibold tracking-tight text-foreground">
+        <div className="flex items-center justify-between gap-3 px-5 py-4">
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
             Notifications
           </h2>
           <Button
             type="button"
             variant="link"
             size="sm"
-            className="h-auto px-0 text-sm font-medium text-primary"
+            className="h-auto px-0 text-xs font-medium text-primary"
             disabled={!unreadCount || markAllReadMutation.isPending}
             onClick={markAllRead}
           >
             Mark all as read
           </Button>
         </div>
-        <ScrollArea className="max-h-[520px]">
+        <ScrollArea className="max-h-[360px]">
           {notificationsQuery.isPending ? (
-            <div className="flex flex-col px-6 pb-2">
+            <div className="flex flex-col px-5 pb-1">
               {Array.from({ length: 5 }).map((_, index) => (
                 <div
                   key={index}
-                  className="grid grid-cols-[64px_minmax(0,1fr)_56px] gap-4 border-b py-5 last:border-b-0"
+                  className="grid grid-cols-[48px_minmax(0,1fr)_42px] gap-3 border-b py-3.5 last:border-b-0"
                 >
-                  <Skeleton className="size-14 rounded-2xl" />
+                  <Skeleton className="size-11 rounded-xl" />
                   <div className="flex flex-1 flex-col gap-2">
-                    <Skeleton className="h-5 w-2/3" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-4/5" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="h-3.5 w-4/5" />
                   </div>
-                  <Skeleton className="h-4 w-10" />
+                  <Skeleton className="h-3.5 w-8" />
                 </div>
               ))}
             </div>
           ) : notifications.length ? (
-            <div className="flex flex-col px-6">
+            <div className="flex flex-col px-5">
               {notifications.map((notification) => (
                 <NotificationPreviewRow
                   key={notification.id}
@@ -167,11 +166,11 @@ export function NotificationBell() {
             </div>
           )}
         </ScrollArea>
-        <div className="border-t px-6 py-4 text-center">
+        <div className="border-t px-5 py-3 text-center">
           <Button
             asChild
             variant="link"
-            className="h-auto px-0 text-base font-medium text-primary"
+            className="h-auto px-0 text-sm font-medium text-primary"
           >
             <Link href="/notifications">
               View all notifications
@@ -196,34 +195,32 @@ function NotificationPreviewRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[64px_minmax(0,1fr)_70px_12px] items-start gap-4 border-b py-5 last:border-b-0",
+        "grid grid-cols-[48px_minmax(0,1fr)_42px_10px] items-start gap-3 border-b py-3.5 last:border-b-0",
         !notification.isRead && "bg-primary/[0.015]",
       )}
     >
       <div
         className={cn(
-          "flex size-14 items-center justify-center rounded-2xl",
+          "flex size-11 items-center justify-center rounded-xl",
           getNotificationIconClassName(notification.type),
         )}
       >
-        {renderNotificationIcon(notification.type, "size-7")}
+        {renderNotificationIcon(notification.type, "size-5")}
       </div>
       <button
         type="button"
         className="min-w-0 text-left"
         onClick={onOpen}
       >
-        <p className="truncate text-base font-semibold text-foreground">
+        <p className="truncate text-sm font-semibold text-foreground">
           {notification.title}
         </p>
-        <p className="mt-1 line-clamp-2 text-base leading-6 text-muted-foreground">
+        <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
           {notification.message}
         </p>
       </button>
-      <p className="pt-0.5 text-right text-sm text-muted-foreground">
-        {formatDistanceToNow(new Date(notification.createdAt), {
-          addSuffix: false,
-        })}
+      <p className="pt-0.5 text-right text-xs text-muted-foreground">
+        {formatNotificationAge(notification.createdAt)}
       </p>
       <button
         type="button"
@@ -232,12 +229,12 @@ function NotificationPreviewRow({
             ? "Mark notification unread"
             : "Mark notification read"
         }
-        className="mt-9 flex size-3 items-center justify-center rounded-full"
+        className="mt-8 flex size-2.5 items-center justify-center rounded-full"
         onClick={onToggleRead}
       >
         <span
           className={cn(
-            "size-2 rounded-full transition-colors",
+            "size-1.5 rounded-full transition-colors",
             notification.isRead
               ? "bg-transparent hover:bg-muted-foreground/30"
               : "bg-primary",
@@ -246,6 +243,35 @@ function NotificationPreviewRow({
       </button>
     </div>
   )
+}
+
+function formatNotificationAge(createdAt: string) {
+  const elapsedMs = Math.max(0, Date.now() - new Date(createdAt).getTime())
+  const elapsedMinutes = Math.floor(elapsedMs / 60_000)
+
+  if (elapsedMinutes < 1) {
+    return "now"
+  }
+
+  if (elapsedMinutes < 60) {
+    return `${elapsedMinutes}m`
+  }
+
+  const elapsedHours = Math.floor(elapsedMinutes / 60)
+
+  if (elapsedHours < 24) {
+    return `${elapsedHours}h`
+  }
+
+  const elapsedDays = Math.floor(elapsedHours / 24)
+
+  if (elapsedDays < 30) {
+    return `${elapsedDays}d`
+  }
+
+  const elapsedMonths = Math.floor(elapsedDays / 30)
+
+  return `${elapsedMonths}mo`
 }
 
 function renderNotificationIcon(type: NotificationType, className: string) {

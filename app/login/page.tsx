@@ -1,6 +1,12 @@
-import { LightThemeEnforcer } from "@/components/light-theme-enforcer"
-import { GuestRoute } from "@/components/auth/guest-route"
-import { LoginForm } from "@/components/login-form"
+import { createPageMetadata } from "@/lib/metadata";
+import { LightThemeEnforcer } from "@/components/light-theme-enforcer";
+import { GuestRoute } from "@/components/auth/guest-route";
+import { LoginForm } from "@/components/login-form";
+
+export const metadata = createPageMetadata({
+  title: "Login",
+  description: "Sign in to the ETC Cars dealership management workspace.",
+});
 
 export default function Page() {
   return (
@@ -17,5 +23,5 @@ export default function Page() {
         </div>
       </div>
     </GuestRoute>
-  )
+  );
 }

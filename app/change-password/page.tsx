@@ -1,6 +1,13 @@
-import { LightThemeEnforcer } from "@/components/light-theme-enforcer"
-import { PasswordChangeRequired } from "@/components/auth/password-change-required"
-import { ProtectedRoute } from "@/components/auth/protected-route"
+import { createPageMetadata } from "@/lib/metadata";
+import { LightThemeEnforcer } from "@/components/light-theme-enforcer";
+import { PasswordChangeRequired } from "@/components/auth/password-change-required";
+import { ProtectedRoute } from "@/components/auth/protected-route";
+
+export const metadata = createPageMetadata({
+  title: "Change Password",
+  description:
+    "Update account credentials and complete required password changes.",
+});
 
 export default function ChangePasswordPage() {
   return (
@@ -17,5 +24,5 @@ export default function ChangePasswordPage() {
         </div>
       </div>
     </ProtectedRoute>
-  )
+  );
 }

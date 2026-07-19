@@ -738,21 +738,21 @@ export function BillsExpensesScreen() {
 
         <Card className="overflow-hidden rounded-lg p-0 shadow-none">
           <CardHeader className="border-b px-4 py-4 md:px-5">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-col gap-4">
               <div className="flex min-w-0 flex-col gap-1">
                 <CardTitle className="text-base">Expense Register</CardTitle>
                 <p className="text-sm text-muted-foreground">
                   Review bills by urgency, category, frequency, and ownership.
                 </p>
               </div>
-              <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[240px_170px_190px_170px]">
-                <div className="relative">
+              <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(260px,1fr)_180px_220px_180px]">
+                <div className="relative min-w-0">
                   <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     placeholder="Search title, vendor, category"
-                    className="pl-9"
+                    className="h-9 w-full pl-9"
                   />
                 </div>
                 <Select
@@ -761,7 +761,10 @@ export function BillsExpensesScreen() {
                     setStatus(value as BillStatusFilter)
                   }
                 >
-                  <SelectTrigger aria-label="Filter by status">
+                  <SelectTrigger
+                    aria-label="Filter by status"
+                    className="h-9 w-full"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent align="end">
@@ -773,7 +776,10 @@ export function BillsExpensesScreen() {
                   </SelectContent>
                 </Select>
                 <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger aria-label="Filter by category">
+                  <SelectTrigger
+                    aria-label="Filter by category"
+                    className="h-9 w-full"
+                  >
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent align="end">
@@ -791,7 +797,10 @@ export function BillsExpensesScreen() {
                     setFrequency(value as BillFrequencyFilter)
                   }
                 >
-                  <SelectTrigger aria-label="Filter by frequency">
+                  <SelectTrigger
+                    aria-label="Filter by frequency"
+                    className="h-9 w-full"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent align="end">

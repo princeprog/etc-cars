@@ -20,10 +20,29 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { TriangleAlertIcon } from "lucide-react"
+
+function getLoginErrorMessage(error: unknown) {
+  if (isAppApiError(error)) {
+    if (
+      error.status === 401 ||
+      error.message.toLowerCase() === "invalid credentials"
+    ) {
+      return "The email or password you entered is incorrect. Please check your credentials and try again."
+    }
+
+    return error.message
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return null
+}
 
 export function LoginForm({
   className,
@@ -53,11 +72,7 @@ export function LoginForm({
     )
   }
 
-  const errorMessage = isAppApiError(loginMutation.error)
-    ? loginMutation.error.message
-    : loginMutation.error instanceof Error
-      ? loginMutation.error.message
-      : null
+  const errorMessage = getLoginErrorMessage(loginMutation.error)
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -76,7 +91,6 @@ export function LoginForm({
               {errorMessage ? (
                 <Alert variant="destructive">
                   <TriangleAlertIcon />
-                  <AlertTitle>Unable to sign in</AlertTitle>
                   <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
               ) : null}

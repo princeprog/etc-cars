@@ -2255,6 +2255,7 @@ function MarkPaidDialog({
               onChange={(event) =>
                 onValuesChange({ ...values, notes: event.target.value })
               }
+              placeholder="Add payment notes"
               className="min-h-20"
             />
           </Field>

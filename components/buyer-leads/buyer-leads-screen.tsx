@@ -1220,7 +1220,13 @@ function BuyerLeadDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-[1100px] gap-0 overflow-y-auto rounded-xl p-0 shadow-2xl">
+      <DialogContent
+        className="max-h-[92vh] max-w-none gap-0 overflow-x-hidden overflow-y-auto rounded-xl p-0 shadow-2xl sm:max-w-none"
+        style={{
+          width: "min(1100px, calc(100vw - 2rem))",
+          maxWidth: "none",
+        }}
+      >
         <DialogHeader className="px-6 pt-5 pb-0 pr-14">
           <DialogTitle className="text-lg font-semibold text-foreground">
             Buyer Lead Details
@@ -1408,12 +1414,12 @@ function BuyerLeadInfoRow({
   icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="grid min-w-0 grid-cols-[24px_minmax(120px,0.75fr)_minmax(0,1fr)] items-start gap-3 text-sm">
+    <div className="grid min-w-0 grid-cols-[24px_minmax(0,1fr)] items-start gap-x-3 gap-y-1 text-sm sm:grid-cols-[24px_140px_minmax(0,1fr)]">
       <div className="pt-0.5 text-muted-foreground">
         {Icon ? <Icon className="size-4" /> : null}
       </div>
-      <p className="text-muted-foreground">{label}</p>
-      <div className="min-w-0 font-medium text-foreground [overflow-wrap:anywhere]">
+      <p className="min-w-0 text-muted-foreground">{label}</p>
+      <div className="col-start-2 min-w-0 font-medium break-words text-foreground sm:col-start-auto">
         {value}
       </div>
     </div>

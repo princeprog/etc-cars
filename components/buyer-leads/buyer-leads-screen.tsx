@@ -1213,6 +1213,7 @@ function BuyerLeadDetailsDialog({
   const warning = getBuyerLeadWarning(lead);
   const stage = lead.pipeline?.stageLabel ?? getBuyerLeadStage(lead.status);
   const latestActivityAt = lead.latestActivityAt ?? lead.updatedAt;
+  const isWonLead = lead.status === "Won";
   const attentionMessage =
     blocker ??
     warning ??
@@ -1267,24 +1268,28 @@ function BuyerLeadDetailsDialog({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3 xl:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 border-border/80 bg-background px-4 shadow-xs"
-                onClick={() => onEdit(lead)}
-              >
-                <PencilIcon />
-                Update Lead
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 border-border/80 bg-background px-4 shadow-xs"
-                onClick={() => onScheduleFollowUp(lead)}
-              >
-                <CalendarPlusIcon />
-                Schedule Follow-Up
-              </Button>
+              {!isWonLead ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 border-border/80 bg-background px-4 shadow-xs"
+                    onClick={() => onEdit(lead)}
+                  >
+                    <PencilIcon />
+                    Update Lead
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-10 border-border/80 bg-background px-4 shadow-xs"
+                    onClick={() => onScheduleFollowUp(lead)}
+                  >
+                    <CalendarPlusIcon />
+                    Schedule Follow-Up
+                  </Button>
+                </>
+              ) : null}
               {cta.action === "sale" ? (
                 <Button
                   type="button"

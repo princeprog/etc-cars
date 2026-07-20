@@ -822,7 +822,7 @@ export function FollowUpsScreen() {
                       <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                         Assignee
                       </TableHead>
-                      <TableHead className="w-[320px] px-4 text-xs font-semibold text-foreground/80">
+                      <TableHead className="w-[360px] px-4 text-xs font-semibold text-foreground/80">
                         Outcome / Note Preview
                       </TableHead>
                       <SortableColumnHeader
@@ -916,9 +916,9 @@ export function FollowUpsScreen() {
                               currentUserId,
                             )}
                           </TableCell>
-                          <TableCell className="w-[320px] px-4 py-3 align-top">
-                            <p className="line-clamp-2 max-w-[300px] text-sm leading-5 text-foreground break-words [overflow-wrap:anywhere]">
-                              {truncateText(notePreview, 140)}
+                          <TableCell className="w-[360px] max-w-[360px] px-4 py-3 align-top">
+                            <p className="whitespace-normal text-sm leading-5 text-foreground break-words [overflow-wrap:anywhere] [word-break:break-word]">
+                              {notePreview}
                             </p>
                           </TableCell>
                           <TableCell className="px-4 py-3 align-top">

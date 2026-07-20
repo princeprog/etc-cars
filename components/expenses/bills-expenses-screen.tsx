@@ -67,6 +67,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -2343,29 +2344,61 @@ function ReplaceReceiptProgressDialog({
   saving: boolean;
 }) {
   const open = Boolean(filename) || uploading || saving;
+  const progressValue = saving ? 82 : 42;
 
   return (
     <AlertDialog open={open}>
-      <AlertDialogContent>
-        <AlertDialogMedia>
-          <Spinner className="size-5" />
-        </AlertDialogMedia>
-        <AlertDialogHeader>
-          <AlertDialogTitle>
-            {uploading ? "Uploading receipt" : "Updating receipt"}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            Keep this window open while the receipt is being saved.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <Alert className="border-border/70 bg-background">
-          <PaperclipIcon />
-          <AlertTitle>{expense?.title ?? "Selected expense"}</AlertTitle>
-          <AlertDescription>
-            {filename || "Receipt file"} is{" "}
-            {uploading ? "uploading to storage" : "being attached"}.
-          </AlertDescription>
-        </Alert>
+      <AlertDialogContent className="gap-5 sm:max-w-md">
+        <div className="flex items-start gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Spinner className="size-5" />
+          </div>
+          <AlertDialogHeader className="min-w-0 gap-1 text-left">
+            <AlertDialogTitle>Replacing receipt</AlertDialogTitle>
+            <AlertDialogDescription>
+              {saving
+                ? "Saving the new receipt to this expense."
+                : "Uploading the selected file securely."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+        </div>
+
+        <div className="rounded-lg border bg-muted/20 p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <PaperclipIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-foreground">
+                {filename || "Receipt file"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {expense?.title ?? "Selected expense"}
+              </p>
+            </div>
+          </div>
+          <Progress value={progressValue} className="mt-4" />
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-2 text-foreground">
+              {saving ? (
+                <CheckCircle2Icon className="size-3.5 text-emerald-600" />
+              ) : (
+                <Spinner className="size-3.5" />
+              )}
+              Upload file
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              {saving ? (
+                <Spinner className="size-3.5" />
+              ) : (
+                <span className="size-3.5 rounded-full border" />
+              )}
+              Save changes
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          This usually takes a few seconds. Please keep the dialog open.
+        </p>
       </AlertDialogContent>
     </AlertDialog>
   );

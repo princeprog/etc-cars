@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   BellIcon,
+  CalendarClockIcon,
   CircleAlertIcon,
   Clock3Icon,
   ChevronRightIcon,
@@ -161,7 +162,7 @@ export function NotificationBell() {
                 No active notifications
               </p>
               <p className="text-xs text-muted-foreground">
-                Expense reminders appear here when bills need attention.
+                Reminders appear here when bills or follow-ups need attention.
               </p>
             </div>
           )}
@@ -207,11 +208,7 @@ function NotificationPreviewRow({
       >
         {renderNotificationIcon(notification.type, "size-4")}
       </div>
-      <button
-        type="button"
-        className="min-w-0 text-left"
-        onClick={onOpen}
-      >
+      <button type="button" className="min-w-0 text-left" onClick={onOpen}>
         <p className="truncate text-xs font-semibold text-foreground">
           {notification.title}
         </p>
@@ -279,9 +276,14 @@ function renderNotificationIcon(type: NotificationType, className: string) {
     case "expense_overdue":
       return <CircleAlertIcon className={className} />
     case "expense_due_today":
+    case "follow_up_due_today":
       return <Clock3Icon className={className} />
     case "expense_due_soon":
       return <BellIcon className={className} />
+    case "follow_up_due_soon":
+      return <CalendarClockIcon className={className} />
+    case "follow_up_overdue":
+      return <CircleAlertIcon className={className} />
   }
 }
 
@@ -293,5 +295,11 @@ function getNotificationIconClassName(type: NotificationType) {
       return "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300"
     case "expense_due_soon":
       return "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300"
+    case "follow_up_overdue":
+      return "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-300"
+    case "follow_up_due_today":
+      return "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-300"
+    case "follow_up_due_soon":
+      return "bg-cyan-50 text-cyan-600 dark:bg-cyan-950/30 dark:text-cyan-300"
   }
 }

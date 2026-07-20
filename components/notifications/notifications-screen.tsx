@@ -5,6 +5,7 @@ import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import {
   BellIcon,
+  CalendarClockIcon,
   CheckCheckIcon,
   CircleAlertIcon,
   Clock3Icon,
@@ -87,8 +88,8 @@ export function NotificationsScreen() {
               Notifications
             </h1>
             <p className="text-sm text-muted-foreground">
-              Review active expense reminders and open the related bill when it
-              needs attention.
+              Review active expense and follow-up reminders, then open the
+              related workflow when it needs attention.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -123,7 +124,7 @@ export function NotificationsScreen() {
               <div className="flex min-w-0 flex-col gap-1">
                 <CardTitle className="text-xl">Notifications</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Active bill reminders from the finance workflow.
+                  Active reminders from finance and follow-up workflows.
                 </p>
               </div>
               <Button
@@ -190,12 +191,14 @@ export function NotificationsScreen() {
               <div className="p-6">
                 <EmptyState
                   title="No notifications found"
-                  description="Active bill reminders will appear here as due dates approach."
+                  description="Active reminders will appear here as due dates approach."
                 />
               </div>
             )}
           </CardContent>
-          {pagination && !notificationsQuery.isPending && !notificationsQuery.error ? (
+          {pagination &&
+          !notificationsQuery.isPending &&
+          !notificationsQuery.error ? (
             <ListPagination
               page={pagination.page}
               totalPages={pagination.totalPages}
@@ -325,9 +328,14 @@ function renderNotificationIcon(type: NotificationType, className: string) {
     case "expense_overdue":
       return <CircleAlertIcon className={className} />
     case "expense_due_today":
+    case "follow_up_due_today":
       return <Clock3Icon className={className} />
     case "expense_due_soon":
       return <BellIcon className={className} />
+    case "follow_up_due_soon":
+      return <CalendarClockIcon className={className} />
+    case "follow_up_overdue":
+      return <CircleAlertIcon className={className} />
   }
 }
 
@@ -339,5 +347,11 @@ function getNotificationIconClassName(type: NotificationType) {
       return "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300"
     case "expense_due_soon":
       return "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300"
+    case "follow_up_overdue":
+      return "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-300"
+    case "follow_up_due_today":
+      return "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-300"
+    case "follow_up_due_soon":
+      return "bg-cyan-50 text-cyan-600 dark:bg-cyan-950/30 dark:text-cyan-300"
   }
 }

@@ -2,6 +2,9 @@ export type NotificationType =
   | "expense_due_soon"
   | "expense_due_today"
   | "expense_overdue"
+  | "follow_up_due_soon"
+  | "follow_up_due_today"
+  | "follow_up_overdue"
 
 export interface AppNotification {
   id: string

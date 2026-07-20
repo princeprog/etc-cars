@@ -1,34 +1,36 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
-import { format, formatDistanceToNow } from "date-fns"
+import * as React from "react";
+import { useRouter } from "next/navigation";
+import { format, formatDistanceToNow } from "date-fns";
 import {
   AlertTriangleIcon,
   CalendarPlusIcon,
+  CarFrontIcon,
   Clock3Icon,
   EyeIcon,
+  MailIcon,
+  MessageCircleIcon,
   MoreHorizontalIcon,
   PencilIcon,
+  PhoneIcon,
   PlusIcon,
   ReceiptTextIcon,
   SearchIcon,
-} from "lucide-react"
-import { toast } from "sonner"
+  UserRoundIcon,
+} from "lucide-react";
+import { toast } from "sonner";
 
-import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { EmptyState } from "@/components/operations/empty-state"
-import { ListPagination } from "@/components/operations/list-pagination"
-import { ModuleLoadingState } from "@/components/operations/module-loading-state"
-import { SubmitButton } from "@/components/operations/submit-button"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card"
+import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
+import { EmptyState } from "@/components/operations/empty-state";
+import { ListPagination } from "@/components/operations/list-pagination";
+import { ModuleLoadingState } from "@/components/operations/module-loading-state";
+import { SubmitButton } from "@/components/operations/submit-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +38,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,23 +48,23 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   Field,
   FieldError,
   FieldGroup,
   FieldLabel,
   FieldTitle,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { PhilippinePhoneInput } from "@/components/ui/philippine-phone-input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { PhilippinePhoneInput } from "@/components/ui/philippine-phone-input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
@@ -70,8 +72,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
@@ -79,20 +81,20 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
-import { DateTimePicker } from "@/components/ui/date-time-picker"
-import { useCreateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-create-buyer-lead-mutation"
-import { useUpdateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-update-buyer-lead-mutation"
-import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation"
-import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { useCreateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-create-buyer-lead-mutation";
+import { useUpdateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-update-buyer-lead-mutation";
+import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation";
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query";
 import {
   formatPhilippineMobileNumberInput,
   getPhilippineMobileNumberError,
   PHILIPPINE_MOBILE_NUMBER_PREFIX,
-} from "@/lib/philippine-phone"
-import { getApiErrorMessage } from "@/types/api"
+} from "@/lib/philippine-phone";
+import { getApiErrorMessage } from "@/types/api";
 import {
   BUYER_LEAD_STATUSES,
   type BuyerLead,
@@ -100,9 +102,9 @@ import {
   type BuyerLeadStatus,
   type CreateBuyerLeadPayload,
   type UpdateBuyerLeadPayload,
-} from "@/types/buyer-leads"
-import { formatVehicleMoney } from "../vehicles/vehicles.helpers"
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
+} from "@/types/buyer-leads";
+import { formatVehicleMoney } from "../vehicles/vehicles.helpers";
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel";
 
 const BUYER_LEAD_INQUIRY_SOURCES = [
   "Facebook Marketplace",
@@ -116,28 +118,28 @@ const BUYER_LEAD_INQUIRY_SOURCES = [
   "Car Listing Platform",
   "Existing Customer",
   "Other",
-] as const
+] as const;
 
 type BuyerLeadFormValues = {
-  buyerName: string
-  contactNumber: string
-  email: string
-  facebookName: string
-  inquirySource: string
-  desiredBudget: string
-  notes: string
-  status: BuyerLeadStatus
-}
+  buyerName: string;
+  contactNumber: string;
+  email: string;
+  facebookName: string;
+  inquirySource: string;
+  desiredBudget: string;
+  notes: string;
+  status: BuyerLeadStatus;
+};
 
 type BuyerLeadFormErrors = {
-  contactNumber?: string
-}
+  contactNumber?: string;
+};
 
 type BuyerLeadNextActionCta = {
-  label: string
-  helper: string
-  action: "edit" | "view" | "follow-up" | "sale"
-}
+  label: string;
+  helper: string;
+  action: "edit" | "view" | "follow-up" | "sale";
+};
 
 function getEmptyBuyerLeadFormValues(): BuyerLeadFormValues {
   return {
@@ -149,7 +151,7 @@ function getEmptyBuyerLeadFormValues(): BuyerLeadFormValues {
     desiredBudget: "",
     notes: "",
     status: "New Inquiry",
-  }
+  };
 }
 
 function getBuyerLeadFormValues(lead: BuyerLead): BuyerLeadFormValues {
@@ -162,7 +164,7 @@ function getBuyerLeadFormValues(lead: BuyerLead): BuyerLeadFormValues {
     desiredBudget: lead.desiredBudget ?? "",
     notes: lead.notes ?? "",
     status: lead.status,
-  }
+  };
 }
 
 function parseBuyerLeadPayload(
@@ -179,7 +181,7 @@ function parseBuyerLeadPayload(
     notes: values.notes || null,
     status: values.status,
     assigneeUserId,
-  }
+  };
 }
 
 function parseUpdateBuyerLeadPayload(
@@ -194,7 +196,7 @@ function parseUpdateBuyerLeadPayload(
     desiredBudget: values.desiredBudget || null,
     notes: values.notes || null,
     status: values.status,
-  }
+  };
 }
 
 function getBuyerLeadFormErrors(
@@ -203,11 +205,11 @@ function getBuyerLeadFormErrors(
   return {
     contactNumber:
       getPhilippineMobileNumberError(values.contactNumber) ?? undefined,
-  }
+  };
 }
 
 function hasBuyerLeadFormErrors(errors: BuyerLeadFormErrors) {
-  return Boolean(errors.contactNumber)
+  return Boolean(errors.contactNumber);
 }
 
 function getInquirySourceOptions(currentValue: string) {
@@ -215,10 +217,10 @@ function getInquirySourceOptions(currentValue: string) {
     !currentValue ||
     BUYER_LEAD_INQUIRY_SOURCES.some((source) => source === currentValue)
   ) {
-    return BUYER_LEAD_INQUIRY_SOURCES
+    return BUYER_LEAD_INQUIRY_SOURCES;
   }
 
-  return [currentValue, ...BUYER_LEAD_INQUIRY_SOURCES]
+  return [currentValue, ...BUYER_LEAD_INQUIRY_SOURCES];
 }
 
 function getBuyerLeadStatusBadgeVariant(
@@ -226,53 +228,53 @@ function getBuyerLeadStatusBadgeVariant(
 ): "default" | "secondary" | "outline" | "destructive" {
   switch (status) {
     case "Won":
-      return "secondary"
+      return "secondary";
     case "Lost":
-      return "destructive"
+      return "destructive";
     default:
-      return "outline"
+      return "outline";
   }
 }
 
 function getBuyerLeadStatusClassName(status: BuyerLeadStatus) {
   switch (status) {
     case "New Inquiry":
-      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300"
+      return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300";
     case "Contacted":
-      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300"
+      return "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300";
     case "Interested":
-      return "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300"
+      return "border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-300";
     case "Negotiating":
-      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
     case "Reserved":
-      return "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300"
+      return "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900 dark:bg-orange-950/40 dark:text-orange-300";
     case "Won":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300";
     case "Lost":
-      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300"
+      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300";
     default:
-      return ""
+      return "";
   }
 }
 
 function getBuyerLeadStatusTextClassName(status: BuyerLeadStatus) {
   switch (status) {
     case "New Inquiry":
-      return "text-sky-700 dark:text-sky-300"
+      return "text-sky-700 dark:text-sky-300";
     case "Contacted":
-      return "text-slate-700 dark:text-slate-300"
+      return "text-slate-700 dark:text-slate-300";
     case "Interested":
-      return "text-indigo-700 dark:text-indigo-300"
+      return "text-indigo-700 dark:text-indigo-300";
     case "Negotiating":
-      return "text-amber-700 dark:text-amber-300"
+      return "text-amber-700 dark:text-amber-300";
     case "Reserved":
-      return "text-orange-700 dark:text-orange-300"
+      return "text-orange-700 dark:text-orange-300";
     case "Won":
-      return "text-emerald-700 dark:text-emerald-300"
+      return "text-emerald-700 dark:text-emerald-300";
     case "Lost":
-      return "text-rose-700 dark:text-rose-300"
+      return "text-rose-700 dark:text-rose-300";
     default:
-      return ""
+      return "";
   }
 }
 
@@ -281,67 +283,67 @@ function getAssigneeLabel(
   currentUserId?: string,
 ) {
   if (!assigneeUserId) {
-    return "Unassigned"
+    return "Unassigned";
   }
 
   if (assigneeUserId === currentUserId) {
-    return "You"
+    return "You";
   }
 
-  return "Assigned"
+  return "Assigned";
 }
 
 function getBuyerLeadStage(status: BuyerLeadStatus) {
   switch (status) {
     case "New Inquiry":
-      return "Intake"
+      return "Intake";
     case "Contacted":
-      return "First Contact"
+      return "First Contact";
     case "Interested":
-      return "Qualified Demand"
+      return "Qualified Demand";
     case "Negotiating":
-      return "Active Deal"
+      return "Active Deal";
     case "Reserved":
-      return "Reserved Unit"
+      return "Reserved Unit";
     case "Won":
-      return "Closed Won"
+      return "Closed Won";
     case "Lost":
-      return "Closed Lost"
+      return "Closed Lost";
     default:
-      return "Pipeline"
+      return "Pipeline";
   }
 }
 
 function getBuyerLeadNextAction(lead: BuyerLead) {
   if (lead.pipeline?.nextAction) {
-    return lead.pipeline.nextAction.label
+    return lead.pipeline.nextAction.label;
   }
 
   if (lead.status === "Won" || lead.status === "Lost") {
-    return "No immediate action"
+    return "No immediate action";
   }
 
   if (lead.status === "New Inquiry") {
-    return "Make first contact"
+    return "Make first contact";
   }
 
   if (lead.status === "Contacted") {
-    return "Qualify budget and preferences"
+    return "Qualify budget and preferences";
   }
 
   if (lead.status === "Interested") {
-    return "Schedule follow-up and confirm buyer requirements"
+    return "Schedule follow-up and confirm buyer requirements";
   }
 
   if (lead.status === "Negotiating") {
-    return "Confirm terms and reserve unit"
+    return "Confirm terms and reserve unit";
   }
 
   if (lead.status === "Reserved") {
-    return "Finalize sale workflow"
+    return "Finalize sale workflow";
   }
 
-  return "Review lead status"
+  return "Review lead status";
 }
 
 function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
@@ -351,7 +353,7 @@ function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
         label: "Schedule Follow-Up",
         helper: "Create a dated task so the next contact is clear.",
         action: "follow-up" as const,
-      }
+      };
     }
 
     if (lead.pipeline.nextAction.target === "lead_edit") {
@@ -359,7 +361,7 @@ function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
         label: "Update Lead",
         helper: lead.pipeline.nextAction.description,
         action: "edit" as const,
-      }
+      };
     }
 
     if (lead.pipeline.nextAction.target === "sale_finalization") {
@@ -367,14 +369,14 @@ function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
         label: "Finalize Sale",
         helper: lead.pipeline.nextAction.description,
         action: "sale" as const,
-      }
+      };
     }
 
     return {
       label: "Open Lead",
       helper: lead.pipeline.nextAction.description,
       action: "view" as const,
-    }
+    };
   }
 
   if (lead.status === "Won" || lead.status === "Lost") {
@@ -382,7 +384,7 @@ function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
       label: "View Details",
       helper: "Review the completed lead record.",
       action: "view" as const,
-    }
+    };
   }
 
   if (lead.status === "New Inquiry" || lead.status === "Contacted") {
@@ -390,7 +392,7 @@ function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
       label: "Update Lead",
       helper: "Capture contact progress and buyer details.",
       action: "edit" as const,
-    }
+    };
   }
 
   if (lead.status === "Reserved") {
@@ -398,82 +400,82 @@ function getBuyerLeadNextActionCta(lead: BuyerLead): BuyerLeadNextActionCta {
       label: "Finalize Workflow",
       helper: "Review the record before closing the sale.",
       action: "view" as const,
-    }
+    };
   }
 
   return {
     label: "Open Lead",
     helper: "Review status, notes, and buyer details.",
     action: "view" as const,
-  }
+  };
 }
 
 function BuyerLeadNextActionIcon({
   action,
 }: {
-  action: BuyerLeadNextActionCta["action"]
+  action: BuyerLeadNextActionCta["action"];
 }) {
-  if (action === "follow-up") return <CalendarPlusIcon />
-  if (action === "edit") return <PencilIcon />
-  if (action === "sale") return <ReceiptTextIcon />
-  return <EyeIcon />
+  if (action === "follow-up") return <CalendarPlusIcon />;
+  if (action === "edit") return <PencilIcon />;
+  if (action === "sale") return <ReceiptTextIcon />;
+  return <EyeIcon />;
 }
 
 function getDefaultFollowUpDueAt() {
-  const dueAt = new Date()
-  dueAt.setDate(dueAt.getDate() + 1)
-  dueAt.setHours(9, 0, 0, 0)
-  return dueAt
+  const dueAt = new Date();
+  dueAt.setDate(dueAt.getDate() + 1);
+  dueAt.setHours(9, 0, 0, 0);
+  return dueAt;
 }
 
 function getDefaultBuyerFollowUpNote(lead: BuyerLead) {
-  return `Follow up with ${lead.buyerName} about their buyer lead.`
+  return `Follow up with ${lead.buyerName} about their buyer lead.`;
 }
 
 function isBuyerLeadStale(lead: BuyerLead) {
   if (typeof lead.pipeline?.isStale === "boolean") {
-    return lead.pipeline.isStale
+    return lead.pipeline.isStale;
   }
 
-  const activityAt = lead.latestActivityAt ?? lead.updatedAt
-  const ageMs = Date.now() - new Date(activityAt).getTime()
-  const staleDays = lead.status === "New Inquiry" ? 2 : 5
+  const activityAt = lead.latestActivityAt ?? lead.updatedAt;
+  const ageMs = Date.now() - new Date(activityAt).getTime();
+  const staleDays = lead.status === "New Inquiry" ? 2 : 5;
   return (
     ageMs > staleDays * 24 * 60 * 60 * 1000 &&
     lead.status !== "Won" &&
     lead.status !== "Lost"
-  )
+  );
 }
 function getBuyerLeadBlocker(lead: BuyerLead) {
   if (lead.pipeline?.blockers.length) {
-    return lead.pipeline.blockers[0]?.description ?? null
+    return lead.pipeline.blockers[0]?.description ?? null;
   }
 
   if (lead.status === "New Inquiry") {
-    return "The inquiry has not been contacted yet."
+    return "The inquiry has not been contacted yet.";
   }
 
   if (lead.status === "Reserved") {
-    return "The reserved unit still needs to be finalized into a sale."
+    return "The reserved unit still needs to be finalized into a sale.";
   }
 
-  return null
+  return null;
 }
 
 function getBuyerLeadWarning(lead: BuyerLead) {
   if (lead.pipeline?.warnings.length) {
-    return lead.pipeline.warnings[0]?.description ?? null
+    return lead.pipeline.warnings[0]?.description ?? null;
   }
 
   if (isBuyerLeadStale(lead)) {
-    return "This lead has gone stale and needs attention before it drops further."
+    return "This lead has gone stale and needs attention before it drops further.";
   }
 
   if (lead.status === "Negotiating") {
-    return "Negotiation is active. Keep follow-ups tight so the buyer does not cool off."
+    return "Negotiation is active. Keep follow-ups tight so the buyer does not cool off.";
   }
 
-  return null
+  return null;
 }
 
 function BuyerLeadForm({
@@ -482,37 +484,37 @@ function BuyerLeadForm({
   errors,
   onErrorsChange,
 }: {
-  values: BuyerLeadFormValues
-  onChange: (values: BuyerLeadFormValues) => void
-  errors?: BuyerLeadFormErrors
-  onErrorsChange?: (errors: BuyerLeadFormErrors) => void
+  values: BuyerLeadFormValues;
+  onChange: (values: BuyerLeadFormValues) => void;
+  errors?: BuyerLeadFormErrors;
+  onErrorsChange?: (errors: BuyerLeadFormErrors) => void;
 }) {
   const [selectPortalContainer, setSelectPortalContainer] =
-    React.useState<HTMLDivElement | null>(null)
-  const contactNumberError = errors?.contactNumber
+    React.useState<HTMLDivElement | null>(null);
+  const contactNumberError = errors?.contactNumber;
 
   function updateField<K extends keyof BuyerLeadFormValues>(
     key: K,
     value: BuyerLeadFormValues[K],
   ) {
-    onChange({ ...values, [key]: value })
+    onChange({ ...values, [key]: value });
   }
 
   function updateContactNumber(value: string) {
     const nextValues = {
       ...values,
       contactNumber: formatPhilippineMobileNumberInput(value),
-    }
+    };
 
-    onChange(nextValues)
+    onChange(nextValues);
 
     if (contactNumberError) {
-      onErrorsChange?.(getBuyerLeadFormErrors(nextValues))
+      onErrorsChange?.(getBuyerLeadFormErrors(nextValues));
     }
   }
 
   function validateContactNumber() {
-    onErrorsChange?.(getBuyerLeadFormErrors(values))
+    onErrorsChange?.(getBuyerLeadFormErrors(values));
   }
 
   return (
@@ -592,9 +594,7 @@ function BuyerLeadForm({
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Field>
-            <FieldTitle id="buyerInquirySourceLabel">
-              Inquiry source
-            </FieldTitle>
+            <FieldTitle id="buyerInquirySourceLabel">Inquiry source</FieldTitle>
             <Select
               value={values.inquirySource}
               onValueChange={(value) => updateField("inquirySource", value)}
@@ -659,30 +659,32 @@ function BuyerLeadForm({
         </Field>
       </section>
     </FieldGroup>
-  )
+  );
 }
 
 export function BuyerLeadsScreen() {
-  const router = useRouter()
-  const authQuery = useAuthenticatedUserQuery()
-  const createMutation = useCreateBuyerLeadMutation()
-  const updateMutation = useUpdateBuyerLeadMutation()
-  const createFollowUpMutation = useCreateFollowUpMutation()
+  const router = useRouter();
+  const authQuery = useAuthenticatedUserQuery();
+  const createMutation = useCreateBuyerLeadMutation();
+  const updateMutation = useUpdateBuyerLeadMutation();
+  const createFollowUpMutation = useCreateFollowUpMutation();
 
-  const [searchTerm, setSearchTerm] = React.useState("")
+  const [searchTerm, setSearchTerm] = React.useState("");
   const [activeFilter, setActiveFilter] = React.useState<
     BuyerLeadStatus | "all"
-  >("all")
-  const [page, setPage] = React.useState(1)
-  const [createOpen, setCreateOpen] = React.useState(false)
-  const [viewLead, setViewLead] = React.useState<BuyerLead | null>(null)
-  const [editLead, setEditLead] = React.useState<BuyerLead | null>(null)
-  const [followUpLead, setFollowUpLead] = React.useState<BuyerLead | null>(null)
+  >("all");
+  const [page, setPage] = React.useState(1);
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [viewLead, setViewLead] = React.useState<BuyerLead | null>(null);
+  const [editLead, setEditLead] = React.useState<BuyerLead | null>(null);
+  const [followUpLead, setFollowUpLead] = React.useState<BuyerLead | null>(
+    null,
+  );
   const [createForm, setCreateForm] = React.useState<BuyerLeadFormValues>(
     getEmptyBuyerLeadFormValues,
-  )
+  );
   const [createFormErrors, setCreateFormErrors] =
-    React.useState<BuyerLeadFormErrors>({})
+    React.useState<BuyerLeadFormErrors>({});
 
   const filters = React.useMemo<BuyerLeadListFilters>(
     () => ({
@@ -692,35 +694,35 @@ export function BuyerLeadsScreen() {
       status: activeFilter,
     }),
     [activeFilter, page, searchTerm],
-  )
-  const buyerLeadsQuery = useBuyerLeadsQuery(filters)
+  );
+  const buyerLeadsQuery = useBuyerLeadsQuery(filters);
 
-  const currentUserId = authQuery.data?.user.id
-  const leads = buyerLeadsQuery.data?.buyerLeads ?? []
-  const total = buyerLeadsQuery.data?.total ?? 0
-  const totalPages = buyerLeadsQuery.data?.totalPages ?? 1
+  const currentUserId = authQuery.data?.user.id;
+  const leads = buyerLeadsQuery.data?.buyerLeads ?? [];
+  const total = buyerLeadsQuery.data?.total ?? 0;
+  const totalPages = buyerLeadsQuery.data?.totalPages ?? 1;
 
   function handleNextActionClick(lead: BuyerLead) {
-    const cta = getBuyerLeadNextActionCta(lead)
+    const cta = getBuyerLeadNextActionCta(lead);
 
     if (cta.action === "edit") {
-      setEditLead(lead)
-      return
+      setEditLead(lead);
+      return;
     }
 
     if (cta.action === "follow-up") {
-      setFollowUpLead(lead)
-      return
+      setFollowUpLead(lead);
+      return;
     }
 
     if (cta.action === "sale") {
       router.push(
         `/sales?action=finalize-sale&buyerLeadId=${encodeURIComponent(lead.id)}`,
-      )
-      return
+      );
+      return;
     }
 
-    setViewLead(lead)
+    setViewLead(lead);
   }
 
   async function handleStatusChange(
@@ -728,7 +730,7 @@ export function BuyerLeadsScreen() {
     nextStatus: BuyerLeadStatus,
   ) {
     if (lead.status === nextStatus) {
-      return
+      return;
     }
 
     try {
@@ -737,37 +739,37 @@ export function BuyerLeadsScreen() {
         payload: {
           status: nextStatus,
         },
-      })
+      });
 
-      toast.success(`Buyer lead moved to ${nextStatus}`)
+      toast.success(`Buyer lead moved to ${nextStatus}`);
     } catch (error) {
       toast.error(
         getApiErrorMessage(error, "Unable to update buyer lead status"),
-      )
+      );
     }
   }
 
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
-    const nextErrors = getBuyerLeadFormErrors(createForm)
-    setCreateFormErrors(nextErrors)
+    const nextErrors = getBuyerLeadFormErrors(createForm);
+    setCreateFormErrors(nextErrors);
 
     if (hasBuyerLeadFormErrors(nextErrors)) {
-      return
+      return;
     }
 
     await createMutation.mutateAsync(
       parseBuyerLeadPayload(createForm, currentUserId ?? null),
       {
         onSuccess: () => {
-          toast.success("Buyer lead created")
-          setCreateOpen(false)
-          setCreateForm(getEmptyBuyerLeadFormValues())
-          setCreateFormErrors({})
+          toast.success("Buyer lead created");
+          setCreateOpen(false);
+          setCreateForm(getEmptyBuyerLeadFormValues());
+          setCreateFormErrors({});
         },
       },
-    )
+    );
   }
 
   return (
@@ -797,8 +799,8 @@ export function BuyerLeadsScreen() {
                 <Input
                   value={searchTerm}
                   onChange={(event) => {
-                    setSearchTerm(event.target.value)
-                    setPage(1)
+                    setSearchTerm(event.target.value);
+                    setPage(1);
                   }}
                   placeholder="Search buyer, contact, or budget"
                   className="pl-9"
@@ -807,8 +809,8 @@ export function BuyerLeadsScreen() {
               <Select
                 value={activeFilter}
                 onValueChange={(value) => {
-                  setActiveFilter(value as BuyerLeadStatus | "all")
-                  setPage(1)
+                  setActiveFilter(value as BuyerLeadStatus | "all");
+                  setPage(1);
                 }}
               >
                 <SelectTrigger className="w-full md:w-[220px]">
@@ -826,9 +828,9 @@ export function BuyerLeadsScreen() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setSearchTerm("")
-                  setActiveFilter("all")
-                  setPage(1)
+                  setSearchTerm("");
+                  setActiveFilter("all");
+                  setPage(1);
                 }}
               >
                 Reset
@@ -885,7 +887,7 @@ export function BuyerLeadsScreen() {
                 </TableHeader>
                 <TableBody>
                   {leads.map((lead) => {
-                    const cta = getBuyerLeadNextActionCta(lead)
+                    const cta = getBuyerLeadNextActionCta(lead);
 
                     return (
                       <TableRow
@@ -929,9 +931,7 @@ export function BuyerLeadsScreen() {
                           <Button
                             type="button"
                             variant={
-                              cta.action === "follow-up"
-                                ? "default"
-                                : "outline"
+                              cta.action === "follow-up" ? "default" : "outline"
                             }
                             size="sm"
                             onClick={() => handleNextActionClick(lead)}
@@ -1012,8 +1012,8 @@ export function BuyerLeadsScreen() {
                                     className={`font-medium ${getBuyerLeadStatusTextClassName(status)}`}
                                     disabled={updateMutation.isPending}
                                     onSelect={(event) => {
-                                      event.preventDefault()
-                                      void handleStatusChange(lead, status)
+                                      event.preventDefault();
+                                      void handleStatusChange(lead, status);
                                     }}
                                   >
                                     {status}
@@ -1024,7 +1024,7 @@ export function BuyerLeadsScreen() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    )
+                    );
                   })}
                 </TableBody>
               </Table>
@@ -1051,10 +1051,10 @@ export function BuyerLeadsScreen() {
         <Sheet
           open={createOpen}
           onOpenChange={(open) => {
-            setCreateOpen(open)
+            setCreateOpen(open);
 
             if (!open) {
-              setCreateFormErrors({})
+              setCreateFormErrors({});
             }
           }}
         >
@@ -1116,94 +1116,29 @@ export function BuyerLeadsScreen() {
           </SheetContent>
         </Sheet>
 
-        <Dialog
-          open={Boolean(viewLead)}
-          onOpenChange={(open) => !open && setViewLead(null)}
-        >
-          <DialogContent className="max-w-xl">
-            {viewLead ? (
-              <>
-                <DialogHeader>
-                  <DialogTitle>{viewLead.buyerName}</DialogTitle>
-                  <DialogDescription>
-                    {viewLead.contactNumber}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-6">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Desired Budget
-                      </p>
-                      <p className="text-sm text-foreground">
-                        {formatVehicleMoney(viewLead.desiredBudget)}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Stage
-                      </p>
-                      <p className="text-sm text-foreground">
-                        {viewLead.pipeline?.stageLabel ??
-                          getBuyerLeadStage(viewLead.status)}
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Assignee
-                      </p>
-                      <p className="text-sm text-foreground">
-                        {getAssigneeLabel(
-                          viewLead.assigneeUserId,
-                          currentUserId,
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid gap-3">
-                    <Alert>
-                      <Clock3Icon className="size-4" />
-                      <AlertTitle>Next action</AlertTitle>
-                      <AlertDescription>
-                        {getBuyerLeadNextAction(viewLead)}
-                      </AlertDescription>
-                    </Alert>
-                    {getBuyerLeadBlocker(viewLead) ? (
-                      <Alert variant="destructive">
-                        <AlertTriangleIcon className="size-4" />
-                        <AlertTitle>Blocker</AlertTitle>
-                        <AlertDescription>
-                          {getBuyerLeadBlocker(viewLead)}
-                        </AlertDescription>
-                      </Alert>
-                    ) : null}
-                    {getBuyerLeadWarning(viewLead) ? (
-                      <Alert>
-                        <AlertTriangleIcon className="size-4" />
-                        <AlertTitle>Warning</AlertTitle>
-                        <AlertDescription>
-                          {getBuyerLeadWarning(viewLead)}
-                        </AlertDescription>
-                      </Alert>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Notes
-                    </p>
-                    <p className="text-sm text-foreground">
-                      {viewLead.notes ?? "No notes recorded."}
-                    </p>
-                  </div>
-                  <ActivityHistoryPanel
-                    entityType="buyer_lead"
-                    entityId={viewLead.id}
-                  />
-                </div>
-              </>
-            ) : null}
-          </DialogContent>
-        </Dialog>
+        <BuyerLeadDetailsDialog
+          lead={viewLead}
+          currentUserId={currentUserId}
+          onOpenChange={(open) => {
+            if (!open) {
+              setViewLead(null);
+            }
+          }}
+          onEdit={(lead) => {
+            setViewLead(null);
+            setEditLead(lead);
+          }}
+          onScheduleFollowUp={(lead) => {
+            setViewLead(null);
+            setFollowUpLead(lead);
+          }}
+          onFinalizeSale={(lead) => {
+            setViewLead(null);
+            router.push(
+              `/sales?action=finalize-sale&buyerLeadId=${encodeURIComponent(lead.id)}`,
+            );
+          }}
+        />
 
         <Dialog
           open={Boolean(editLead)}
@@ -1237,10 +1172,277 @@ export function BuyerLeadsScreen() {
             ) : null}
           </DialogContent>
         </Dialog>
-
       </div>
     </AuthenticatedAppShell>
-  )
+  );
+}
+
+function BuyerLeadDetailsDialog({
+  lead,
+  currentUserId,
+  onOpenChange,
+  onEdit,
+  onScheduleFollowUp,
+  onFinalizeSale,
+}: {
+  lead: BuyerLead | null;
+  currentUserId?: string;
+  onOpenChange: (open: boolean) => void;
+  onEdit: (lead: BuyerLead) => void;
+  onScheduleFollowUp: (lead: BuyerLead) => void;
+  onFinalizeSale: (lead: BuyerLead) => void;
+}) {
+  const open = Boolean(lead);
+
+  if (!lead) {
+    return <Dialog open={open} onOpenChange={onOpenChange} />;
+  }
+
+  const cta = getBuyerLeadNextActionCta(lead);
+  const blocker = getBuyerLeadBlocker(lead);
+  const warning = getBuyerLeadWarning(lead);
+  const stage = lead.pipeline?.stageLabel ?? getBuyerLeadStage(lead.status);
+  const latestActivityAt = lead.latestActivityAt ?? lead.updatedAt;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto p-0">
+        <DialogHeader className="border-b px-6 py-5 pr-14">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <DialogTitle className="truncate text-xl">
+                  {lead.buyerName}
+                </DialogTitle>
+                <Badge
+                  variant={getBuyerLeadStatusBadgeVariant(lead.status)}
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(lead.status)}`}
+                >
+                  {stage}
+                </Badge>
+              </div>
+              <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="inline-flex items-center gap-1.5">
+                  <PhoneIcon className="size-3.5" />
+                  {lead.contactNumber}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock3Icon className="size-3.5" />
+                  Active{" "}
+                  {formatDistanceToNow(new Date(latestActivityAt), {
+                    addSuffix: true,
+                  })}
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <UserRoundIcon className="size-3.5" />
+                  {getAssigneeLabel(lead.assigneeUserId, currentUserId)}
+                </span>
+              </DialogDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onEdit(lead)}
+              >
+                <PencilIcon />
+                Update Lead
+              </Button>
+              <Button
+                type="button"
+                variant={cta.action === "follow-up" ? "default" : "outline"}
+                onClick={() => onScheduleFollowUp(lead)}
+              >
+                <CalendarPlusIcon />
+                Schedule Follow-Up
+              </Button>
+              {cta.action === "sale" ? (
+                <Button type="button" onClick={() => onFinalizeSale(lead)}>
+                  <ReceiptTextIcon />
+                  Finalize Sale
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="grid gap-5 px-6 py-6">
+          <section className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-lg border border-border/70 bg-background p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <UserRoundIcon className="size-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  Contact
+                </h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <BuyerLeadDetailItem
+                  icon={PhoneIcon}
+                  label="Phone"
+                  value={lead.contactNumber}
+                />
+                <BuyerLeadDetailItem
+                  icon={MailIcon}
+                  label="Email"
+                  value={lead.email ?? "Not provided"}
+                />
+                <BuyerLeadDetailItem
+                  icon={MessageCircleIcon}
+                  label="Facebook"
+                  value={lead.facebookName ?? "Not provided"}
+                />
+                <BuyerLeadDetailItem
+                  icon={SearchIcon}
+                  label="Inquiry source"
+                  value={lead.inquirySource ?? "Not provided"}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border/70 bg-background p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <ReceiptTextIcon className="size-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  Buying Intent
+                </h3>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <BuyerLeadDetailItem
+                  label="Desired budget"
+                  value={formatVehicleMoney(lead.desiredBudget)}
+                />
+                <BuyerLeadDetailItem label="Stage" value={stage} />
+                <BuyerLeadDetailItem
+                  label="Status"
+                  value={lead.status}
+                  className="sm:col-span-2"
+                />
+                <BuyerLeadDetailItem
+                  icon={Clock3Icon}
+                  label="Next action"
+                  value={getBuyerLeadNextAction(lead)}
+                  className="sm:col-span-2"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="grid gap-3">
+            <h3 className="text-sm font-semibold text-foreground">
+              Pipeline Health
+            </h3>
+            {blocker ? (
+              <Alert variant="destructive">
+                <AlertTriangleIcon className="size-4" />
+                <AlertTitle>Blocker</AlertTitle>
+                <AlertDescription>{blocker}</AlertDescription>
+              </Alert>
+            ) : warning ? (
+              <Alert>
+                <AlertTriangleIcon className="size-4" />
+                <AlertTitle>Needs attention</AlertTitle>
+                <AlertDescription>{warning}</AlertDescription>
+              </Alert>
+            ) : (
+              <Alert>
+                <Clock3Icon className="size-4" />
+                <AlertTitle>No blockers flagged</AlertTitle>
+                <AlertDescription>
+                  Continue with the next planned action for this buyer.
+                </AlertDescription>
+              </Alert>
+            )}
+          </section>
+
+          <section className="rounded-lg border border-border/70 bg-background p-4">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <CarFrontIcon className="size-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">
+                  Linked Vehicles
+                </h3>
+              </div>
+              <Badge variant="outline" className="rounded-full text-[11px]">
+                {lead.vehicles.length}
+              </Badge>
+            </div>
+            {lead.vehicles.length ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                {lead.vehicles.map((vehicle) => (
+                  <div
+                    key={vehicle.id}
+                    className="rounded-lg border border-border/70 bg-muted/15 p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {vehicle.year} {vehicle.brand} {vehicle.model}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Stock {vehicle.stockNumber}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="shrink-0 text-[11px]">
+                        {vehicle.status}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title="No vehicles linked yet"
+                description="Attach matching vehicles once this buyer is qualified."
+              />
+            )}
+          </section>
+
+          <section className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-lg border border-border/70 bg-background p-4">
+              <h3 className="text-sm font-semibold text-foreground">Notes</h3>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
+                {lead.notes?.trim() || "No notes recorded."}
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/70 bg-background p-4">
+              <h3 className="text-sm font-semibold text-foreground">
+                Closing Note
+              </h3>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
+                {lead.closingNote?.trim() || "No closing note recorded."}
+              </p>
+            </div>
+          </section>
+
+          <Separator />
+
+          <ActivityHistoryPanel entityType="buyer_lead" entityId={lead.id} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function BuyerLeadDetailItem({
+  label,
+  value,
+  icon: Icon,
+  className,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  className?: string;
+}) {
+  return (
+    <div className={`min-w-0 space-y-1 ${className ?? ""}`}>
+      <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {Icon ? <Icon className="size-3.5" /> : null}
+        {label}
+      </p>
+      <p className="truncate text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
 }
 
 function EditBuyerLeadDialogForm({
@@ -1248,23 +1450,23 @@ function EditBuyerLeadDialogForm({
   mutation,
   onClose,
 }: {
-  lead: BuyerLead
-  mutation: ReturnType<typeof useUpdateBuyerLeadMutation>
-  onClose: () => void
+  lead: BuyerLead;
+  mutation: ReturnType<typeof useUpdateBuyerLeadMutation>;
+  onClose: () => void;
 }) {
   const [values, setValues] = React.useState<BuyerLeadFormValues>(() =>
     getBuyerLeadFormValues(lead),
-  )
-  const [formErrors, setFormErrors] = React.useState<BuyerLeadFormErrors>({})
+  );
+  const [formErrors, setFormErrors] = React.useState<BuyerLeadFormErrors>({});
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
-    const nextErrors = getBuyerLeadFormErrors(values)
-    setFormErrors(nextErrors)
+    const nextErrors = getBuyerLeadFormErrors(values);
+    setFormErrors(nextErrors);
 
     if (hasBuyerLeadFormErrors(nextErrors)) {
-      return
+      return;
     }
 
     await mutation.mutateAsync(
@@ -1274,11 +1476,11 @@ function EditBuyerLeadDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Buyer lead updated")
-          onClose()
+          toast.success("Buyer lead updated");
+          onClose();
         },
       },
-    )
+    );
   }
 
   return (
@@ -1311,7 +1513,7 @@ function EditBuyerLeadDialogForm({
         </DialogFooter>
       </form>
     </>
-  )
+  );
 }
 
 function ScheduleBuyerFollowUpDialogForm({
@@ -1320,24 +1522,24 @@ function ScheduleBuyerFollowUpDialogForm({
   mutation,
   onClose,
 }: {
-  lead: BuyerLead
-  currentUserId?: string
-  mutation: ReturnType<typeof useCreateFollowUpMutation>
-  onClose: () => void
+  lead: BuyerLead;
+  currentUserId?: string;
+  mutation: ReturnType<typeof useCreateFollowUpMutation>;
+  onClose: () => void;
 }) {
-  const assigneeUserId = currentUserId ?? lead.assigneeUserId ?? ""
+  const assigneeUserId = currentUserId ?? lead.assigneeUserId ?? "";
   const [dueAt, setDueAt] = React.useState<Date | undefined>(() =>
     getDefaultFollowUpDueAt(),
-  )
+  );
   const [note, setNote] = React.useState(() =>
     getDefaultBuyerFollowUpNote(lead),
-  )
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
     if (!assigneeUserId || !dueAt || !note.trim()) {
-      return
+      return;
     }
 
     await mutation.mutateAsync(
@@ -1350,11 +1552,11 @@ function ScheduleBuyerFollowUpDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up scheduled")
-          onClose()
+          toast.success("Follow-up scheduled");
+          onClose();
         },
       },
-    )
+    );
   }
 
   return (
@@ -1412,5 +1614,5 @@ function ScheduleBuyerFollowUpDialogForm({
         </DialogFooter>
       </form>
     </>
-  )
+  );
 }

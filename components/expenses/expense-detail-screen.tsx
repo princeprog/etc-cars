@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import * as React from "react";
 import {
   ArrowLeftIcon,
   CalendarClockIcon,
-  ExternalLinkIcon,
+  EyeIcon,
   FileTextIcon,
   ReceiptTextIcon,
   UserRoundIcon,
@@ -19,6 +20,7 @@ import {
   formatFrequency,
   formatMoney,
 } from "@/components/expenses/expense-formatters";
+import { ReceiptPreviewDialog } from "@/components/expenses/receipt-preview-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,6 +30,7 @@ import { getApiErrorMessage } from "@/types/api";
 export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
   const expenseQuery = useExpenseQuery(expenseId);
   const expense = expenseQuery.data?.expense;
+  const [receiptPreviewOpen, setReceiptPreviewOpen] = React.useState(false);
 
   return (
     <AuthenticatedAppShell
@@ -202,15 +205,14 @@ export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
                   </p>
                 </div>
                 {expense.receipt ? (
-                  <Button asChild variant="outline" className="w-fit">
-                    <a
-                      href={expense.receipt.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      <ExternalLinkIcon data-icon="inline-start" />
-                      View receipt
-                    </a>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-fit"
+                    onClick={() => setReceiptPreviewOpen(true)}
+                  >
+                    <EyeIcon data-icon="inline-start" />
+                    View receipt
                   </Button>
                 ) : null}
               </CardContent>
@@ -218,6 +220,10 @@ export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
           </div>
         ) : null}
       </main>
+      <ReceiptPreviewDialog
+        receipt={receiptPreviewOpen ? (expense?.receipt ?? null) : null}
+        onOpenChange={setReceiptPreviewOpen}
+      />
     </AuthenticatedAppShell>
   );
 }

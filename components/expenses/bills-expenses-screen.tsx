@@ -5,7 +5,7 @@ import {
   AlertCircleIcon,
   CheckCircle2Icon,
   Clock3Icon,
-  ExternalLinkIcon,
+  EyeIcon,
   FileTextIcon,
   MoreHorizontalIcon,
   PaperclipIcon,
@@ -34,6 +34,7 @@ import {
   formatFrequency,
   formatMoney,
 } from "@/components/expenses/expense-formatters";
+import { ReceiptPreviewDialog } from "@/components/expenses/receipt-preview-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -413,10 +414,6 @@ function formatFileSize(size: number | string | null | undefined) {
   return `${(numericSize / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function openReceipt(receipt: ExpenseReceipt) {
-  window.open(receipt.fileUrl, "_blank", "noopener,noreferrer");
-}
-
 function getExpenseFormErrors(values: ExpenseFormValues) {
   const errors: Partial<Record<keyof ExpenseFormValues, string>> = {};
 
@@ -531,6 +528,8 @@ export function BillsExpensesScreen() {
     React.useState<Expense | null>(null);
   const [receiptRemoveExpense, setReceiptRemoveExpense] =
     React.useState<Expense | null>(null);
+  const [receiptPreview, setReceiptPreview] =
+    React.useState<ExpenseReceipt | null>(null);
   const [paidForm, setPaidForm] = React.useState<PaidFormValues>({
     actualPaidAmount: "",
     paidAt: nowLocalInputValue(),
@@ -971,6 +970,7 @@ export function BillsExpensesScreen() {
                     });
                   }}
                   onVoid={setVoidExpenseTarget}
+                  onViewReceipt={setReceiptPreview}
                   onReplaceReceipt={handleReplaceReceiptRequest}
                   onRemoveReceipt={setReceiptRemoveExpense}
                   receiptActionPending={
@@ -1061,6 +1061,15 @@ export function BillsExpensesScreen() {
           }
         }}
         onConfirm={handleConfirmRemoveReceipt}
+      />
+
+      <ReceiptPreviewDialog
+        receipt={receiptPreview}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReceiptPreview(null);
+          }
+        }}
       />
 
       <VoidExpenseDialog
@@ -1177,6 +1186,7 @@ function ExpensesTable({
   onEdit,
   onMarkPaid,
   onVoid,
+  onViewReceipt,
   onReplaceReceipt,
   onRemoveReceipt,
   receiptActionPending,
@@ -1188,6 +1198,7 @@ function ExpensesTable({
   onEdit: (expense: Expense) => void;
   onMarkPaid: (expense: Expense) => void;
   onVoid: (expense: Expense) => void;
+  onViewReceipt: (receipt: ExpenseReceipt) => void;
   onReplaceReceipt: (expense: Expense) => void;
   onRemoveReceipt: (expense: Expense) => void;
   receiptActionPending: boolean;
@@ -1321,9 +1332,9 @@ function ExpensesTable({
                   <DropdownMenuLabel>Expense actions</DropdownMenuLabel>
                   {expense.receipt ? (
                     <DropdownMenuItem
-                      onClick={() => openReceipt(expense.receipt!)}
+                      onClick={() => onViewReceipt(expense.receipt!)}
                     >
-                      <ExternalLinkIcon data-icon="inline-start" />
+                      <EyeIcon data-icon="inline-start" />
                       View receipt
                     </DropdownMenuItem>
                   ) : null}

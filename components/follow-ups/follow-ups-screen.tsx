@@ -27,13 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-picker";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -83,7 +77,6 @@ import { useUpdateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-upda
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query";
 import { useFollowUpsQuery } from "@/hooks/queries/follow-ups/use-follow-ups-query";
-import { useFollowUpsSummaryQuery } from "@/hooks/queries/follow-ups/use-follow-ups-summary-query";
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query";
 import { getApiErrorMessage } from "@/types/api";
 import { ActivityHistoryPanel } from "../activity-history/activity-history-panel";
@@ -243,6 +236,9 @@ function FollowUpForm({
   onChange: (values: FollowUpFormValues) => void;
   leadOptions: { id: string; label: string }[];
 }) {
+  const [selectPortalContainer, setSelectPortalContainer] =
+    React.useState<HTMLDivElement | null>(null);
+
   function updateField<K extends keyof FollowUpFormValues>(
     key: K,
     value: FollowUpFormValues[K],
@@ -251,7 +247,7 @@ function FollowUpForm({
   }
 
   return (
-    <FieldGroup className="gap-6">
+    <FieldGroup ref={setSelectPortalContainer} className="gap-6">
       <section className="space-y-4">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-foreground">
@@ -273,7 +269,7 @@ function FollowUpForm({
               <SelectTrigger id="followUpLeadType">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent portalContainer={selectPortalContainer}>
                 {LEAD_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type === "seller" ? "Seller lead" : "Buyer lead"}
@@ -291,7 +287,7 @@ function FollowUpForm({
               <SelectTrigger id="followUpLeadId">
                 <SelectValue placeholder="Select a lead" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent portalContainer={selectPortalContainer}>
                 {leadOptions.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id}>
                     {lead.label}
@@ -467,14 +463,11 @@ export function FollowUpsScreen() {
   ]);
 
   const followUpsQuery = useFollowUpsQuery(filters);
-  const summaryQuery = useFollowUpsSummaryQuery(assigneeScopeId);
-
   const followUps = React.useMemo(
     () => followUpsQuery.data?.followUps ?? [],
     [followUpsQuery.data?.followUps],
   );
   const paginationData = followUpsQuery.data;
-  const summary = summaryQuery.data?.summary;
 
   const sellerLeads = React.useMemo(
     () => sellerLeadsQuery.data?.sellerLeads ?? [],
@@ -578,38 +571,6 @@ export function FollowUpsScreen() {
     );
   }
 
-  const summaryCards: {
-    title: string;
-    value: number;
-    caption: string;
-    badge: string;
-  }[] = [
-    {
-      title: "Overdue",
-      value: summary?.overdue ?? 0,
-      caption: "Needs attention",
-      badge: "Overdue",
-    },
-    {
-      title: "Due Today",
-      value: summary?.dueToday ?? 0,
-      caption: "Action required",
-      badge: "Today",
-    },
-    {
-      title: "Upcoming",
-      value: summary?.upcoming ?? 0,
-      caption: "Next 7 days",
-      badge: "Upcoming",
-    },
-    {
-      title: "Completed",
-      value: summary?.completed ?? 0,
-      caption: "Closed tasks",
-      badge: "Finalized",
-    },
-  ];
-
   const total = paginationData?.total ?? 0;
   const pageCount = paginationData?.totalPages ?? 1;
   const pageSizeOptions = React.useMemo(
@@ -655,36 +616,6 @@ export function FollowUpsScreen() {
               <PlusIcon />
               Add Follow-Up
             </Button>
-          </div>
-
-          {/* Summary Cards — display only, not clickable */}
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((card) => (
-              <Card
-                key={card.title}
-                className="border-border/70 py-0 shadow-xs"
-              >
-                <CardContent className="p-5">
-                  <div className="mb-3 flex items-start justify-between">
-                    <p className="text-sm text-muted-foreground">
-                      {card.title}
-                    </p>
-                    <Badge
-                      variant="outline"
-                      className="rounded-sm px-1.5 py-0 text-[10px] font-medium text-muted-foreground"
-                    >
-                      {card.badge}
-                    </Badge>
-                  </div>
-                  <p className="text-3xl font-bold tracking-tight text-foreground">
-                    {card.value}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {card.caption}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
           </div>
         </section>
 
@@ -1101,7 +1032,9 @@ export function FollowUpsScreen() {
         >
           <SheetContent
             side="right"
-            className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[50vw] md:data-[side=right]:max-w-none"
+            className="w-full gap-0 p-0 data-[side=right]:w-full md:data-[side=right]:w-[560px] md:data-[side=right]:max-w-none"
+            onFocusOutside={(event) => event.preventDefault()}
+            onPointerDownOutside={(event) => event.preventDefault()}
           >
             {createStep === "form" ? (
               <>
@@ -1116,83 +1049,18 @@ export function FollowUpsScreen() {
                   onSubmit={handleCreateFormSubmit}
                   className="flex min-h-0 flex-1 flex-col"
                 >
-                  <div className="grid min-h-0 flex-1 gap-0 lg:grid-cols-[minmax(0,1.45fr)_280px]">
-                    <div className="min-h-0 overflow-y-auto px-6 py-6">
-                      <div className="space-y-5">
-                        <ApiErrorAlert
-                          title="Unable to create follow-up"
-                          message={getApiErrorMessage(createMutation.error, "")}
-                        />
-                        <FollowUpForm
-                          values={form}
-                          onChange={setForm}
-                          leadOptions={leadOptions}
-                        />
-                      </div>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+                    <div className="space-y-5">
+                      <ApiErrorAlert
+                        title="Unable to create follow-up"
+                        message={getApiErrorMessage(createMutation.error, "")}
+                      />
+                      <FollowUpForm
+                        values={form}
+                        onChange={setForm}
+                        leadOptions={leadOptions}
+                      />
                     </div>
-                    <aside className="border-t bg-muted/15 px-6 py-6 lg:border-t-0 lg:border-l">
-                      <div className="space-y-4">
-                        <Card className="border-border/70 py-0 shadow-none">
-                          <CardHeader className="border-b py-4">
-                            <CardTitle className="text-base">
-                              Follow-Up Summary
-                            </CardTitle>
-                            <CardDescription>
-                              Live preview of the queue item you&apos;re
-                              scheduling.
-                            </CardDescription>
-                          </CardHeader>
-                          <CardContent className="space-y-4 py-4">
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Lead Type
-                              </p>
-                              <Badge
-                                variant="outline"
-                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getLeadTypeBadgeClassName(form.leadType)}`}
-                              >
-                                {form.leadType === "seller"
-                                  ? "Seller Lead"
-                                  : "Buyer Lead"}
-                              </Badge>
-                            </div>
-                            <Separator />
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Lead
-                              </p>
-                              <p className="text-sm font-medium text-foreground">
-                                {leadOptions.find(
-                                  (lead) => lead.id === form.leadId,
-                                )?.label ?? "No lead selected"}
-                              </p>
-                            </div>
-                            <Separator />
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Due Date
-                              </p>
-                              <p className="text-sm font-medium text-foreground">
-                                {form.dueAt
-                                  ? format(form.dueAt, "MMM d, yyyy • h:mm a")
-                                  : "Not scheduled"}
-                              </p>
-                            </div>
-                            <Separator />
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                Note Preview
-                              </p>
-                              <p className="text-sm text-foreground">
-                                {form.note
-                                  ? truncateText(form.note, 110)
-                                  : "No note entered yet"}
-                              </p>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </aside>
                   </div>
                   <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-muted-foreground">

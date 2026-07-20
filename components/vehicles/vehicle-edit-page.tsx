@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CheckCircle2Icon, CircleIcon, InfoIcon, TagsIcon } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sileo";
 
 import { resolveApiAssetUrl } from "@/constants/api-config";
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";

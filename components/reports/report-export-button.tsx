@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { DownloadIcon } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sileo"
 
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -36,11 +36,11 @@ export function ReportExportButton({
     try {
       await downloadReportCsv(domain, dataset, filters)
       toast.success("Export ready", {
-        description: "Your CSV download has started.",
+        details: "Your CSV download has started.",
       })
     } catch (error) {
       toast.error("Export failed", {
-        description: getApiErrorMessage(error, "Unable to export this report."),
+        details: getApiErrorMessage(error, "Unable to export this report."),
       })
     } finally {
       setPending(false)

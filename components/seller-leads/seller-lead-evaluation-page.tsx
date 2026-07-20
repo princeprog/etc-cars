@@ -18,7 +18,7 @@ import {
   PhoneCallIcon,
   UserIcon,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sileo";
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
 import { ApiErrorAlert } from "@/components/operations/api-error-alert";
@@ -831,7 +831,9 @@ function ScheduleSellerFollowUpDialogForm({
       note: note.trim(),
     });
 
-    toast.success("Follow-up scheduled");
+    toast.success("Follow-up scheduled", {
+      details: `${lead.sellerName} is due on ${format(dueAt, "MMM d, yyyy h:mm a")}.`,
+    });
     onCreated();
   }
 

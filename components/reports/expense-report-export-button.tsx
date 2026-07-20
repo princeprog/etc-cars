@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { DownloadIcon } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sileo"
 
 import { Button } from "@/components/ui/button"
 import { downloadExpenseReportCsv } from "@/services/expenses.service"
@@ -30,11 +30,11 @@ export function ExpenseReportExportButton({
     try {
       await downloadExpenseReportCsv(dataset, filters)
       toast.success("Export ready", {
-        description: "Your expense CSV has been downloaded.",
+        details: "Your expense CSV has been downloaded.",
       })
     } catch (error) {
       toast.error("Export failed", {
-        description:
+        details:
           error instanceof Error
             ? error.message
             : "Unable to export expense report.",

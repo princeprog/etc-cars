@@ -27,7 +27,7 @@ import {
   UploadIcon,
   UserIcon,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sileo"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { resolveApiAssetUrl } from "@/constants/api-config"
@@ -985,6 +985,12 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
         uploadedPhotos.length === 1
           ? "Vehicle photo uploaded"
           : "Vehicle photos uploaded",
+        {
+          details:
+            uploadedPhotos.length === 1
+              ? "The new photo was added to this vehicle."
+              : `${uploadedPhotos.length} photos were added to this vehicle.`,
+        },
       )
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Photo upload failed"))

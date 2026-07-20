@@ -34,9 +34,12 @@ function buildExpenseListParams(filters: ExpenseListFilters = {}) {
   if (filters.page) params.set("page", String(filters.page))
   if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
   if (filters.search?.trim()) params.set("search", filters.search.trim())
-  if (filters.status && filters.status !== "all") params.set("status", filters.status)
-  if (filters.categoryId && filters.categoryId !== "all") params.set("categoryId", filters.categoryId)
-  if (filters.frequency && filters.frequency !== "all") params.set("frequency", filters.frequency)
+  if (filters.status && filters.status !== "all")
+    params.set("status", filters.status)
+  if (filters.categoryId && filters.categoryId !== "all")
+    params.set("categoryId", filters.categoryId)
+  if (filters.frequency && filters.frequency !== "all")
+    params.set("frequency", filters.frequency)
   if (filters.assignedStaffId && filters.assignedStaffId !== "all") {
     params.set("assignedStaffId", filters.assignedStaffId)
   }
@@ -52,8 +55,10 @@ function buildRecurringRuleParams(filters: ExpenseRecurringRuleFilters = {}) {
   const params = new URLSearchParams()
 
   if (filters.search?.trim()) params.set("search", filters.search.trim())
-  if (filters.categoryId && filters.categoryId !== "all") params.set("categoryId", filters.categoryId)
-  if (filters.frequency && filters.frequency !== "all") params.set("frequency", filters.frequency)
+  if (filters.categoryId && filters.categoryId !== "all")
+    params.set("categoryId", filters.categoryId)
+  if (filters.frequency && filters.frequency !== "all")
+    params.set("frequency", filters.frequency)
   if (filters.assignedStaffId && filters.assignedStaffId !== "all") {
     params.set("assignedStaffId", filters.assignedStaffId)
   }
@@ -67,10 +72,17 @@ function buildExpenseReportParams(filters: ExpenseReportFilters = {}) {
 
   if (filters.startDate) params.set("startDate", filters.startDate)
   if (filters.endDate) params.set("endDate", filters.endDate)
-  if (filters.categoryId && filters.categoryId !== "all") params.set("categoryId", filters.categoryId)
-  if (filters.status && filters.status !== "all") params.set("status", filters.status)
-  if (filters.paymentMethod?.trim()) params.set("paymentMethod", filters.paymentMethod.trim())
-  if (filters.vendorName?.trim()) params.set("vendorName", filters.vendorName.trim())
+  if (filters.categoryId && filters.categoryId !== "all")
+    params.set("categoryId", filters.categoryId)
+  if (filters.status && filters.status !== "all")
+    params.set("status", filters.status)
+  if (filters.search?.trim()) params.set("search", filters.search.trim())
+  if (filters.frequency && filters.frequency !== "all")
+    params.set("frequency", filters.frequency)
+  if (filters.paymentMethod?.trim())
+    params.set("paymentMethod", filters.paymentMethod.trim())
+  if (filters.vendorName?.trim())
+    params.set("vendorName", filters.vendorName.trim())
   if (filters.assignedStaffId && filters.assignedStaffId !== "all") {
     params.set("assignedStaffId", filters.assignedStaffId)
   }
@@ -207,7 +219,10 @@ export function deactivateExpenseRecurringRule(id: string) {
 
 export function getExpenseReport(filters: ExpenseReportFilters = {}) {
   return apiRequest<ExpenseReportResponse>(
-    withQuery(API_ENDPOINTS.expenseReports.monthly, buildExpenseReportParams(filters)),
+    withQuery(
+      API_ENDPOINTS.expenseReports.monthly,
+      buildExpenseReportParams(filters),
+    ),
   )
 }
 

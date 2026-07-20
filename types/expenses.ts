@@ -1,13 +1,7 @@
 export type ExpenseSettlementStatus = "unpaid" | "paid" | "void"
 
 export type ExpenseDisplayStatus =
-  | "unpaid"
-  | "paid"
-  | "void"
-  | "overdue"
-  | "due_today"
-  | "due_soon"
-  | "upcoming"
+  "unpaid" | "paid" | "void" | "overdue" | "due_today" | "due_soon" | "upcoming"
 
 export type ExpenseFrequency = "one_time" | "weekly" | "monthly" | "yearly"
 export type ExpenseRuleFrequency = Exclude<ExpenseFrequency, "one_time">
@@ -181,8 +175,7 @@ export interface CreateExpenseRecurringRulePayload {
   notes?: string | null
 }
 
-export interface UpdateExpenseRecurringRulePayload
-  extends Partial<CreateExpenseRecurringRulePayload> {
+export interface UpdateExpenseRecurringRulePayload extends Partial<CreateExpenseRecurringRulePayload> {
   isActive?: boolean
 }
 
@@ -191,6 +184,8 @@ export interface ExpenseReportFilters {
   endDate?: string
   categoryId?: string
   status?: ExpenseDisplayStatus | "all"
+  search?: string
+  frequency?: ExpenseFrequency | "all"
   paymentMethod?: string
   vendorName?: string
   assignedStaffId?: string
@@ -256,6 +251,8 @@ export interface ExpenseReportResponse {
     endDate: string | null
     categoryId: string | null
     status: string | null
+    search: string | null
+    frequency: string | null
     paymentMethod: string | null
     vendorName: string | null
     assignedStaffId: string | null
@@ -267,7 +264,4 @@ export interface ExpenseReportResponse {
   monthlyTrend: ExpenseMonthlyTrendPoint[]
 }
 
-export type ExpenseExportDataset =
-  | "by-category"
-  | "overdue"
-  | "monthly-trend"
+export type ExpenseExportDataset = "by-category" | "overdue" | "monthly-trend"

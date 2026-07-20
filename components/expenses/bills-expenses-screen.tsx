@@ -45,12 +45,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DatePicker } from "@/components/ui/date-picker"
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -163,13 +158,14 @@ const STATUS_OPTIONS: Array<{ value: BillStatusFilter; label: string }> = [
   { value: "void", label: "Void" },
 ]
 
-const FREQUENCY_OPTIONS: Array<{ value: BillFrequencyFilter; label: string }> = [
-  { value: "all", label: "All frequency" },
-  { value: "one_time", label: "One-time" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "yearly", label: "Yearly" },
-]
+const FREQUENCY_OPTIONS: Array<{ value: BillFrequencyFilter; label: string }> =
+  [
+    { value: "all", label: "All frequency" },
+    { value: "one_time", label: "One-time" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+    { value: "yearly", label: "Yearly" },
+  ]
 
 const RECURRING_FREQUENCY_OPTIONS: Array<{
   value: ExpenseRuleFrequency
@@ -282,7 +278,9 @@ function getRecurringDueDayLabel(
   const value = String(dueDay)
 
   if (frequency === "weekly") {
-    return WEEKDAY_OPTIONS.find((option) => option.value === value)?.label ?? value
+    return (
+      WEEKDAY_OPTIONS.find((option) => option.value === value)?.label ?? value
+    )
   }
 
   return getOrdinalDay(Number(value))
@@ -346,7 +344,9 @@ function getEmptyRecurringForm(): RecurringFormValues {
   }
 }
 
-function getRecurringFormFromRule(rule: ExpenseRecurringRule): RecurringFormValues {
+function getRecurringFormFromRule(
+  rule: ExpenseRecurringRule,
+): RecurringFormValues {
   return {
     title: rule.title,
     categoryId: rule.categoryId,
@@ -458,13 +458,17 @@ export function BillsExpensesScreen() {
   const [categoryId, setCategoryId] = React.useState(ALL_VALUE)
   const [frequency, setFrequency] = React.useState<BillFrequencyFilter>("all")
   const [expenseSheetOpen, setExpenseSheetOpen] = React.useState(false)
-  const [editingExpense, setEditingExpense] = React.useState<Expense | null>(null)
+  const [editingExpense, setEditingExpense] = React.useState<Expense | null>(
+    null,
+  )
   const [expenseForm, setExpenseForm] = React.useState(getEmptyExpenseForm)
   const [expenseFormSubmitted, setExpenseFormSubmitted] = React.useState(false)
   const [recurringSheetOpen, setRecurringSheetOpen] = React.useState(false)
   const [editingRule, setEditingRule] =
     React.useState<ExpenseRecurringRule | null>(null)
-  const [recurringForm, setRecurringForm] = React.useState(getEmptyRecurringForm)
+  const [recurringForm, setRecurringForm] = React.useState(
+    getEmptyRecurringForm,
+  )
   const [recurringFormSubmitted, setRecurringFormSubmitted] =
     React.useState(false)
   const [markPaidExpense, setMarkPaidExpense] = React.useState<Expense | null>(
@@ -515,6 +519,8 @@ export function BillsExpensesScreen() {
     {
       status,
       categoryId,
+      search: debouncedSearch || undefined,
+      frequency,
     },
     isAdmin,
   )
@@ -597,7 +603,9 @@ export function BillsExpensesScreen() {
     }
   }
 
-  async function handleRecurringSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleRecurringSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault()
     setRecurringFormSubmitted(true)
 
@@ -853,7 +861,9 @@ export function BillsExpensesScreen() {
                   }}
                   onVoid={setVoidExpenseTarget}
                 />
-                {pagination && !expensesQuery.isPending && !expensesQuery.error ? (
+                {pagination &&
+                !expensesQuery.isPending &&
+                !expensesQuery.error ? (
                   <ListPagination
                     page={pagination.page}
                     totalPages={pagination.totalPages}
@@ -888,7 +898,9 @@ export function BillsExpensesScreen() {
         categories={categories}
         staffUsers={staffUsers}
         editingExpense={editingExpense}
-        pending={createExpenseMutation.isPending || updateExpenseMutation.isPending}
+        pending={
+          createExpenseMutation.isPending || updateExpenseMutation.isPending
+        }
         apiError={createExpenseMutation.error ?? updateExpenseMutation.error}
         onSubmit={handleExpenseSubmit}
       />
@@ -963,7 +975,8 @@ function ExpenseSummaryCards({
         <ShieldCheckIcon />
         <AlertTitle>Expense reports require admin access</AlertTitle>
         <AlertDescription>
-          Please contact your administrator if you believe you should have permission to view expense reports.
+          Please contact your administrator if you believe you should have
+          permission to view expense reports.
         </AlertDescription>
       </Alert>
     )
@@ -1113,7 +1126,9 @@ function ExpensesTable({
                 </div>
                 <p className="truncate text-xs text-muted-foreground">
                   {expense.vendorName ?? "No vendor"}
-                  {expense.billingPeriodKey ? ` · ${expense.billingPeriodKey}` : ""}
+                  {expense.billingPeriodKey
+                    ? ` · ${expense.billingPeriodKey}`
+                    : ""}
                 </p>
               </div>
             </TableCell>
@@ -1443,7 +1458,11 @@ function ExpenseSheet({
             payment context.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <div
             ref={setSelectPortalContainer}
             className="min-h-0 flex-1 overflow-y-auto px-6 py-6"
@@ -1544,7 +1563,11 @@ function RecurringRuleSheet({
             subscriptions, and other repeated costs.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="flex min-h-0 flex-1 flex-col"
+        >
           <div
             ref={setSelectPortalContainer}
             className="min-h-0 flex-1 overflow-y-auto px-6 py-6"
@@ -1645,13 +1668,13 @@ function RecurringRuleSheet({
                     <FieldError>{errors.startDate}</FieldError>
                   </Field>
                   <Field>
-                    <FieldLabel htmlFor="recurringEndDate">
-                      End date
-                    </FieldLabel>
+                    <FieldLabel htmlFor="recurringEndDate">End date</FieldLabel>
                     <DatePicker
                       id="recurringEndDate"
                       value={dateStringToDate(values.endDate)}
-                      onChange={(date) => update("endDate", dateToDateString(date))}
+                      onChange={(date) =>
+                        update("endDate", dateToDateString(date))
+                      }
                       placeholder="No end date"
                     />
                   </Field>
@@ -1661,7 +1684,8 @@ function RecurringRuleSheet({
           </div>
           <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              New generated bills inherit this category, owner, amount, and notes.
+              New generated bills inherit this category, owner, amount, and
+              notes.
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -1706,9 +1730,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-foreground">
-          Bill Details
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground">Bill Details</h3>
         <p className="text-sm text-muted-foreground">
           Keep names clear enough for monthly reporting and reminders.
         </p>
@@ -1720,7 +1742,10 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
             id="expenseTitle"
             value={values.title}
             onChange={(event) =>
-              onUpdate("title" as keyof TValues, event.target.value as TValues[keyof TValues])
+              onUpdate(
+                "title" as keyof TValues,
+                event.target.value as TValues[keyof TValues],
+              )
             }
             placeholder="Office rent"
           />
@@ -1731,7 +1756,10 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
           <Select
             value={values.categoryId}
             onValueChange={(value) =>
-              onUpdate("categoryId" as keyof TValues, value as TValues[keyof TValues])
+              onUpdate(
+                "categoryId" as keyof TValues,
+                value as TValues[keyof TValues],
+              )
             }
           >
             <SelectTrigger>
@@ -1841,7 +1869,10 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
           id="expenseNotes"
           value={values.notes}
           onChange={(event) =>
-            onUpdate("notes" as keyof TValues, event.target.value as TValues[keyof TValues])
+            onUpdate(
+              "notes" as keyof TValues,
+              event.target.value as TValues[keyof TValues],
+            )
           }
           placeholder="Internal payment context, account number, or remarks"
           className="min-h-24"
@@ -1928,7 +1959,9 @@ function MarkPaidDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="referenceNumber">Reference number</FieldLabel>
+              <FieldLabel htmlFor="referenceNumber">
+                Reference number
+              </FieldLabel>
               <Input
                 id="referenceNumber"
                 value={values.referenceNumber}

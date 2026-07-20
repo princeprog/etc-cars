@@ -196,7 +196,7 @@ function NotificationPreviewRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[40px_minmax(0,1fr)_34px_8px] items-start gap-2.5 border-b py-2.5 last:border-b-0",
+        "grid grid-cols-[40px_minmax(0,1fr)_36px] items-start gap-2.5 border-b py-2.5 last:border-b-0",
         !notification.isRead && "bg-primary/[0.015]",
       )}
     >
@@ -216,28 +216,30 @@ function NotificationPreviewRow({
           {notification.message}
         </p>
       </button>
-      <p className="pt-0.5 text-right text-xs text-muted-foreground">
-        {formatNotificationAge(notification.createdAt)}
-      </p>
-      <button
-        type="button"
-        aria-label={
-          notification.isRead
-            ? "Mark notification unread"
-            : "Mark notification read"
-        }
-        className="mt-7 flex size-2 items-center justify-center rounded-full"
-        onClick={onToggleRead}
-      >
-        <span
-          className={cn(
-            "size-1.5 rounded-full transition-colors",
+      <div className="flex flex-col items-end gap-2 pt-0.5">
+        <p className="text-right text-xs text-muted-foreground">
+          {formatNotificationAge(notification.createdAt)}
+        </p>
+        <button
+          type="button"
+          aria-label={
             notification.isRead
-              ? "bg-transparent hover:bg-muted-foreground/30"
-              : "bg-primary",
-          )}
-        />
-      </button>
+              ? "Mark notification unread"
+              : "Mark notification read"
+          }
+          className="flex size-5 items-center justify-center rounded-full"
+          onClick={onToggleRead}
+        >
+          <span
+            className={cn(
+              "size-1.5 rounded-full transition-colors",
+              notification.isRead
+                ? "bg-transparent hover:bg-muted-foreground/30"
+                : "bg-primary",
+            )}
+          />
+        </button>
+      </div>
     </div>
   )
 }

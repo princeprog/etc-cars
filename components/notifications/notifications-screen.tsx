@@ -59,15 +59,24 @@ import { useNotificationUnreadCountQuery } from "@/hooks/queries/notifications/u
 import { useNotificationsQuery } from "@/hooks/queries/notifications/use-notifications-query";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/types/api";
-import type { AppNotification, NotificationType } from "@/types/notifications";
+import type {
+  AppNotification,
+  NotificationListFilters,
+  NotificationType,
+} from "@/types/notifications";
 
-const PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 10;
 const ALL_VALUE = "all";
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 type NotificationCategoryFilter =
   "all" | "unread" | "follow-ups" | "sales" | "bills" | "system";
 
 type NotificationTone = "blue" | "red" | "amber" | "green" | "gray";
+type NotificationStatusFilter = NonNullable<NotificationListFilters["status"]>;
+type NotificationDateRangeFilter = NonNullable<
+  NotificationListFilters["dateRange"]
+>;
 
 const CATEGORY_FILTERS: Array<{
   label: string;
@@ -84,56 +93,57 @@ const CATEGORY_FILTERS: Array<{
 export function NotificationsScreen() {
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [categoryFilter, setCategoryFilter] =
     React.useState<NotificationCategoryFilter>("all");
-  const [statusFilter, setStatusFilter] = React.useState(ALL_VALUE);
-  const [dateFilter, setDateFilter] = React.useState("30");
+  const [statusFilter, setStatusFilter] =
+    React.useState<NotificationStatusFilter>("all");
+  const [dateFilter, setDateFilter] =
+    React.useState<NotificationDateRangeFilter>("30");
+  const [pageSize, setPageSize] = React.useState(DEFAULT_PAGE_SIZE);
   const [selectedNotificationId, setSelectedNotificationId] = React.useState<
     string | null
   >(null);
 
-  const notificationsQuery = useNotificationsQuery({
-    page,
-    pageSize: PAGE_SIZE,
-  });
+  React.useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 350);
+
+    return () => window.clearTimeout(timeout);
+  }, [search]);
+
+  const notificationFilters = React.useMemo<NotificationListFilters>(
+    () => ({
+      page,
+      pageSize,
+      search: debouncedSearch || undefined,
+      category: categoryFilter === "unread" ? "all" : categoryFilter,
+      status: categoryFilter === "unread" ? "unread" : statusFilter,
+      dateRange: dateFilter,
+    }),
+    [categoryFilter, dateFilter, debouncedSearch, page, pageSize, statusFilter],
+  );
+
+  const notificationsQuery = useNotificationsQuery(notificationFilters);
   const unreadCountQuery = useNotificationUnreadCountQuery();
   const markReadMutation = useMarkNotificationReadMutation();
   const markUnreadMutation = useMarkNotificationUnreadMutation();
   const markAllReadMutation = useMarkAllNotificationsReadMutation();
-  const notifications = notificationsQuery.data?.notifications ?? [];
+  const notificationRows = notificationsQuery.data?.notifications;
+  const notifications = React.useMemo(
+    () => notificationRows ?? [],
+    [notificationRows],
+  );
   const pagination = notificationsQuery.data?.pagination;
   const unreadCount = unreadCountQuery.data?.count ?? 0;
-  const filteredNotifications = React.useMemo(
-    () =>
-      notifications.filter((notification) =>
-        notificationMatchesFilters(
-          notification,
-          search,
-          categoryFilter,
-          statusFilter,
-        ),
-      ),
-    [categoryFilter, notifications, search, statusFilter],
-  );
   const selectedNotification =
-    filteredNotifications.find(
+    notifications.find(
       (notification) => notification.id === selectedNotificationId,
     ) ??
-    filteredNotifications[0] ??
+    notifications[0] ??
     null;
-
-  React.useEffect(() => {
-    if (
-      selectedNotificationId &&
-      filteredNotifications.some(
-        (notification) => notification.id === selectedNotificationId,
-      )
-    ) {
-      return;
-    }
-
-    setSelectedNotificationId(filteredNotifications[0]?.id ?? null);
-  }, [filteredNotifications, selectedNotificationId]);
 
   async function toggleRead(notification: AppNotification) {
     try {
@@ -174,6 +184,25 @@ export function NotificationsScreen() {
     }
 
     setCategoryFilter(value as NotificationCategoryFilter);
+    setPage(1);
+    setSelectedNotificationId(null);
+  }
+
+  function handleStatusChange(value: string) {
+    setStatusFilter(value as NotificationStatusFilter);
+    setPage(1);
+    setSelectedNotificationId(null);
+  }
+
+  function handleDateFilterChange(value: string) {
+    setDateFilter(value as NotificationDateRangeFilter);
+    setPage(1);
+    setSelectedNotificationId(null);
+  }
+
+  function handlePageSizeChange(value: string) {
+    setPageSize(Number(value));
+    setPage(1);
     setSelectedNotificationId(null);
   }
 
@@ -186,7 +215,7 @@ export function NotificationsScreen() {
   const systemCount = notifications.filter(
     (notification) => getNotificationCategory(notification.type) === "System",
   ).length;
-  const groupedNotifications = groupNotifications(filteredNotifications);
+  const groupedNotifications = groupNotifications(notifications);
 
   return (
     <AuthenticatedAppShell
@@ -260,7 +289,7 @@ export function NotificationsScreen() {
 
         <Card>
           <CardHeader className="border-b">
-            <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_minmax(360px,1.5fr)_200px_190px]">
+            <div className="grid gap-3 xl:grid-cols-[minmax(240px,1fr)_minmax(360px,1.4fr)_180px_170px_150px]">
               <div className="relative min-w-0">
                 <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -288,20 +317,21 @@ export function NotificationsScreen() {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
-              <Select value={dateFilter} onValueChange={setDateFilter}>
+              <Select value={dateFilter} onValueChange={handleDateFilterChange}>
                 <SelectTrigger className="h-11">
                   <CalendarIcon data-icon="inline-start" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
+                    <SelectItem value={ALL_VALUE}>All time</SelectItem>
                     <SelectItem value="7">Last 7 days</SelectItem>
                     <SelectItem value="30">Last 30 days</SelectItem>
                     <SelectItem value="90">Last 90 days</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={handleStatusChange}>
                 <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
@@ -310,6 +340,23 @@ export function NotificationsScreen() {
                     <SelectItem value={ALL_VALUE}>All statuses</SelectItem>
                     <SelectItem value="unread">Unread</SelectItem>
                     <SelectItem value="read">Read</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Select
+                value={String(pageSize)}
+                onValueChange={handlePageSizeChange}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {PAGE_SIZE_OPTIONS.map((option) => (
+                      <SelectItem key={option} value={String(option)}>
+                        {option} per page
+                      </SelectItem>
+                    ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -778,34 +825,6 @@ function getNotificationCategory(type: NotificationType): string {
   if (type.startsWith("expense")) return "Bills";
   if (type.startsWith("follow_up")) return "Follow-up";
   return "System";
-}
-
-function notificationMatchesFilters(
-  notification: AppNotification,
-  search: string,
-  categoryFilter: NotificationCategoryFilter,
-  statusFilter: string,
-) {
-  const normalizedSearch = search.trim().toLowerCase();
-  const category = getNotificationCategory(notification.type);
-
-  if (normalizedSearch) {
-    const haystack =
-      `${notification.title} ${notification.message}`.toLowerCase();
-    if (!haystack.includes(normalizedSearch)) {
-      return false;
-    }
-  }
-
-  if (categoryFilter === "unread" && notification.isRead) return false;
-  if (categoryFilter === "follow-ups" && category !== "Follow-up") return false;
-  if (categoryFilter === "bills" && category !== "Bills") return false;
-  if (categoryFilter === "sales" && category !== "Sales") return false;
-  if (categoryFilter === "system" && category !== "System") return false;
-  if (statusFilter === "unread" && notification.isRead) return false;
-  if (statusFilter === "read" && !notification.isRead) return false;
-
-  return true;
 }
 
 function groupNotifications(notifications: AppNotification[]) {

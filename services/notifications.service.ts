@@ -1,44 +1,60 @@
-import { API_ENDPOINTS } from "@/constants/api-config"
-import { apiRequest } from "@/services/api-service"
+import { API_ENDPOINTS } from "@/constants/api-config";
+import { apiRequest } from "@/services/api-service";
 import type {
   NotificationListFilters,
   NotificationResponse,
   NotificationUnreadCountResponse,
   NotificationsResponse,
-} from "@/types/notifications"
+} from "@/types/notifications";
 
 function withQuery(path: string, params: URLSearchParams) {
-  const query = params.toString()
-  return query ? `${path}?${query}` : path
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
 }
 
 function buildNotificationParams(filters: NotificationListFilters = {}) {
-  const params = new URLSearchParams()
+  const params = new URLSearchParams();
 
-  if (filters.page) params.set("page", String(filters.page))
-  if (filters.pageSize) params.set("pageSize", String(filters.pageSize))
-  if (filters.unreadOnly) params.set("unreadOnly", "true")
-  if (filters.includeResolved) params.set("includeResolved", "true")
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.pageSize) params.set("pageSize", String(filters.pageSize));
+  if (filters.search) params.set("search", filters.search);
+  if (filters.category && filters.category !== "all") {
+    params.set("category", filters.category);
+  }
+  if (filters.status && filters.status !== "all") {
+    params.set("status", filters.status);
+  }
+  if (filters.dateRange && filters.dateRange !== "all") {
+    params.set("dateRange", filters.dateRange);
+  }
+  if (filters.unreadOnly) params.set("unreadOnly", "true");
+  if (filters.includeResolved) params.set("includeResolved", "true");
 
-  return params
+  return params;
 }
 
 export function getNotifications(filters: NotificationListFilters = {}) {
   return apiRequest<NotificationsResponse>(
-    withQuery(API_ENDPOINTS.notifications.root, buildNotificationParams(filters)),
-  )
+    withQuery(
+      API_ENDPOINTS.notifications.root,
+      buildNotificationParams(filters),
+    ),
+  );
 }
 
 export function getNotificationUnreadCount() {
   return apiRequest<NotificationUnreadCountResponse>(
     API_ENDPOINTS.notifications.unreadCount,
-  )
+  );
 }
 
 export function markNotificationRead(id: string) {
-  return apiRequest<NotificationResponse>(API_ENDPOINTS.notifications.byIdRead(id), {
-    method: "PATCH",
-  })
+  return apiRequest<NotificationResponse>(
+    API_ENDPOINTS.notifications.byIdRead(id),
+    {
+      method: "PATCH",
+    },
+  );
 }
 
 export function markNotificationUnread(id: string) {
@@ -47,7 +63,7 @@ export function markNotificationUnread(id: string) {
     {
       method: "PATCH",
     },
-  )
+  );
 }
 
 export function markAllNotificationsRead() {
@@ -56,5 +72,5 @@ export function markAllNotificationsRead() {
     {
       method: "POST",
     },
-  )
+  );
 }

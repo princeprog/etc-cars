@@ -2133,6 +2133,8 @@ function MarkPaidDialog({
   const open = Boolean(expense);
   const receiptInputRef = React.useRef<HTMLInputElement | null>(null);
   const uploadReceiptMutation = useUploadExpenseReceiptMutation();
+  const isUploadingReceipt = uploadReceiptMutation.isPending;
+  const isBusy = pending || isUploadingReceipt;
 
   async function handleReceiptChange(
     event: React.ChangeEvent<HTMLInputElement>,
@@ -2286,6 +2288,7 @@ function MarkPaidDialog({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  disabled={isBusy}
                   onClick={() => onValuesChange({ ...values, receipt: null })}
                 >
                   <XIcon data-icon="inline-start" />
@@ -2297,13 +2300,15 @@ function MarkPaidDialog({
                 type="button"
                 variant="outline"
                 className="w-fit"
-                disabled={uploadReceiptMutation.isPending || pending}
+                disabled={isBusy}
                 onClick={() => receiptInputRef.current?.click()}
               >
-                <UploadIcon data-icon="inline-start" />
-                {uploadReceiptMutation.isPending
-                  ? "Uploading"
-                  : "Upload receipt"}
+                {isUploadingReceipt ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <UploadIcon data-icon="inline-start" />
+                )}
+                {isUploadingReceipt ? "Uploading receipt" : "Upload receipt"}
               </Button>
             )}
             <FieldDescription>
@@ -2312,16 +2317,16 @@ function MarkPaidDialog({
           </Field>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel
-            disabled={pending || uploadReceiptMutation.isPending}
-          >
-            Cancel
-          </AlertDialogCancel>
+          <AlertDialogCancel disabled={isBusy}>Cancel</AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
-            disabled={pending || uploadReceiptMutation.isPending}
+            onClick={(event) => {
+              event.preventDefault();
+              void onConfirm();
+            }}
+            disabled={isBusy}
           >
-            {pending ? "Saving" : "Mark Paid"}
+            {pending ? <Spinner data-icon="inline-start" /> : null}
+            {pending ? "Marking paid" : "Mark Paid"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

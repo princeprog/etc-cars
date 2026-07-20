@@ -84,6 +84,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -530,6 +531,8 @@ export function BillsExpensesScreen() {
     React.useState<Expense | null>(null);
   const [receiptPreview, setReceiptPreview] =
     React.useState<ExpenseReceipt | null>(null);
+  const [receiptReplaceFileName, setReceiptReplaceFileName] =
+    React.useState("");
   const [paidForm, setPaidForm] = React.useState<PaidFormValues>({
     actualPaidAmount: "",
     paidAt: nowLocalInputValue(),
@@ -727,8 +730,11 @@ export function BillsExpensesScreen() {
     event.target.value = "";
 
     if (!file || !receiptReplaceExpense) {
+      setReceiptReplaceExpense(null);
       return;
     }
+
+    setReceiptReplaceFileName(file.name);
 
     try {
       const response = await uploadReceiptMutation.mutateAsync(file);
@@ -740,6 +746,9 @@ export function BillsExpensesScreen() {
       setReceiptReplaceExpense(null);
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Unable to update receipt"));
+      setReceiptReplaceExpense(null);
+    } finally {
+      setReceiptReplaceFileName("");
     }
   }
 
@@ -1061,6 +1070,13 @@ export function BillsExpensesScreen() {
           }
         }}
         onConfirm={handleConfirmRemoveReceipt}
+      />
+
+      <ReplaceReceiptProgressDialog
+        expense={receiptReplaceExpense}
+        filename={receiptReplaceFileName}
+        uploading={uploadReceiptMutation.isPending}
+        saving={replaceReceiptMutation.isPending}
       />
 
       <ReceiptPreviewDialog
@@ -2310,6 +2326,46 @@ function RemoveReceiptDialog({
             {pending ? "Removing" : "Remove Receipt"}
           </AlertDialogAction>
         </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+function ReplaceReceiptProgressDialog({
+  expense,
+  filename,
+  uploading,
+  saving,
+}: {
+  expense: Expense | null;
+  filename: string;
+  uploading: boolean;
+  saving: boolean;
+}) {
+  const open = Boolean(filename) || uploading || saving;
+
+  return (
+    <AlertDialog open={open}>
+      <AlertDialogContent>
+        <AlertDialogMedia>
+          <Spinner className="size-5" />
+        </AlertDialogMedia>
+        <AlertDialogHeader>
+          <AlertDialogTitle>
+            {uploading ? "Uploading receipt" : "Updating receipt"}
+          </AlertDialogTitle>
+          <AlertDialogDescription>
+            Keep this window open while the receipt is being saved.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <Alert className="border-border/70 bg-background">
+          <PaperclipIcon />
+          <AlertTitle>{expense?.title ?? "Selected expense"}</AlertTitle>
+          <AlertDescription>
+            {filename || "Receipt file"} is{" "}
+            {uploading ? "uploading to storage" : "being attached"}.
+          </AlertDescription>
+        </Alert>
       </AlertDialogContent>
     </AlertDialog>
   );

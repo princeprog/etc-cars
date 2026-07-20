@@ -161,6 +161,7 @@ type BillFrequencyFilter = ExpenseFrequency | "all";
 const PAGE_SIZE = 12;
 const ALL_VALUE = "all";
 const RECEIPT_FILE_ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
+const PAYMENT_METHOD_UNSPECIFIED = "not_specified";
 
 const STATUS_OPTIONS: Array<{ value: BillStatusFilter; label: string }> = [
   { value: "all", label: "All status" },
@@ -189,6 +190,16 @@ const RECURRING_FREQUENCY_OPTIONS: Array<{
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  "Cash",
+  "Bank transfer",
+  "GCash",
+  "Check",
+  "Credit card",
+  "Debit card",
+  "Online payment",
 ];
 
 const WEEKDAY_OPTIONS = [
@@ -2193,18 +2204,31 @@ function MarkPaidDialog({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="paymentMethod">Payment method</FieldLabel>
-              <Input
-                id="paymentMethod"
-                value={values.paymentMethod}
-                onChange={(event) =>
+              <FieldLabel>Payment method</FieldLabel>
+              <Select
+                value={values.paymentMethod || PAYMENT_METHOD_UNSPECIFIED}
+                onValueChange={(value) =>
                   onValuesChange({
                     ...values,
-                    paymentMethod: event.target.value,
+                    paymentMethod:
+                      value === PAYMENT_METHOD_UNSPECIFIED ? "" : value,
                   })
                 }
-                placeholder="Bank transfer"
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PAYMENT_METHOD_UNSPECIFIED}>
+                    Not specified
+                  </SelectItem>
+                  {PAYMENT_METHOD_OPTIONS.map((method) => (
+                    <SelectItem key={method} value={method}>
+                      {method}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
             <Field>
               <FieldLabel htmlFor="referenceNumber">

@@ -2243,7 +2243,7 @@ function MarkPaidDialog({
                     referenceNumber: event.target.value,
                   })
                 }
-                placeholder="Receipt or transaction ID"
+                placeholder="Reference number"
               />
             </Field>
           </div>

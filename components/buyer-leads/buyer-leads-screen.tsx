@@ -28,7 +28,7 @@ import {
   TargetIcon,
   UserRoundIcon,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sileo";
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -1747,7 +1747,9 @@ function ScheduleBuyerFollowUpDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up scheduled");
+          toast.success("Follow-up scheduled", {
+            details: `${lead.buyerName} is due on ${format(dueAt, "MMM d, yyyy h:mm a")}.`,
+          });
           onClose();
         },
       },

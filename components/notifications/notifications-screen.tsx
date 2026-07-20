@@ -20,7 +20,7 @@ import {
   Trash2Icon,
   UserRoundIcon,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sileo";
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
 import { ApiErrorAlert } from "@/components/operations/api-error-alert";

@@ -10,7 +10,7 @@ import {
   Clock3Icon,
   ChevronRightIcon,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sileo"
 
 import { Button } from "@/components/ui/button"
 import {

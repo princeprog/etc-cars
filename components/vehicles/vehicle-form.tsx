@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import { ImagePlusIcon, LoaderCircleIcon, Trash2Icon } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sileo";
 
 import { resolveApiAssetUrl } from "@/constants/api-config";
 import {

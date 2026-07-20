@@ -16,7 +16,7 @@ import {
   TagsIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sileo"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
@@ -382,6 +382,7 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
             toast.success(
               "Pricing saved. Add a vehicle photo before marking it Available.",
               {
+                details: "Inventory listings need at least one photo before publishing.",
                 action: {
                   label: "Upload Photo",
                   onClick: () =>
@@ -390,7 +391,9 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
               },
             )
           } else {
-            toast.success("Vehicle pricing updated")
+            toast.success("Vehicle pricing updated", {
+              details: "The target and minimum acceptable prices were saved.",
+            })
           }
           setConfirmOpen(false)
         },

@@ -16,7 +16,7 @@ import {
   RotateCcwIcon,
   SearchIcon,
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sileo"
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
@@ -542,7 +542,9 @@ export function FollowUpsScreen() {
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up created")
+          toast.success("Follow-up created", {
+            details: `Reminder set for ${format(form.dueAt!, "MMM d, yyyy h:mm a")}.`,
+          })
           handleCreateClose()
         },
       },
@@ -559,7 +561,9 @@ export function FollowUpsScreen() {
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up completed")
+          toast.success("Follow-up completed", {
+            details: "This task has been removed from the active follow-up queue.",
+          })
           setOutcomeNotes((current) => ({ ...current, [followUp.id]: "" }))
           setCompleteTarget(null)
         },
@@ -1485,7 +1489,9 @@ function RescheduleFollowUpDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up rescheduled")
+          toast.success("Follow-up rescheduled", {
+            details: `New due date is ${format(dueAt, "MMM d, yyyy h:mm a")}.`,
+          })
           onClose()
         },
       },

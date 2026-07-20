@@ -22,7 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useLogoutMutation } from "@/hooks/mutations/auth/use-logout-mutation"
-import { toast } from "sonner"
+import { toast } from "@/components/ui/sileo"
 import { EllipsisVerticalIcon, CircleUserRoundIcon, CreditCardIcon, BellIcon, LogOutIcon } from "lucide-react"
 
 export function NavUser({

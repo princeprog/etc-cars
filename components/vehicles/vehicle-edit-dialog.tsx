@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { toast } from "sonner"
+import * as React from "react";
+import { toast } from "sonner";
 
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { SubmitButton } from "@/components/operations/submit-button"
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
+import { SubmitButton } from "@/components/operations/submit-button";
 import {
   Dialog,
   DialogContent,
@@ -12,25 +12,31 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { useUpdateVehicleMutation } from "@/hooks/mutations/vehicles/use-update-vehicle-mutation"
-import { getApiErrorMessage } from "@/types/api"
-import type { Vehicle } from "@/types/vehicles"
-import { buildUpdateVehiclePayload, getVehicleFormValues, type VehicleFormValues } from "./vehicles.helpers"
-import { VehicleForm } from "./vehicle-form"
+} from "@/components/ui/dialog";
+import { useUpdateVehicleMutation } from "@/hooks/mutations/vehicles/use-update-vehicle-mutation";
+import { getApiErrorMessage } from "@/types/api";
+import type { Vehicle } from "@/types/vehicles";
+import {
+  buildUpdateVehiclePayload,
+  getVehicleFormValues,
+  type VehicleFormValues,
+} from "./vehicles.helpers";
+import { VehicleForm } from "./vehicle-form";
 
 function VehicleEditDialogForm({
   vehicle,
   onClose,
 }: {
-  vehicle: Vehicle
-  onClose: () => void
+  vehicle: Vehicle;
+  onClose: () => void;
 }) {
-  const updateMutation = useUpdateVehicleMutation()
-  const [values, setValues] = React.useState<VehicleFormValues>(() => getVehicleFormValues(vehicle))
+  const updateMutation = useUpdateVehicleMutation();
+  const [values, setValues] = React.useState<VehicleFormValues>(() =>
+    getVehicleFormValues(vehicle),
+  );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+    event.preventDefault();
 
     await updateMutation.mutateAsync(
       {
@@ -39,24 +45,36 @@ function VehicleEditDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Vehicle updated")
-          onClose()
+          toast.success("Vehicle updated");
+          onClose();
         },
       },
-    )
+    );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <ApiErrorAlert title="Unable to update vehicle" message={getApiErrorMessage(updateMutation.error, "")} />
-      <VehicleForm values={values} onChange={setValues} showStatusField={false} />
+      <ApiErrorAlert
+        title="Unable to update vehicle"
+        message={getApiErrorMessage(updateMutation.error, "")}
+      />
+      <VehicleForm
+        values={values}
+        onChange={setValues}
+        showStockNumberField={false}
+        showStatusField={false}
+      />
       <DialogFooter>
-        <SubmitButton type="submit" pending={updateMutation.isPending} pendingLabel="Saving changes">
+        <SubmitButton
+          type="submit"
+          pending={updateMutation.isPending}
+          pendingLabel="Saving changes"
+        >
           Save changes
         </SubmitButton>
       </DialogFooter>
     </form>
-  )
+  );
 }
 
 export function VehicleEditDialog({
@@ -64,16 +82,19 @@ export function VehicleEditDialog({
   onOpenChange,
   vehicle,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  vehicle: Vehicle | null
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  vehicle: Vehicle | null;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Vehicle</DialogTitle>
-          <DialogDescription>Update operational details without using the sales-only Sold transition.</DialogDescription>
+          <DialogDescription>
+            Update operational details without using the sales-only Sold
+            transition.
+          </DialogDescription>
         </DialogHeader>
         {vehicle ? (
           <VehicleEditDialogForm
@@ -84,5 +105,5 @@ export function VehicleEditDialog({
         ) : null}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -158,6 +158,7 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
                 <VehicleForm
                   values={values}
                   onChange={setValues}
+                  showStockNumberField={false}
                   showStatusField={false}
                 />
               </div>

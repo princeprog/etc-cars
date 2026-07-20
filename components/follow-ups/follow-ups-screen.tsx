@@ -101,6 +101,11 @@ type FollowUpFormValues = {
 type StatusFilter = "all" | FollowUpStatus | "DueToday" | "Upcoming";
 type LeadTypeFilter = "all" | LeadType;
 type AssigneeFilter = "all" | "mine";
+type LeadOption = {
+  id: string;
+  label: string;
+  description: string;
+};
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 const DEFAULT_PAGE_SIZE = 20;
@@ -176,6 +181,42 @@ function truncateText(value: string, length: number) {
   return `${value.slice(0, length - 1)}…`;
 }
 
+function formatSellerLeadOptionDescription(lead: {
+  contactNumber: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleYear: number | null;
+  vehicleVariant: string | null;
+}) {
+  const vehicle = [
+    lead.vehicleYear,
+    lead.vehicleBrand,
+    lead.vehicleModel,
+    lead.vehicleVariant,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return `Seller Lead - ${vehicle || "Vehicle details pending"} - ${lead.contactNumber}`;
+}
+
+function formatBuyerLeadOptionDescription(lead: {
+  contactNumber: string;
+  vehicles: { year: number; brand: string; model: string }[];
+}) {
+  const primaryVehicle = lead.vehicles[0];
+  const vehicleContext = primaryVehicle
+    ? `${primaryVehicle.year} ${primaryVehicle.brand} ${primaryVehicle.model}`
+    : "No linked vehicle";
+  const extraVehicleCount = lead.vehicles.length - 1;
+  const vehicleLabel =
+    extraVehicleCount > 0
+      ? `${vehicleContext} + ${extraVehicleCount} more`
+      : vehicleContext;
+
+  return `Buyer Lead - ${lead.contactNumber} - ${vehicleLabel}`;
+}
+
 function toStartOfDayIso(dateStr: string) {
   return new Date(`${dateStr}T00:00:00`).toISOString();
 }
@@ -234,10 +275,11 @@ function FollowUpForm({
 }: {
   values: FollowUpFormValues;
   onChange: (values: FollowUpFormValues) => void;
-  leadOptions: { id: string; label: string }[];
+  leadOptions: LeadOption[];
 }) {
   const [selectPortalContainer, setSelectPortalContainer] =
     React.useState<HTMLDivElement | null>(null);
+  const selectedLead = leadOptions.find((lead) => lead.id === values.leadId);
 
   function updateField<K extends keyof FollowUpFormValues>(
     key: K,
@@ -285,12 +327,25 @@ function FollowUpForm({
               onValueChange={(value) => updateField("leadId", value)}
             >
               <SelectTrigger id="followUpLeadId">
-                <SelectValue placeholder="Select a lead" />
+                <SelectValue placeholder="Select a lead">
+                  {selectedLead?.label}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent portalContainer={selectPortalContainer}>
                 {leadOptions.map((lead) => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    {lead.label}
+                  <SelectItem
+                    key={lead.id}
+                    value={lead.id}
+                    className="items-start py-2.5"
+                  >
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="truncate font-medium leading-none">
+                        {lead.label}
+                      </span>
+                      <span className="truncate text-xs leading-5 text-muted-foreground">
+                        {lead.description}
+                      </span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -482,11 +537,13 @@ export function FollowUpsScreen() {
     form.leadType === "seller"
       ? sellerLeads.map((lead) => ({
           id: lead.id,
-          label: `${lead.sellerName} • ${lead.vehicleBrand} ${lead.vehicleModel}`,
+          label: lead.sellerName,
+          description: formatSellerLeadOptionDescription(lead),
         }))
       : buyerLeads.map((lead) => ({
           id: lead.id,
-          label: `${lead.buyerName} • ${lead.contactNumber}`,
+          label: lead.buyerName,
+          description: formatBuyerLeadOptionDescription(lead),
         }));
 
   const hasActiveFilters =

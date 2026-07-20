@@ -28,11 +28,22 @@ import { EmptyState } from "@/components/operations/empty-state";
 import { ListPagination } from "@/components/operations/list-pagination";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -182,7 +193,7 @@ export function NotificationsScreen() {
       title="Notifications"
       breadcrumbs={[{ label: "Notifications" }]}
     >
-      <main className="flex flex-1 flex-col gap-5 bg-background p-4 md:p-6">
+      <main className="flex flex-1 flex-col gap-6 bg-background p-4 md:p-6">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex max-w-3xl flex-col gap-1">
             <h1 className="text-3xl font-semibold tracking-tight text-foreground">
@@ -196,8 +207,6 @@ export function NotificationsScreen() {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               type="button"
-              variant="outline"
-              className="h-10 border-blue-600 px-5 font-medium text-blue-600 hover:bg-blue-50 hover:text-blue-700"
               disabled={!unreadCount || markAllReadMutation.isPending}
               onClick={() => void markAllRead()}
             >
@@ -249,9 +258,9 @@ export function NotificationsScreen() {
           />
         </section>
 
-        <Card className="rounded-lg border-border/80 p-0 shadow-xs">
-          <CardContent className="p-0">
-            <div className="grid gap-3 border-b p-3 xl:grid-cols-[minmax(260px,1fr)_minmax(360px,1.5fr)_200px_190px]">
+        <Card>
+          <CardHeader className="border-b">
+            <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_minmax(360px,1.5fr)_200px_190px]">
               <div className="relative min-w-0">
                 <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -263,15 +272,17 @@ export function NotificationsScreen() {
               </div>
               <ToggleGroup
                 type="single"
+                variant="outline"
+                spacing={0}
                 value={categoryFilter}
                 onValueChange={handleCategoryChange}
-                className="h-11 justify-start overflow-x-auto rounded-md border bg-background p-0"
+                className="max-w-full justify-start overflow-x-auto"
               >
                 {CATEGORY_FILTERS.map((filter) => (
                   <ToggleGroupItem
                     key={filter.value}
                     value={filter.value}
-                    className="h-10 shrink-0 rounded-sm px-4 text-sm data-[state=on]:border data-[state=on]:border-blue-600 data-[state=on]:bg-blue-50 data-[state=on]:text-blue-700"
+                    className="shrink-0 px-4"
                   >
                     {filter.label}
                   </ToggleGroupItem>
@@ -283,9 +294,11 @@ export function NotificationsScreen() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="7">Last 7 days</SelectItem>
-                  <SelectItem value="30">Last 30 days</SelectItem>
-                  <SelectItem value="90">Last 90 days</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value="7">Last 7 days</SelectItem>
+                    <SelectItem value="30">Last 30 days</SelectItem>
+                    <SelectItem value="90">Last 90 days</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -293,13 +306,17 @@ export function NotificationsScreen() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL_VALUE}>All statuses</SelectItem>
-                  <SelectItem value="unread">Unread</SelectItem>
-                  <SelectItem value="read">Read</SelectItem>
+                  <SelectGroup>
+                    <SelectItem value={ALL_VALUE}>All statuses</SelectItem>
+                    <SelectItem value="unread">Unread</SelectItem>
+                    <SelectItem value="read">Read</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>
+          </CardHeader>
 
+          <CardContent className="p-0">
             {notificationsQuery.isPending ? (
               <NotificationsPageSkeleton />
             ) : notificationsQuery.error ? (
@@ -332,21 +349,20 @@ export function NotificationsScreen() {
                 />
               </div>
             )}
-
-            {pagination &&
-            !notificationsQuery.isPending &&
-            !notificationsQuery.error ? (
-              <div className="border-t">
-                <ListPagination
-                  page={pagination.page}
-                  totalPages={pagination.totalPages}
-                  total={pagination.total}
-                  itemLabel="notifications"
-                  onPageChange={setPage}
-                />
-              </div>
-            ) : null}
           </CardContent>
+          {pagination &&
+          !notificationsQuery.isPending &&
+          !notificationsQuery.error ? (
+            <CardFooter className="p-0">
+              <ListPagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                itemLabel="notifications"
+                onPageChange={setPage}
+              />
+            </CardFooter>
+          ) : null}
         </Card>
       </main>
     </AuthenticatedAppShell>
@@ -367,23 +383,25 @@ function NotificationSummaryCard({
   tone: NotificationTone;
 }) {
   return (
-    <Card className="rounded-lg border-border/80 p-0 shadow-xs">
-      <CardContent className="flex items-center gap-4 p-5">
-        <div
-          className={cn(
-            "flex size-16 shrink-0 items-center justify-center rounded-full",
-            getNotificationToneIconClassName(tone),
-          )}
-        >
-          <Icon className="size-8" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-muted-foreground">{title}</p>
-          <p className="mt-1 text-4xl font-semibold leading-none tracking-tight text-foreground">
-            {value}
-          </p>
-          <p className="mt-2 text-sm text-muted-foreground">{caption}</p>
-        </div>
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{caption}</CardDescription>
+        <CardAction>
+          <div
+            className={cn(
+              "flex size-10 items-center justify-center rounded-full",
+              getNotificationToneIconClassName(tone),
+            )}
+          >
+            <Icon className="size-5" />
+          </div>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <p className="text-3xl font-semibold tracking-tight text-foreground">
+          {value}
+        </p>
       </CardContent>
     </Card>
   );
@@ -415,10 +433,10 @@ function NotificationGroupedList({
   }
 
   return (
-    <div className="min-w-0 border-r">
+    <ScrollArea className="min-w-0 border-r">
       {groupedNotifications.map((group) => (
         <div key={group.label}>
-          <div className="border-b bg-muted/25 px-4 py-2 text-sm font-semibold text-muted-foreground">
+          <div className="border-b bg-muted/30 px-4 py-2 text-sm font-medium text-muted-foreground">
             {group.label}
           </div>
           <div>
@@ -434,7 +452,7 @@ function NotificationGroupedList({
           </div>
         </div>
       ))}
-    </div>
+    </ScrollArea>
   );
 }
 
@@ -454,25 +472,32 @@ function NotificationListRow({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
-        "grid cursor-pointer grid-cols-[56px_minmax(0,1fr)_auto] gap-3 border-b px-4 py-3 transition-colors last:border-b-0 hover:bg-muted/30",
-        !notification.isRead && "bg-blue-50/45 dark:bg-blue-950/15",
-        selected &&
-          "border-l-2 border-l-blue-600 bg-blue-50/70 dark:bg-blue-950/25",
+        "grid w-full cursor-pointer grid-cols-[48px_minmax(0,1fr)] gap-3 border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+        selected && "bg-muted",
+        !notification.isRead && !selected && "bg-muted/30",
       )}
       onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
     >
       <div
         className={cn(
-          "flex size-12 items-center justify-center rounded-full",
+          "flex size-10 items-center justify-center rounded-full",
           getNotificationToneIconClassName(tone),
         )}
       >
-        {renderNotificationIcon(notification.type, "size-6")}
+        {renderNotificationIcon(notification.type, "size-5")}
       </div>
       <div className="min-w-0">
         <div className="flex min-w-0 items-start justify-between gap-3">
-          <p className="truncate text-sm font-semibold text-foreground">
+          <p className="truncate text-sm font-medium text-foreground">
             {notification.title}
           </p>
           <p className="shrink-0 text-xs text-muted-foreground">
@@ -491,7 +516,7 @@ function NotificationListRow({
                 ? "Mark notification unread"
                 : "Mark notification read"
             }
-            className="flex size-5 items-center justify-center rounded-full"
+            className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-background"
             onClick={(event) => {
               event.stopPropagation();
               onToggleRead();
@@ -499,10 +524,8 @@ function NotificationListRow({
           >
             <span
               className={cn(
-                "size-2.5 rounded-full transition-colors",
-                notification.isRead
-                  ? "bg-transparent hover:bg-muted-foreground/30"
-                  : "bg-blue-600",
+                "size-2 rounded-full",
+                notification.isRead ? "bg-muted-foreground/30" : "bg-primary",
               )}
             />
           </button>
@@ -541,29 +564,21 @@ function NotificationDetailPanel({
   return (
     <aside className="min-w-0 p-6">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-5">
+        <div className="flex min-w-0 items-start gap-4">
           <div
             className={cn(
-              "flex size-16 shrink-0 items-center justify-center rounded-full",
+              "flex size-12 shrink-0 items-center justify-center rounded-full",
               getNotificationToneIconClassName(tone),
             )}
           >
-            {renderNotificationIcon(notification.type, "size-8")}
+            {renderNotificationIcon(notification.type, "size-6")}
           </div>
           <div className="min-w-0">
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               {notification.title}
             </h2>
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Badge
-                variant="outline"
-                className={cn(
-                  "rounded-full px-3 py-1 text-sm font-medium",
-                  notification.isRead
-                    ? "border-border bg-muted/30 text-muted-foreground"
-                    : "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300",
-                )}
-              >
+              <Badge variant={notification.isRead ? "secondary" : "default"}>
                 {notification.isRead ? "Read" : "Unread"}
               </Badge>
               <p className="text-sm text-muted-foreground">
@@ -577,7 +592,9 @@ function NotificationDetailPanel({
         </Button>
       </div>
 
-      <div className="mt-8 border-t pt-5">
+      <Separator className="my-6" />
+
+      <div>
         <div className="grid gap-5">
           <NotificationDetailRow
             icon={UserRoundIcon}
@@ -595,7 +612,7 @@ function NotificationDetailPanel({
             value={details.dueTime}
             valueClassName={
               isOverdueNotification(notification.type)
-                ? "text-red-600"
+                ? "text-destructive"
                 : undefined
             }
           />
@@ -607,44 +624,41 @@ function NotificationDetailPanel({
         </div>
       </div>
 
-      <div className="mt-8 border-t pt-5">
+      <Separator className="my-6" />
+
+      <div>
         <h3 className="text-sm font-semibold text-foreground">Message</h3>
         <p className="mt-3 text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
           {getDetailMessage(notification, category)}
         </p>
       </div>
 
-      <div className="mt-8 flex flex-col gap-3 md:flex-row">
+      <div className="mt-6 flex flex-col gap-3 md:flex-row">
         {notification.actionUrl ? (
-          <Button
-            asChild
-            className="h-11 bg-blue-600 px-5 text-white hover:bg-blue-700"
-          >
+          <Button asChild>
             <Link href={notification.actionUrl}>
               {getOpenActionLabel(category)}
-              <ExternalLinkIcon />
+              <ExternalLinkIcon data-icon="inline-end" />
             </Link>
           </Button>
         ) : null}
         <Button
           type="button"
           variant="outline"
-          className="h-11 px-5"
           disabled={notification.isRead || pending}
           onClick={() => onMarkRead(notification)}
         >
           Mark as read
-          <CheckCheckIcon />
+          <CheckCheckIcon data-icon="inline-end" />
         </Button>
         <Button
           type="button"
           variant="outline"
-          className="h-11 px-5"
           disabled={pending}
           onClick={() => onDismiss(notification)}
         >
           Dismiss
-          <Trash2Icon />
+          <Trash2Icon data-icon="inline-end" />
         </Button>
       </div>
     </aside>
@@ -714,13 +728,7 @@ function NotificationCategoryBadge({
   tone: NotificationTone;
 }) {
   return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "rounded-md px-2.5 py-0.5 text-xs font-medium",
-        getNotificationToneBadgeClassName(tone),
-      )}
-    >
+    <Badge variant={tone === "red" ? "destructive" : "secondary"}>
       {category}
     </Badge>
   );
@@ -758,25 +766,11 @@ function getNotificationTone(type: NotificationType): NotificationTone {
 
 function getNotificationToneIconClassName(tone: NotificationTone) {
   return {
-    blue: "bg-blue-100 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300",
-    red: "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-300",
-    amber:
-      "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-300",
-    green:
-      "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-300",
+    blue: "bg-primary/10 text-primary",
+    red: "bg-destructive/10 text-destructive",
+    amber: "bg-muted text-muted-foreground",
+    green: "bg-muted text-muted-foreground",
     gray: "bg-muted text-muted-foreground",
-  }[tone];
-}
-
-function getNotificationToneBadgeClassName(tone: NotificationTone) {
-  return {
-    blue: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300",
-    red: "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300",
-    amber:
-      "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
-    green:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
-    gray: "border-border bg-muted/40 text-muted-foreground",
   }[tone];
 }
 

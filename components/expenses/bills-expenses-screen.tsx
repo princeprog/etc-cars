@@ -1,12 +1,14 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   AlertCircleIcon,
   CheckCircle2Icon,
   Clock3Icon,
+  ExternalLinkIcon,
   FileTextIcon,
   MoreHorizontalIcon,
+  PaperclipIcon,
   PencilIcon,
   PlusIcon,
   ReceiptTextIcon,
@@ -15,22 +17,24 @@ import {
   SearchIcon,
   ShieldCheckIcon,
   Trash2Icon,
+  UploadIcon,
   WalletCardsIcon,
-} from "lucide-react"
-import { toast } from "sonner"
+  XIcon,
+} from "lucide-react";
+import { toast } from "sonner";
 
-import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { EmptyState } from "@/components/operations/empty-state"
-import { ListPagination } from "@/components/operations/list-pagination"
-import { SubmitButton } from "@/components/operations/submit-button"
+import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
+import { EmptyState } from "@/components/operations/empty-state";
+import { ListPagination } from "@/components/operations/list-pagination";
+import { SubmitButton } from "@/components/operations/submit-button";
 import {
   ExpenseStatusBadge,
   formatDate,
   formatFrequency,
   formatMoney,
-} from "@/components/expenses/expense-formatters"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+} from "@/components/expenses/expense-formatters";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,11 +45,11 @@ import {
   AlertDialogHeader,
   AlertDialogMedia,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DatePicker } from "@/components/ui/date-picker"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,23 +57,23 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -77,8 +81,8 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -86,66 +90,74 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
+} from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import {
   useCreateExpenseMutation,
   useCreateExpenseRecurringRuleMutation,
   useDeactivateExpenseRecurringRuleMutation,
   useMarkExpensePaidMutation,
+  useRemoveExpenseReceiptMutation,
+  useReplaceExpenseReceiptMutation,
   useUpdateExpenseMutation,
   useUpdateExpenseRecurringRuleMutation,
   useVoidExpenseMutation,
-} from "@/hooks/mutations/expenses/use-expense-mutations"
-import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useUsersQuery } from "@/hooks/queries/auth/use-users-query"
-import { useExpenseCategoriesQuery } from "@/hooks/queries/expenses/use-expense-categories-query"
-import { useExpenseRecurringRulesQuery } from "@/hooks/queries/expenses/use-expense-recurring-rules-query"
-import { useExpenseReportQuery } from "@/hooks/queries/expenses/use-expense-report-query"
-import { useExpensesQuery } from "@/hooks/queries/expenses/use-expenses-query"
-import { cn } from "@/lib/utils"
-import { getApiErrorMessage } from "@/types/api"
-import type { AuthenticatedUser } from "@/types/auth"
+} from "@/hooks/mutations/expenses/use-expense-mutations";
+import { useUploadExpenseReceiptMutation } from "@/hooks/mutations/expenses/use-upload-expense-receipt-mutation";
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useUsersQuery } from "@/hooks/queries/auth/use-users-query";
+import { useExpenseCategoriesQuery } from "@/hooks/queries/expenses/use-expense-categories-query";
+import { useExpenseRecurringRulesQuery } from "@/hooks/queries/expenses/use-expense-recurring-rules-query";
+import { useExpenseReportQuery } from "@/hooks/queries/expenses/use-expense-report-query";
+import { useExpensesQuery } from "@/hooks/queries/expenses/use-expenses-query";
+import { cn } from "@/lib/utils";
+import { getApiErrorMessage } from "@/types/api";
+import type { AuthenticatedUser } from "@/types/auth";
 import type {
   Expense,
   ExpenseDisplayStatus,
   ExpenseFrequency,
+  ExpenseReceipt,
+  ExpenseReceiptPayload,
   ExpenseRecurringRule,
   ExpenseRuleFrequency,
-} from "@/types/expenses"
+} from "@/types/expenses";
+import type { UploadedFile } from "@/types/uploads";
 
 type ExpenseFormValues = {
-  title: string
-  categoryId: string
-  expectedAmount: string
-  expenseDate: string
-  dueDate: string
-  vendorName: string
-  assignedStaffId: string
-  notes: string
-}
+  title: string;
+  categoryId: string;
+  expectedAmount: string;
+  expenseDate: string;
+  dueDate: string;
+  vendorName: string;
+  assignedStaffId: string;
+  notes: string;
+};
 
 type RecurringFormValues = ExpenseFormValues & {
-  frequency: ExpenseRuleFrequency
-  dueDay: string
-  startDate: string
-  endDate: string
-}
+  frequency: ExpenseRuleFrequency;
+  dueDay: string;
+  startDate: string;
+  endDate: string;
+};
 
 type PaidFormValues = {
-  actualPaidAmount: string
-  paidAt: string
-  paymentMethod: string
-  referenceNumber: string
-  notes: string
-}
+  actualPaidAmount: string;
+  paidAt: string;
+  paymentMethod: string;
+  referenceNumber: string;
+  notes: string;
+  receipt: ExpenseReceiptPayload | null;
+};
 
-type BillStatusFilter = ExpenseDisplayStatus | "all"
-type BillFrequencyFilter = ExpenseFrequency | "all"
+type BillStatusFilter = ExpenseDisplayStatus | "all";
+type BillFrequencyFilter = ExpenseFrequency | "all";
 
-const PAGE_SIZE = 12
-const ALL_VALUE = "all"
+const PAGE_SIZE = 12;
+const ALL_VALUE = "all";
+const RECEIPT_FILE_ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
 
 const STATUS_OPTIONS: Array<{ value: BillStatusFilter; label: string }> = [
   { value: "all", label: "All status" },
@@ -156,7 +168,7 @@ const STATUS_OPTIONS: Array<{ value: BillStatusFilter; label: string }> = [
   { value: "unpaid", label: "Unpaid" },
   { value: "paid", label: "Paid" },
   { value: "void", label: "Void" },
-]
+];
 
 const FREQUENCY_OPTIONS: Array<{ value: BillFrequencyFilter; label: string }> =
   [
@@ -165,16 +177,16 @@ const FREQUENCY_OPTIONS: Array<{ value: BillFrequencyFilter; label: string }> =
     { value: "weekly", label: "Weekly" },
     { value: "monthly", label: "Monthly" },
     { value: "yearly", label: "Yearly" },
-  ]
+  ];
 
 const RECURRING_FREQUENCY_OPTIONS: Array<{
-  value: ExpenseRuleFrequency
-  label: string
+  value: ExpenseRuleFrequency;
+  label: string;
 }> = [
   { value: "weekly", label: "Weekly" },
   { value: "monthly", label: "Monthly" },
   { value: "yearly", label: "Yearly" },
-]
+];
 
 const WEEKDAY_OPTIONS = [
   { value: "1", label: "Monday" },
@@ -184,51 +196,51 @@ const WEEKDAY_OPTIONS = [
   { value: "5", label: "Friday" },
   { value: "6", label: "Saturday" },
   { value: "7", label: "Sunday" },
-] as const
+] as const;
 
 const MONTH_DAY_OPTIONS = Array.from({ length: 31 }, (_, index) => {
-  const day = index + 1
+  const day = index + 1;
 
   return {
     value: String(day),
     label: getOrdinalDay(day),
-  }
-})
+  };
+});
 
 function todayInputValue() {
-  return new Date().toISOString().slice(0, 10)
+  return new Date().toISOString().slice(0, 10);
 }
 
 function nowLocalInputValue() {
-  const date = new Date()
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset())
-  return date.toISOString().slice(0, 16)
+  const date = new Date();
+  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+  return date.toISOString().slice(0, 16);
 }
 
 function dateStringToDate(value: string) {
   if (!value) {
-    return undefined
+    return undefined;
   }
 
-  const [year, month, day] = value.split("-").map(Number)
+  const [year, month, day] = value.split("-").map(Number);
 
   if (!year || !month || !day) {
-    return undefined
+    return undefined;
   }
 
-  return new Date(year, month - 1, day)
+  return new Date(year, month - 1, day);
 }
 
 function dateToDateString(date: Date | undefined) {
   if (!date) {
-    return ""
+    return "";
   }
 
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
-  return `${year}-${month}-${day}`
+  return `${year}-${month}-${day}`;
 }
 
 function getOrdinalDay(day: number) {
@@ -241,71 +253,71 @@ function getOrdinalDay(day: number) {
           ? "nd"
           : day % 10 === 3
             ? "rd"
-            : "th"
+            : "th";
 
-  return `${day}${suffix}`
+  return `${day}${suffix}`;
 }
 
 function getRecurringDueDayOptions(frequency: ExpenseRuleFrequency) {
-  return frequency === "weekly" ? WEEKDAY_OPTIONS : MONTH_DAY_OPTIONS
+  return frequency === "weekly" ? WEEKDAY_OPTIONS : MONTH_DAY_OPTIONS;
 }
 
 function getSafeDueDayForFrequency(
   frequency: ExpenseRuleFrequency,
   dueDay: string,
 ) {
-  const numericDueDay = Number(dueDay)
+  const numericDueDay = Number(dueDay);
 
   if (!Number.isInteger(numericDueDay) || numericDueDay < 1) {
-    return "1"
+    return "1";
   }
 
   if (frequency === "weekly" && numericDueDay > 7) {
-    return "1"
+    return "1";
   }
 
   if (frequency !== "weekly" && numericDueDay > 31) {
-    return "31"
+    return "31";
   }
 
-  return dueDay
+  return dueDay;
 }
 
 function getRecurringDueDayLabel(
   frequency: ExpenseRuleFrequency,
   dueDay: number | string,
 ) {
-  const value = String(dueDay)
+  const value = String(dueDay);
 
   if (frequency === "weekly") {
     return (
       WEEKDAY_OPTIONS.find((option) => option.value === value)?.label ?? value
-    )
+    );
   }
 
-  return getOrdinalDay(Number(value))
+  return getOrdinalDay(Number(value));
 }
 
 function getYearlyAnchorMonthLabel(startDate: string) {
-  const date = dateStringToDate(startDate)
+  const date = dateStringToDate(startDate);
 
   if (!date) {
-    return "the start date month"
+    return "the start date month";
   }
 
-  return new Intl.DateTimeFormat("en-US", { month: "long" }).format(date)
+  return new Intl.DateTimeFormat("en-US", { month: "long" }).format(date);
 }
 
 function getRecurringDueDayDescription(values: RecurringFormValues) {
   if (values.frequency === "weekly") {
-    return "Weekly bills repeat on the selected weekday."
+    return "Weekly bills repeat on the selected weekday.";
   }
 
   if (values.frequency === "monthly") {
-    return "If a month has fewer days, the bill uses the last day of that month."
+    return "If a month has fewer days, the bill uses the last day of that month.";
   }
 
-  return `Yearly bills repeat every ${getYearlyAnchorMonthLabel(values.startDate)} on the selected day. If that month has fewer days, the bill uses the last day.`
+  return `Yearly bills repeat every ${getYearlyAnchorMonthLabel(values.startDate)} on the selected day. If that month has fewer days, the bill uses the last day.`;
 }
 
 function getEmptyExpenseForm(): ExpenseFormValues {
@@ -318,7 +330,7 @@ function getEmptyExpenseForm(): ExpenseFormValues {
     vendorName: "",
     assignedStaffId: ALL_VALUE,
     notes: "",
-  }
+  };
 }
 
 function getExpenseFormFromRecord(expense: Expense): ExpenseFormValues {
@@ -331,7 +343,7 @@ function getExpenseFormFromRecord(expense: Expense): ExpenseFormValues {
     vendorName: expense.vendorName ?? "",
     assignedStaffId: expense.assignedStaffId ?? ALL_VALUE,
     notes: expense.notes ?? "",
-  }
+  };
 }
 
 function getEmptyRecurringForm(): RecurringFormValues {
@@ -341,7 +353,7 @@ function getEmptyRecurringForm(): RecurringFormValues {
     dueDay: "1",
     startDate: todayInputValue(),
     endDate: "",
-  }
+  };
 }
 
 function getRecurringFormFromRule(
@@ -360,59 +372,97 @@ function getRecurringFormFromRule(
     dueDay: String(rule.dueDay),
     startDate: rule.startDate.slice(0, 10),
     endDate: rule.endDate ? rule.endDate.slice(0, 10) : "",
-  }
+  };
 }
 
 function normalizeOptional(value: string) {
-  return value.trim() || null
+  return value.trim() || null;
+}
+
+function getReceiptPayload(file: UploadedFile): ExpenseReceiptPayload {
+  return {
+    fileUrl: file.url,
+    publicId: file.publicId ?? null,
+    originalFilename: file.originalFilename ?? file.filename,
+    mimeType: file.mimeType,
+    fileSize: file.size,
+  };
+}
+
+function getReceiptFileName(
+  receipt: ExpenseReceipt | ExpenseReceiptPayload | null | undefined,
+) {
+  return receipt?.originalFilename?.trim() || "Receipt attachment";
+}
+
+function formatFileSize(size: number | string | null | undefined) {
+  const numericSize = typeof size === "string" ? Number(size) : size;
+
+  if (!numericSize || !Number.isFinite(numericSize)) {
+    return "Size unavailable";
+  }
+
+  if (numericSize < 1024) {
+    return `${numericSize} B`;
+  }
+
+  if (numericSize < 1024 * 1024) {
+    return `${(numericSize / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(numericSize / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function openReceipt(receipt: ExpenseReceipt) {
+  window.open(receipt.fileUrl, "_blank", "noopener,noreferrer");
 }
 
 function getExpenseFormErrors(values: ExpenseFormValues) {
-  const errors: Partial<Record<keyof ExpenseFormValues, string>> = {}
+  const errors: Partial<Record<keyof ExpenseFormValues, string>> = {};
 
   if (!values.title.trim()) {
-    errors.title = "Enter the bill or expense title."
+    errors.title = "Enter the bill or expense title.";
   }
 
   if (!values.categoryId) {
-    errors.categoryId = "Select an expense category."
+    errors.categoryId = "Select an expense category.";
   }
 
   if (!values.expectedAmount.trim() || Number(values.expectedAmount) <= 0) {
-    errors.expectedAmount = "Enter an amount greater than zero."
+    errors.expectedAmount = "Enter an amount greater than zero.";
   }
 
   if (!values.dueDate) {
-    errors.dueDate = "Select the due date."
+    errors.dueDate = "Select the due date.";
   }
 
-  return errors
+  return errors;
 }
 
 function getRecurringFormErrors(values: RecurringFormValues) {
   const errors = getExpenseFormErrors({
     ...values,
     dueDate: values.startDate,
-  }) as Partial<Record<keyof RecurringFormValues, string>>
-  const dueDay = Number(values.dueDay)
+  }) as Partial<Record<keyof RecurringFormValues, string>>;
+  const dueDay = Number(values.dueDay);
 
   if (!values.startDate) {
-    errors.startDate = "Select the start date."
+    errors.startDate = "Select the start date.";
   }
 
   if (!Number.isInteger(dueDay) || dueDay < 1) {
-    errors.dueDay = "Enter a valid due day."
+    errors.dueDay = "Enter a valid due day.";
   } else if (values.frequency === "weekly" && dueDay > 7) {
-    errors.dueDay = "Weekly rules use 1 for Monday through 7 for Sunday."
+    errors.dueDay = "Weekly rules use 1 for Monday through 7 for Sunday.";
   } else if (values.frequency !== "weekly" && dueDay > 31) {
-    errors.dueDay = "Monthly and yearly rules use day 1 through 31."
+    errors.dueDay = "Monthly and yearly rules use day 1 through 31.";
   }
 
-  return errors
+  return errors;
 }
 
 function hasErrors(errors: Record<string, string | undefined>) {
-  return Object.values(errors).some(Boolean)
+  return Object.values(errors).some(Boolean);
 }
 
 function toExpensePayload(values: ExpenseFormValues) {
@@ -426,7 +476,7 @@ function toExpensePayload(values: ExpenseFormValues) {
     assignedStaffId:
       values.assignedStaffId === ALL_VALUE ? null : values.assignedStaffId,
     notes: normalizeOptional(values.notes),
-  }
+  };
 }
 
 function toRecurringPayload(values: RecurringFormValues) {
@@ -442,57 +492,63 @@ function toRecurringPayload(values: RecurringFormValues) {
     assignedStaffId:
       values.assignedStaffId === ALL_VALUE ? null : values.assignedStaffId,
     notes: normalizeOptional(values.notes),
-  }
+  };
 }
 
 export function BillsExpensesScreen() {
-  const authQuery = useAuthenticatedUserQuery()
-  const currentUser = authQuery.data?.user
-  const isAdmin = currentUser?.role === "admin"
+  const authQuery = useAuthenticatedUserQuery();
+  const currentUser = authQuery.data?.user;
+  const isAdmin = currentUser?.role === "admin";
+  const receiptReplaceInputRef = React.useRef<HTMLInputElement | null>(null);
 
-  const [activeTab, setActiveTab] = React.useState("bills")
-  const [page, setPage] = React.useState(1)
-  const [search, setSearch] = React.useState("")
-  const [debouncedSearch, setDebouncedSearch] = React.useState("")
-  const [status, setStatus] = React.useState<BillStatusFilter>("all")
-  const [categoryId, setCategoryId] = React.useState(ALL_VALUE)
-  const [frequency, setFrequency] = React.useState<BillFrequencyFilter>("all")
-  const [expenseSheetOpen, setExpenseSheetOpen] = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState("bills");
+  const [page, setPage] = React.useState(1);
+  const [search, setSearch] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
+  const [status, setStatus] = React.useState<BillStatusFilter>("all");
+  const [categoryId, setCategoryId] = React.useState(ALL_VALUE);
+  const [frequency, setFrequency] = React.useState<BillFrequencyFilter>("all");
+  const [expenseSheetOpen, setExpenseSheetOpen] = React.useState(false);
   const [editingExpense, setEditingExpense] = React.useState<Expense | null>(
     null,
-  )
-  const [expenseForm, setExpenseForm] = React.useState(getEmptyExpenseForm)
-  const [expenseFormSubmitted, setExpenseFormSubmitted] = React.useState(false)
-  const [recurringSheetOpen, setRecurringSheetOpen] = React.useState(false)
+  );
+  const [expenseForm, setExpenseForm] = React.useState(getEmptyExpenseForm);
+  const [expenseFormSubmitted, setExpenseFormSubmitted] = React.useState(false);
+  const [recurringSheetOpen, setRecurringSheetOpen] = React.useState(false);
   const [editingRule, setEditingRule] =
-    React.useState<ExpenseRecurringRule | null>(null)
+    React.useState<ExpenseRecurringRule | null>(null);
   const [recurringForm, setRecurringForm] = React.useState(
     getEmptyRecurringForm,
-  )
+  );
   const [recurringFormSubmitted, setRecurringFormSubmitted] =
-    React.useState(false)
+    React.useState(false);
   const [markPaidExpense, setMarkPaidExpense] = React.useState<Expense | null>(
     null,
-  )
+  );
   const [voidExpenseTarget, setVoidExpenseTarget] =
-    React.useState<Expense | null>(null)
+    React.useState<Expense | null>(null);
+  const [receiptReplaceExpense, setReceiptReplaceExpense] =
+    React.useState<Expense | null>(null);
+  const [receiptRemoveExpense, setReceiptRemoveExpense] =
+    React.useState<Expense | null>(null);
   const [paidForm, setPaidForm] = React.useState<PaidFormValues>({
     actualPaidAmount: "",
     paidAt: nowLocalInputValue(),
     paymentMethod: "",
     referenceNumber: "",
     notes: "",
-  })
-  const [voidReason, setVoidReason] = React.useState("")
+    receipt: null,
+  });
+  const [voidReason, setVoidReason] = React.useState("");
 
   React.useEffect(() => {
     const timeout = window.setTimeout(() => {
-      setDebouncedSearch(search.trim())
-      setPage(1)
-    }, 350)
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 350);
 
-    return () => window.clearTimeout(timeout)
-  }, [search])
+    return () => window.clearTimeout(timeout);
+  }, [search]);
 
   const expenseFilters = React.useMemo(
     () => ({
@@ -504,17 +560,17 @@ export function BillsExpensesScreen() {
       frequency,
     }),
     [categoryId, debouncedSearch, frequency, page, status],
-  )
+  );
 
-  const expensesQuery = useExpensesQuery(expenseFilters)
-  const categoriesQuery = useExpenseCategoriesQuery()
-  const usersQuery = useUsersQuery({ status: "active" })
+  const expensesQuery = useExpensesQuery(expenseFilters);
+  const categoriesQuery = useExpenseCategoriesQuery();
+  const usersQuery = useUsersQuery({ status: "active" });
   const rulesQuery = useExpenseRecurringRulesQuery({
     search: debouncedSearch || undefined,
     categoryId,
     frequency:
       frequency === "one_time" || frequency === "all" ? "all" : frequency,
-  })
+  });
   const reportQuery = useExpenseReportQuery(
     {
       status,
@@ -523,64 +579,67 @@ export function BillsExpensesScreen() {
       frequency,
     },
     isAdmin,
-  )
+  );
 
-  const createExpenseMutation = useCreateExpenseMutation()
-  const updateExpenseMutation = useUpdateExpenseMutation()
-  const markPaidMutation = useMarkExpensePaidMutation()
-  const voidExpenseMutation = useVoidExpenseMutation()
-  const createRuleMutation = useCreateExpenseRecurringRuleMutation()
-  const updateRuleMutation = useUpdateExpenseRecurringRuleMutation()
-  const deactivateRuleMutation = useDeactivateExpenseRecurringRuleMutation()
+  const createExpenseMutation = useCreateExpenseMutation();
+  const updateExpenseMutation = useUpdateExpenseMutation();
+  const markPaidMutation = useMarkExpensePaidMutation();
+  const voidExpenseMutation = useVoidExpenseMutation();
+  const uploadReceiptMutation = useUploadExpenseReceiptMutation();
+  const replaceReceiptMutation = useReplaceExpenseReceiptMutation();
+  const removeReceiptMutation = useRemoveExpenseReceiptMutation();
+  const createRuleMutation = useCreateExpenseRecurringRuleMutation();
+  const updateRuleMutation = useUpdateExpenseRecurringRuleMutation();
+  const deactivateRuleMutation = useDeactivateExpenseRecurringRuleMutation();
 
-  const categories = categoriesQuery.data?.categories ?? []
+  const categories = categoriesQuery.data?.categories ?? [];
   const staffUsers =
-    usersQuery.data?.users.filter((user) => user.role === "staff") ?? []
-  const expenses = expensesQuery.data?.expenses ?? []
-  const pagination = expensesQuery.data?.pagination
-  const rules = rulesQuery.data?.rules ?? []
+    usersQuery.data?.users.filter((user) => user.role === "staff") ?? [];
+  const expenses = expensesQuery.data?.expenses ?? [];
+  const pagination = expensesQuery.data?.pagination;
+  const rules = rulesQuery.data?.rules ?? [];
   const expenseErrors = expenseFormSubmitted
     ? getExpenseFormErrors(expenseForm)
-    : {}
+    : {};
   const recurringErrors = recurringFormSubmitted
     ? getRecurringFormErrors(recurringForm)
-    : {}
+    : {};
 
   function openCreateExpenseSheet() {
-    setEditingExpense(null)
-    setExpenseForm(getEmptyExpenseForm())
-    setExpenseFormSubmitted(false)
-    setExpenseSheetOpen(true)
+    setEditingExpense(null);
+    setExpenseForm(getEmptyExpenseForm());
+    setExpenseFormSubmitted(false);
+    setExpenseSheetOpen(true);
   }
 
   function openEditExpenseSheet(expense: Expense) {
-    setEditingExpense(expense)
-    setExpenseForm(getExpenseFormFromRecord(expense))
-    setExpenseFormSubmitted(false)
-    setExpenseSheetOpen(true)
+    setEditingExpense(expense);
+    setExpenseForm(getExpenseFormFromRecord(expense));
+    setExpenseFormSubmitted(false);
+    setExpenseSheetOpen(true);
   }
 
   function openCreateRecurringSheet() {
-    setEditingRule(null)
-    setRecurringForm(getEmptyRecurringForm())
-    setRecurringFormSubmitted(false)
-    setRecurringSheetOpen(true)
+    setEditingRule(null);
+    setRecurringForm(getEmptyRecurringForm());
+    setRecurringFormSubmitted(false);
+    setRecurringSheetOpen(true);
   }
 
   function openEditRecurringSheet(rule: ExpenseRecurringRule) {
-    setEditingRule(rule)
-    setRecurringForm(getRecurringFormFromRule(rule))
-    setRecurringFormSubmitted(false)
-    setRecurringSheetOpen(true)
+    setEditingRule(rule);
+    setRecurringForm(getRecurringFormFromRule(rule));
+    setRecurringFormSubmitted(false);
+    setRecurringSheetOpen(true);
   }
 
   async function handleExpenseSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setExpenseFormSubmitted(true)
+    event.preventDefault();
+    setExpenseFormSubmitted(true);
 
-    const errors = getExpenseFormErrors(expenseForm)
+    const errors = getExpenseFormErrors(expenseForm);
     if (hasErrors(errors)) {
-      return
+      return;
     }
 
     try {
@@ -588,16 +647,16 @@ export function BillsExpensesScreen() {
         await updateExpenseMutation.mutateAsync({
           id: editingExpense.id,
           payload: toExpensePayload(expenseForm),
-        })
-        toast.success("Expense updated")
+        });
+        toast.success("Expense updated");
       } else {
         await createExpenseMutation.mutateAsync({
           ...toExpensePayload(expenseForm),
           frequency: "one_time",
-        })
-        toast.success("Expense created")
+        });
+        toast.success("Expense created");
       }
-      setExpenseSheetOpen(false)
+      setExpenseSheetOpen(false);
     } catch {
       // The sheet alert renders the API message.
     }
@@ -606,12 +665,12 @@ export function BillsExpensesScreen() {
   async function handleRecurringSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
-    event.preventDefault()
-    setRecurringFormSubmitted(true)
+    event.preventDefault();
+    setRecurringFormSubmitted(true);
 
-    const errors = getRecurringFormErrors(recurringForm)
+    const errors = getRecurringFormErrors(recurringForm);
     if (hasErrors(errors)) {
-      return
+      return;
     }
 
     try {
@@ -619,13 +678,13 @@ export function BillsExpensesScreen() {
         await updateRuleMutation.mutateAsync({
           id: editingRule.id,
           payload: toRecurringPayload(recurringForm),
-        })
-        toast.success("Recurring rule updated")
+        });
+        toast.success("Recurring rule updated");
       } else {
-        await createRuleMutation.mutateAsync(toRecurringPayload(recurringForm))
-        toast.success("Recurring rule created")
+        await createRuleMutation.mutateAsync(toRecurringPayload(recurringForm));
+        toast.success("Recurring rule created");
       }
-      setRecurringSheetOpen(false)
+      setRecurringSheetOpen(false);
     } catch {
       // The sheet alert renders the API message.
     }
@@ -633,7 +692,7 @@ export function BillsExpensesScreen() {
 
   async function handleMarkPaid() {
     if (!markPaidExpense) {
-      return
+      return;
     }
 
     try {
@@ -646,10 +705,54 @@ export function BillsExpensesScreen() {
           paymentMethod: normalizeOptional(paidForm.paymentMethod),
           referenceNumber: normalizeOptional(paidForm.referenceNumber),
           notes: normalizeOptional(paidForm.notes),
+          receipt: paidForm.receipt,
         },
-      })
-      toast.success("Expense marked as paid")
-      setMarkPaidExpense(null)
+      });
+      toast.success("Expense marked as paid");
+      setMarkPaidExpense(null);
+      setPaidForm((current) => ({ ...current, receipt: null }));
+    } catch {
+      // The dialog-level error renders below.
+    }
+  }
+
+  function handleReplaceReceiptRequest(expense: Expense) {
+    setReceiptReplaceExpense(expense);
+    receiptReplaceInputRef.current?.click();
+  }
+
+  async function handleReplaceReceiptFileChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file || !receiptReplaceExpense) {
+      return;
+    }
+
+    try {
+      const response = await uploadReceiptMutation.mutateAsync(file);
+      await replaceReceiptMutation.mutateAsync({
+        id: receiptReplaceExpense.id,
+        payload: getReceiptPayload(response.file),
+      });
+      toast.success("Receipt updated");
+      setReceiptReplaceExpense(null);
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to update receipt"));
+    }
+  }
+
+  async function handleConfirmRemoveReceipt() {
+    if (!receiptRemoveExpense) {
+      return;
+    }
+
+    try {
+      await removeReceiptMutation.mutateAsync(receiptRemoveExpense.id);
+      toast.success("Receipt removed");
+      setReceiptRemoveExpense(null);
     } catch {
       // The dialog-level error renders below.
     }
@@ -657,17 +760,17 @@ export function BillsExpensesScreen() {
 
   async function handleVoidExpense() {
     if (!voidExpenseTarget || !voidReason.trim()) {
-      return
+      return;
     }
 
     try {
       await voidExpenseMutation.mutateAsync({
         id: voidExpenseTarget.id,
         payload: { reason: voidReason.trim() },
-      })
-      toast.success("Expense voided")
-      setVoidExpenseTarget(null)
-      setVoidReason("")
+      });
+      toast.success("Expense voided");
+      setVoidExpenseTarget(null);
+      setVoidReason("");
     } catch {
       // The dialog-level error renders below.
     }
@@ -675,10 +778,10 @@ export function BillsExpensesScreen() {
 
   async function handleDeactivateRule(rule: ExpenseRecurringRule) {
     try {
-      await deactivateRuleMutation.mutateAsync(rule.id)
-      toast.success("Recurring rule deactivated")
+      await deactivateRuleMutation.mutateAsync(rule.id);
+      toast.success("Recurring rule deactivated");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to deactivate rule"))
+      toast.error(getApiErrorMessage(error, "Unable to deactivate rule"));
     }
   }
 
@@ -686,11 +789,18 @@ export function BillsExpensesScreen() {
     expensesQuery.isFetching ||
     categoriesQuery.isFetching ||
     rulesQuery.isFetching ||
-    (isAdmin && reportQuery.isFetching)
+    (isAdmin && reportQuery.isFetching);
 
   return (
     <AuthenticatedAppShell title="Bills & Expenses">
       <main className="flex flex-1 flex-col gap-5 bg-muted/15 p-4 md:p-6">
+        <input
+          ref={receiptReplaceInputRef}
+          type="file"
+          accept={RECEIPT_FILE_ACCEPT}
+          className="hidden"
+          onChange={handleReplaceReceiptFileChange}
+        />
         <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex max-w-3xl flex-col gap-1">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
@@ -709,10 +819,10 @@ export function BillsExpensesScreen() {
               aria-label="Refresh bills and expenses"
               disabled={isRefreshing}
               onClick={() => {
-                void expensesQuery.refetch()
-                void rulesQuery.refetch()
+                void expensesQuery.refetch();
+                void rulesQuery.refetch();
                 if (isAdmin) {
-                  void reportQuery.refetch()
+                  void reportQuery.refetch();
                 }
               }}
             >
@@ -850,16 +960,24 @@ export function BillsExpensesScreen() {
                   isAdmin={isAdmin}
                   onEdit={openEditExpenseSheet}
                   onMarkPaid={(expense) => {
-                    setMarkPaidExpense(expense)
+                    setMarkPaidExpense(expense);
                     setPaidForm({
                       actualPaidAmount: expense.expectedAmount,
                       paidAt: nowLocalInputValue(),
                       paymentMethod: expense.paymentMethod ?? "",
                       referenceNumber: expense.referenceNumber ?? "",
                       notes: expense.notes ?? "",
-                    })
+                      receipt: null,
+                    });
                   }}
                   onVoid={setVoidExpenseTarget}
+                  onReplaceReceipt={handleReplaceReceiptRequest}
+                  onRemoveReceipt={setReceiptRemoveExpense}
+                  receiptActionPending={
+                    uploadReceiptMutation.isPending ||
+                    replaceReceiptMutation.isPending ||
+                    removeReceiptMutation.isPending
+                  }
                 />
                 {pagination &&
                 !expensesQuery.isPending &&
@@ -927,10 +1045,22 @@ export function BillsExpensesScreen() {
         error={markPaidMutation.error}
         onOpenChange={(open) => {
           if (!open) {
-            setMarkPaidExpense(null)
+            setMarkPaidExpense(null);
           }
         }}
         onConfirm={handleMarkPaid}
+      />
+
+      <RemoveReceiptDialog
+        expense={receiptRemoveExpense}
+        pending={removeReceiptMutation.isPending}
+        error={removeReceiptMutation.error}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReceiptRemoveExpense(null);
+          }
+        }}
+        onConfirm={handleConfirmRemoveReceipt}
       />
 
       <VoidExpenseDialog
@@ -941,14 +1071,14 @@ export function BillsExpensesScreen() {
         error={voidExpenseMutation.error}
         onOpenChange={(open) => {
           if (!open) {
-            setVoidExpenseTarget(null)
-            setVoidReason("")
+            setVoidExpenseTarget(null);
+            setVoidReason("");
           }
         }}
         onConfirm={handleVoidExpense}
       />
     </AuthenticatedAppShell>
-  )
+  );
 }
 
 function ExpenseSummaryCards({
@@ -956,18 +1086,18 @@ function ExpenseSummaryCards({
   isLoading,
   summary,
 }: {
-  isAdmin: boolean
-  isLoading: boolean
+  isAdmin: boolean;
+  isLoading: boolean;
   summary?: {
-    totalExpenses: number
-    totalExpectedAmount: string
-    paidAmount: string
-    unpaidAmount: string
-    overdueCount: number
-    overdueAmount: string
-    dueWithinSevenDaysCount: number
-    dueWithinSevenDaysAmount: string
-  }
+    totalExpenses: number;
+    totalExpectedAmount: string;
+    paidAmount: string;
+    unpaidAmount: string;
+    overdueCount: number;
+    overdueAmount: string;
+    dueWithinSevenDaysCount: number;
+    dueWithinSevenDaysAmount: string;
+  };
 }) {
   if (!isAdmin) {
     return (
@@ -979,7 +1109,7 @@ function ExpenseSummaryCards({
           permission to view expense reports.
         </AlertDescription>
       </Alert>
-    )
+    );
   }
 
   const cards = [
@@ -1007,12 +1137,12 @@ function ExpenseSummaryCards({
       detail: `${formatMoney(summary?.overdueAmount)} overdue`,
       icon: AlertCircleIcon,
     },
-  ]
+  ];
 
   return (
     <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => {
-        const Icon = card.icon
+        const Icon = card.icon;
 
         return (
           <Card key={card.title} className="rounded-lg p-0 shadow-none">
@@ -1033,10 +1163,10 @@ function ExpenseSummaryCards({
               </div>
             </CardContent>
           </Card>
-        )
+        );
       })}
     </section>
-  )
+  );
 }
 
 function ExpensesTable({
@@ -1047,17 +1177,23 @@ function ExpensesTable({
   onEdit,
   onMarkPaid,
   onVoid,
+  onReplaceReceipt,
+  onRemoveReceipt,
+  receiptActionPending,
 }: {
-  expenses: Expense[]
-  isLoading: boolean
-  error: unknown
-  isAdmin: boolean
-  onEdit: (expense: Expense) => void
-  onMarkPaid: (expense: Expense) => void
-  onVoid: (expense: Expense) => void
+  expenses: Expense[];
+  isLoading: boolean;
+  error: unknown;
+  isAdmin: boolean;
+  onEdit: (expense: Expense) => void;
+  onMarkPaid: (expense: Expense) => void;
+  onVoid: (expense: Expense) => void;
+  onReplaceReceipt: (expense: Expense) => void;
+  onRemoveReceipt: (expense: Expense) => void;
+  receiptActionPending: boolean;
 }) {
   if (isLoading) {
-    return <TableSkeleton rows={8} />
+    return <TableSkeleton rows={8} />;
   }
 
   if (error) {
@@ -1068,7 +1204,7 @@ function ExpensesTable({
           message={getApiErrorMessage(error, "")}
         />
       </div>
-    )
+    );
   }
 
   if (!expenses.length) {
@@ -1079,7 +1215,7 @@ function ExpensesTable({
           description="Create a one-time expense or recurring rule to start tracking operating costs."
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -1183,6 +1319,38 @@ function ExpensesTable({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-44">
                   <DropdownMenuLabel>Expense actions</DropdownMenuLabel>
+                  {expense.receipt ? (
+                    <DropdownMenuItem
+                      onClick={() => openReceipt(expense.receipt!)}
+                    >
+                      <ExternalLinkIcon data-icon="inline-start" />
+                      View receipt
+                    </DropdownMenuItem>
+                  ) : null}
+                  {isAdmin && expense.status === "paid" ? (
+                    <>
+                      <DropdownMenuItem
+                        disabled={receiptActionPending}
+                        onClick={() => onReplaceReceipt(expense)}
+                      >
+                        <UploadIcon data-icon="inline-start" />
+                        {expense.receipt ? "Replace receipt" : "Attach receipt"}
+                      </DropdownMenuItem>
+                      {expense.receipt ? (
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={receiptActionPending}
+                          onClick={() => onRemoveReceipt(expense)}
+                        >
+                          <XIcon data-icon="inline-start" />
+                          Remove receipt
+                        </DropdownMenuItem>
+                      ) : null}
+                    </>
+                  ) : null}
+                  {expense.receipt || (isAdmin && expense.status === "paid") ? (
+                    <DropdownMenuSeparator />
+                  ) : null}
                   {isAdmin && expense.status === "unpaid" ? (
                     <>
                       <DropdownMenuItem onClick={() => onEdit(expense)}>
@@ -1214,7 +1382,7 @@ function ExpensesTable({
         ))}
       </TableBody>
     </Table>
-  )
+  );
 }
 
 function RecurringRulesTable({
@@ -1226,16 +1394,16 @@ function RecurringRulesTable({
   onEdit,
   onDeactivate,
 }: {
-  rules: ExpenseRecurringRule[]
-  isLoading: boolean
-  error: unknown
-  isAdmin: boolean
-  deactivatingRuleId?: string
-  onEdit: (rule: ExpenseRecurringRule) => void
-  onDeactivate: (rule: ExpenseRecurringRule) => void
+  rules: ExpenseRecurringRule[];
+  isLoading: boolean;
+  error: unknown;
+  isAdmin: boolean;
+  deactivatingRuleId?: string;
+  onEdit: (rule: ExpenseRecurringRule) => void;
+  onDeactivate: (rule: ExpenseRecurringRule) => void;
 }) {
   if (isLoading) {
-    return <TableSkeleton rows={6} />
+    return <TableSkeleton rows={6} />;
   }
 
   if (error) {
@@ -1246,7 +1414,7 @@ function RecurringRulesTable({
           message={getApiErrorMessage(error, "")}
         />
       </div>
-    )
+    );
   }
 
   if (!rules.length) {
@@ -1257,7 +1425,7 @@ function RecurringRulesTable({
           description="Recurring rules automatically generate bills for predictable dealership expenses."
         />
       </div>
-    )
+    );
   }
 
   return (
@@ -1379,7 +1547,7 @@ function RecurringRulesTable({
         ))}
       </TableBody>
     </Table>
-  )
+  );
 }
 
 function TableSkeleton({ rows }: { rows: number }) {
@@ -1401,7 +1569,7 @@ function TableSkeleton({ rows }: { rows: number }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function ExpenseSheet({
@@ -1417,26 +1585,26 @@ function ExpenseSheet({
   apiError,
   onSubmit,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  values: ExpenseFormValues
-  onChange: (values: ExpenseFormValues) => void
-  errors: Partial<Record<keyof ExpenseFormValues, string>>
-  categories: Array<{ id: string; name: string }>
-  staffUsers: AuthenticatedUser[]
-  editingExpense: Expense | null
-  pending: boolean
-  apiError: unknown
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  values: ExpenseFormValues;
+  onChange: (values: ExpenseFormValues) => void;
+  errors: Partial<Record<keyof ExpenseFormValues, string>>;
+  categories: Array<{ id: string; name: string }>;
+  staffUsers: AuthenticatedUser[];
+  editingExpense: Expense | null;
+  pending: boolean;
+  apiError: unknown;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   const [selectPortalContainer, setSelectPortalContainer] =
-    React.useState<HTMLDivElement | null>(null)
+    React.useState<HTMLDivElement | null>(null);
 
   function update<K extends keyof ExpenseFormValues>(
     key: K,
     value: ExpenseFormValues[K],
   ) {
-    onChange({ ...values, [key]: value })
+    onChange({ ...values, [key]: value });
   }
 
   return (
@@ -1506,7 +1674,7 @@ function ExpenseSheet({
         </form>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
 function RecurringRuleSheet({
@@ -1522,26 +1690,26 @@ function RecurringRuleSheet({
   apiError,
   onSubmit,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  values: RecurringFormValues
-  onChange: (values: RecurringFormValues) => void
-  errors: Partial<Record<keyof RecurringFormValues, string>>
-  categories: Array<{ id: string; name: string }>
-  staffUsers: AuthenticatedUser[]
-  editingRule: ExpenseRecurringRule | null
-  pending: boolean
-  apiError: unknown
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  values: RecurringFormValues;
+  onChange: (values: RecurringFormValues) => void;
+  errors: Partial<Record<keyof RecurringFormValues, string>>;
+  categories: Array<{ id: string; name: string }>;
+  staffUsers: AuthenticatedUser[];
+  editingRule: ExpenseRecurringRule | null;
+  pending: boolean;
+  apiError: unknown;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }) {
   const [selectPortalContainer, setSelectPortalContainer] =
-    React.useState<HTMLDivElement | null>(null)
+    React.useState<HTMLDivElement | null>(null);
 
   function update<K extends keyof RecurringFormValues>(
     key: K,
     value: RecurringFormValues[K],
   ) {
-    onChange({ ...values, [key]: value })
+    onChange({ ...values, [key]: value });
   }
 
   return (
@@ -1602,7 +1770,7 @@ function RecurringRuleSheet({
                     <Select
                       value={values.frequency}
                       onValueChange={(value) => {
-                        const frequency = value as ExpenseRuleFrequency
+                        const frequency = value as ExpenseRuleFrequency;
 
                         onChange({
                           ...values,
@@ -1611,7 +1779,7 @@ function RecurringRuleSheet({
                             frequency,
                             values.dueDay,
                           ),
-                        })
+                        });
                       }}
                     >
                       <SelectTrigger>
@@ -1707,7 +1875,7 @@ function RecurringRuleSheet({
         </form>
       </SheetContent>
     </Sheet>
-  )
+  );
 }
 
 function ExpenseFormFields<TValues extends ExpenseFormValues>({
@@ -1719,13 +1887,13 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
   hideDateFields = false,
   portalContainer,
 }: {
-  values: TValues
-  errors: Partial<Record<keyof TValues, string>>
-  categories: Array<{ id: string; name: string }>
-  staffUsers: AuthenticatedUser[]
-  onUpdate: <K extends keyof TValues>(key: K, value: TValues[K]) => void
-  hideDateFields?: boolean
-  portalContainer?: HTMLElement | ShadowRoot | null
+  values: TValues;
+  errors: Partial<Record<keyof TValues, string>>;
+  categories: Array<{ id: string; name: string }>;
+  staffUsers: AuthenticatedUser[];
+  onUpdate: <K extends keyof TValues>(key: K, value: TValues[K]) => void;
+  hideDateFields?: boolean;
+  portalContainer?: HTMLElement | ShadowRoot | null;
 }) {
   return (
     <section className="flex flex-col gap-4">
@@ -1879,7 +2047,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
         />
       </Field>
     </section>
-  )
+  );
 }
 
 function MarkPaidDialog({
@@ -1891,15 +2059,39 @@ function MarkPaidDialog({
   onOpenChange,
   onConfirm,
 }: {
-  expense: Expense | null
-  values: PaidFormValues
-  onValuesChange: (values: PaidFormValues) => void
-  pending: boolean
-  error: unknown
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  expense: Expense | null;
+  values: PaidFormValues;
+  onValuesChange: (values: PaidFormValues) => void;
+  pending: boolean;
+  error: unknown;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
 }) {
-  const open = Boolean(expense)
+  const open = Boolean(expense);
+  const receiptInputRef = React.useRef<HTMLInputElement | null>(null);
+  const uploadReceiptMutation = useUploadExpenseReceiptMutation();
+
+  async function handleReceiptChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const response = await uploadReceiptMutation.mutateAsync(file);
+      onValuesChange({
+        ...values,
+        receipt: getReceiptPayload(response.file),
+      });
+      toast.success("Receipt uploaded");
+    } catch {
+      // The dialog-level upload alert renders below.
+    }
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -1917,6 +2109,10 @@ function MarkPaidDialog({
           <ApiErrorAlert
             title="Unable to mark expense paid"
             message={getApiErrorMessage(error, "")}
+          />
+          <ApiErrorAlert
+            title="Unable to upload receipt"
+            message={getApiErrorMessage(uploadReceiptMutation.error, "")}
           />
           <div className="grid gap-4 md:grid-cols-2">
             <Field>
@@ -1986,16 +2182,126 @@ function MarkPaidDialog({
               className="min-h-20"
             />
           </Field>
+          <Field>
+            <FieldLabel>Receipt</FieldLabel>
+            <input
+              ref={receiptInputRef}
+              type="file"
+              accept={RECEIPT_FILE_ACCEPT}
+              className="hidden"
+              onChange={handleReceiptChange}
+            />
+            {values.receipt ? (
+              <div className="flex flex-col gap-3 rounded-md border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <PaperclipIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {getReceiptFileName(values.receipt)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {values.receipt.mimeType ?? "Attachment"} ·{" "}
+                      {formatFileSize(values.receipt.fileSize)}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onValuesChange({ ...values, receipt: null })}
+                >
+                  <XIcon data-icon="inline-start" />
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-fit"
+                disabled={uploadReceiptMutation.isPending || pending}
+                onClick={() => receiptInputRef.current?.click()}
+              >
+                <UploadIcon data-icon="inline-start" />
+                {uploadReceiptMutation.isPending
+                  ? "Uploading"
+                  : "Upload receipt"}
+              </Button>
+            )}
+            <FieldDescription>
+              Optional image or PDF receipt, up to 5 MB.
+            </FieldDescription>
+          </Field>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onConfirm} disabled={pending}>
+          <AlertDialogCancel
+            disabled={pending || uploadReceiptMutation.isPending}
+          >
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            disabled={pending || uploadReceiptMutation.isPending}
+          >
             {pending ? "Saving" : "Mark Paid"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
+}
+
+function RemoveReceiptDialog({
+  expense,
+  pending,
+  error,
+  onOpenChange,
+  onConfirm,
+}: {
+  expense: Expense | null;
+  pending: boolean;
+  error: unknown;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  const open = Boolean(expense);
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogMedia>
+          <XIcon />
+        </AlertDialogMedia>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove this receipt?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This clears the receipt from the paid expense and keeps the payment
+            record intact.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="flex flex-col gap-4">
+          <ApiErrorAlert
+            title="Unable to remove receipt"
+            message={getApiErrorMessage(error, "")}
+          />
+          <Alert>
+            <PaperclipIcon />
+            <AlertTitle>{expense?.title ?? "Selected expense"}</AlertTitle>
+            <AlertDescription>
+              {getReceiptFileName(expense?.receipt)} will no longer be attached.
+            </AlertDescription>
+          </Alert>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={pending}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={onConfirm} disabled={pending}>
+            {pending ? "Removing" : "Remove Receipt"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
 
 function VoidExpenseDialog({
@@ -2007,15 +2313,15 @@ function VoidExpenseDialog({
   onOpenChange,
   onConfirm,
 }: {
-  expense: Expense | null
-  reason: string
-  onReasonChange: (reason: string) => void
-  pending: boolean
-  error: unknown
-  onOpenChange: (open: boolean) => void
-  onConfirm: () => void
+  expense: Expense | null;
+  reason: string;
+  onReasonChange: (reason: string) => void;
+  pending: boolean;
+  error: unknown;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
 }) {
-  const open = Boolean(expense)
+  const open = Boolean(expense);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -2068,5 +2374,5 @@ function VoidExpenseDialog({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-  )
+  );
 }

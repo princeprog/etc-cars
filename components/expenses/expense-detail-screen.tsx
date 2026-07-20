@@ -1,32 +1,33 @@
-"use client"
+"use client";
 
-import Link from "next/link"
+import Link from "next/link";
 import {
   ArrowLeftIcon,
   CalendarClockIcon,
+  ExternalLinkIcon,
   FileTextIcon,
   ReceiptTextIcon,
   UserRoundIcon,
-} from "lucide-react"
+} from "lucide-react";
 
-import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
+import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
 import {
   ExpenseStatusBadge,
   formatDate,
   formatDateTime,
   formatFrequency,
   formatMoney,
-} from "@/components/expenses/expense-formatters"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useExpenseQuery } from "@/hooks/queries/expenses/use-expense-query"
-import { getApiErrorMessage } from "@/types/api"
+} from "@/components/expenses/expense-formatters";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useExpenseQuery } from "@/hooks/queries/expenses/use-expense-query";
+import { getApiErrorMessage } from "@/types/api";
 
 export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
-  const expenseQuery = useExpenseQuery(expenseId)
-  const expense = expenseQuery.data?.expense
+  const expenseQuery = useExpenseQuery(expenseId);
+  const expense = expenseQuery.data?.expense;
 
   return (
     <AuthenticatedAppShell
@@ -83,14 +84,38 @@ export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-5 p-5 md:grid-cols-2">
-                <DetailItem label="Expected amount" value={formatMoney(expense.expectedAmount)} />
-                <DetailItem label="Actual paid amount" value={formatMoney(expense.actualPaidAmount)} />
-                <DetailItem label="Due date" value={formatDate(expense.dueDate)} />
-                <DetailItem label="Expense date" value={formatDate(expense.expenseDate)} />
-                <DetailItem label="Vendor" value={expense.vendorName ?? "No vendor"} />
-                <DetailItem label="Billing period" value={expense.billingPeriodKey ?? "N/A"} />
-                <DetailItem label="Payment method" value={expense.paymentMethod ?? "N/A"} />
-                <DetailItem label="Reference number" value={expense.referenceNumber ?? "N/A"} />
+                <DetailItem
+                  label="Expected amount"
+                  value={formatMoney(expense.expectedAmount)}
+                />
+                <DetailItem
+                  label="Actual paid amount"
+                  value={formatMoney(expense.actualPaidAmount)}
+                />
+                <DetailItem
+                  label="Due date"
+                  value={formatDate(expense.dueDate)}
+                />
+                <DetailItem
+                  label="Expense date"
+                  value={formatDate(expense.expenseDate)}
+                />
+                <DetailItem
+                  label="Vendor"
+                  value={expense.vendorName ?? "No vendor"}
+                />
+                <DetailItem
+                  label="Billing period"
+                  value={expense.billingPeriodKey ?? "N/A"}
+                />
+                <DetailItem
+                  label="Payment method"
+                  value={expense.paymentMethod ?? "N/A"}
+                />
+                <DetailItem
+                  label="Reference number"
+                  value={expense.referenceNumber ?? "N/A"}
+                />
               </CardContent>
             </Card>
 
@@ -109,7 +134,9 @@ export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
                   />
                   <DetailItem
                     label="Contact"
-                    value={expense.assignedStaff?.email ?? "All admins notified"}
+                    value={
+                      expense.assignedStaff?.email ?? "All admins notified"
+                    }
                   />
                 </CardContent>
               </Card>
@@ -122,10 +149,22 @@ export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 p-5">
-                  <DetailItem label="Paid at" value={formatDateTime(expense.paidAt)} />
-                  <DetailItem label="Voided at" value={formatDateTime(expense.voidedAt)} />
-                  <DetailItem label="Created" value={formatDateTime(expense.createdAt)} />
-                  <DetailItem label="Updated" value={formatDateTime(expense.updatedAt)} />
+                  <DetailItem
+                    label="Paid at"
+                    value={formatDateTime(expense.paidAt)}
+                  />
+                  <DetailItem
+                    label="Voided at"
+                    value={formatDateTime(expense.voidedAt)}
+                  />
+                  <DetailItem
+                    label="Created"
+                    value={formatDateTime(expense.createdAt)}
+                  />
+                  <DetailItem
+                    label="Updated"
+                    value={formatDateTime(expense.updatedAt)}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -143,11 +182,60 @@ export function ExpenseDetailScreen({ expenseId }: { expenseId: string }) {
                 </p>
               </CardContent>
             </Card>
+
+            <Card className="rounded-lg p-0 shadow-none xl:col-span-2">
+              <CardHeader className="border-b px-5 py-4">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ReceiptTextIcon className="size-4" />
+                  Receipt
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {expense.receipt?.originalFilename ?? "No receipt attached"}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {expense.receipt
+                      ? `${expense.receipt.mimeType ?? "Attachment"} · ${formatReceiptSize(expense.receipt.fileSize)}`
+                      : "Paid expenses can keep one image or PDF receipt."}
+                  </p>
+                </div>
+                {expense.receipt ? (
+                  <Button asChild variant="outline" className="w-fit">
+                    <a
+                      href={expense.receipt.fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ExternalLinkIcon data-icon="inline-start" />
+                      View receipt
+                    </a>
+                  </Button>
+                ) : null}
+              </CardContent>
+            </Card>
           </div>
         ) : null}
       </main>
     </AuthenticatedAppShell>
-  )
+  );
+}
+
+function formatReceiptSize(size: number | null | undefined) {
+  if (!size || !Number.isFinite(size)) {
+    return "Size unavailable";
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
@@ -158,7 +246,7 @@ function DetailItem({ label, value }: { label: string; value: string }) {
       </p>
       <p className="truncate text-sm font-medium text-foreground">{value}</p>
     </div>
-  )
+  );
 }
 
 function ExpenseDetailSkeleton() {
@@ -171,5 +259,5 @@ function ExpenseDetailSkeleton() {
       </div>
       <Skeleton className="h-40 rounded-lg xl:col-span-2" />
     </div>
-  )
+  );
 }

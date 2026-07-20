@@ -1,267 +1,293 @@
-export type ExpenseSettlementStatus = "unpaid" | "paid" | "void"
+export type ExpenseSettlementStatus = "unpaid" | "paid" | "void";
 
 export type ExpenseDisplayStatus =
-  "unpaid" | "paid" | "void" | "overdue" | "due_today" | "due_soon" | "upcoming"
+  | "unpaid"
+  | "paid"
+  | "void"
+  | "overdue"
+  | "due_today"
+  | "due_soon"
+  | "upcoming";
 
-export type ExpenseFrequency = "one_time" | "weekly" | "monthly" | "yearly"
-export type ExpenseRuleFrequency = Exclude<ExpenseFrequency, "one_time">
+export type ExpenseFrequency = "one_time" | "weekly" | "monthly" | "yearly";
+export type ExpenseRuleFrequency = Exclude<ExpenseFrequency, "one_time">;
 
 export interface ExpenseCategory {
-  id: string
-  name: string
-  description: string | null
-  isDefault: boolean
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
+  id: string;
+  name: string;
+  description: string | null;
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ExpenseStaffSummary {
-  id: string
-  fullName: string
-  email: string
-  active: boolean
+  id: string;
+  fullName: string;
+  email: string;
+  active: boolean;
+}
+
+export interface ExpenseReceipt {
+  fileUrl: string;
+  publicId: string | null;
+  originalFilename: string | null;
+  mimeType: string | null;
+  fileSize: number | null;
+  uploadedAt: string | null;
+  uploadedByUserId: string | null;
+}
+
+export interface ExpenseReceiptPayload {
+  fileUrl?: string;
+  publicId?: string | null;
+  originalFilename?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | string | null;
 }
 
 export interface Expense {
-  id: string
-  recurringRuleId: string | null
-  billingPeriodKey: string | null
-  title: string
-  categoryId: string
-  category: ExpenseCategory
-  expectedAmount: string
-  actualPaidAmount: string | null
-  expenseDate: string | null
-  dueDate: string
-  paidAt: string | null
-  status: ExpenseSettlementStatus
-  displayStatus: ExpenseDisplayStatus
-  frequency: ExpenseFrequency
-  vendorName: string | null
-  assignedStaffId: string | null
-  assignedStaff: ExpenseStaffSummary | null
-  paymentMethod: string | null
-  referenceNumber: string | null
-  notes: string | null
-  voidedAt: string | null
-  voidReason: string | null
-  createdByUserId: string
-  updatedByUserId: string | null
-  createdAt: string
-  updatedAt: string
+  id: string;
+  recurringRuleId: string | null;
+  billingPeriodKey: string | null;
+  title: string;
+  categoryId: string;
+  category: ExpenseCategory;
+  expectedAmount: string;
+  actualPaidAmount: string | null;
+  expenseDate: string | null;
+  dueDate: string;
+  paidAt: string | null;
+  status: ExpenseSettlementStatus;
+  displayStatus: ExpenseDisplayStatus;
+  frequency: ExpenseFrequency;
+  vendorName: string | null;
+  assignedStaffId: string | null;
+  assignedStaff: ExpenseStaffSummary | null;
+  paymentMethod: string | null;
+  referenceNumber: string | null;
+  notes: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
+  receipt: ExpenseReceipt | null;
+  createdByUserId: string;
+  updatedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ExpenseRecurringRule {
-  id: string
-  title: string
-  categoryId: string
-  category: ExpenseCategory
-  expectedAmount: string
-  frequency: ExpenseRuleFrequency
-  dueDay: number
-  startDate: string
-  endDate: string | null
-  vendorName: string | null
-  assignedStaffId: string | null
-  assignedStaff: ExpenseStaffSummary | null
-  notes: string | null
-  isActive: boolean
-  createdByUserId: string
-  updatedByUserId: string | null
-  createdAt: string
-  updatedAt: string
+  id: string;
+  title: string;
+  categoryId: string;
+  category: ExpenseCategory;
+  expectedAmount: string;
+  frequency: ExpenseRuleFrequency;
+  dueDay: number;
+  startDate: string;
+  endDate: string | null;
+  vendorName: string | null;
+  assignedStaffId: string | null;
+  assignedStaff: ExpenseStaffSummary | null;
+  notes: string | null;
+  isActive: boolean;
+  createdByUserId: string;
+  updatedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ExpenseListFilters {
-  page?: number
-  pageSize?: number
-  search?: string
-  status?: ExpenseDisplayStatus | "all"
-  categoryId?: string
-  frequency?: ExpenseFrequency | "all"
-  assignedStaffId?: string
-  startDate?: string
-  endDate?: string
-  sortBy?: "dueDate" | "title" | "amount" | "createdAt"
-  sortOrder?: "asc" | "desc"
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  status?: ExpenseDisplayStatus | "all";
+  categoryId?: string;
+  frequency?: ExpenseFrequency | "all";
+  assignedStaffId?: string;
+  startDate?: string;
+  endDate?: string;
+  sortBy?: "dueDate" | "title" | "amount" | "createdAt";
+  sortOrder?: "asc" | "desc";
 }
 
 export interface ExpenseListResponse {
-  expenses: Expense[]
+  expenses: Expense[];
   pagination: {
-    page: number
-    pageSize: number
-    total: number
-    totalPages: number
-  }
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface ExpenseResponse {
-  expense: Expense
+  expense: Expense;
 }
 
 export interface ExpenseCategoriesResponse {
-  categories: ExpenseCategory[]
+  categories: ExpenseCategory[];
 }
 
 export interface ExpenseCategoryResponse {
-  category: ExpenseCategory
+  category: ExpenseCategory;
 }
 
 export interface ExpenseRecurringRulesResponse {
-  rules: ExpenseRecurringRule[]
+  rules: ExpenseRecurringRule[];
 }
 
 export interface ExpenseRecurringRuleResponse {
-  rule: ExpenseRecurringRule
+  rule: ExpenseRecurringRule;
 }
 
 export interface CreateExpensePayload {
-  title?: string
-  categoryId?: string
-  expectedAmount?: string
-  expenseDate?: string | null
-  dueDate?: string
-  frequency?: "one_time"
-  vendorName?: string | null
-  assignedStaffId?: string | null
-  notes?: string | null
+  title?: string;
+  categoryId?: string;
+  expectedAmount?: string;
+  expenseDate?: string | null;
+  dueDate?: string;
+  frequency?: "one_time";
+  vendorName?: string | null;
+  assignedStaffId?: string | null;
+  notes?: string | null;
 }
 
-export type UpdateExpensePayload = Omit<CreateExpensePayload, "frequency">
+export type UpdateExpensePayload = Omit<CreateExpensePayload, "frequency">;
 
 export interface MarkExpensePaidPayload {
-  actualPaidAmount?: string
-  paidAt?: string
-  paymentMethod?: string | null
-  referenceNumber?: string | null
-  notes?: string | null
+  actualPaidAmount?: string;
+  paidAt?: string;
+  paymentMethod?: string | null;
+  referenceNumber?: string | null;
+  notes?: string | null;
+  receipt?: ExpenseReceiptPayload | null;
 }
 
 export interface VoidExpensePayload {
-  reason?: string
+  reason?: string;
 }
 
 export interface CreateExpenseCategoryPayload {
-  name?: string
-  description?: string | null
+  name?: string;
+  description?: string | null;
 }
 
 export interface UpdateExpenseCategoryPayload {
-  name?: string
-  description?: string | null
-  isActive?: boolean
+  name?: string;
+  description?: string | null;
+  isActive?: boolean;
 }
 
 export interface ExpenseRecurringRuleFilters {
-  search?: string
-  categoryId?: string
-  frequency?: ExpenseRuleFrequency | "all"
-  assignedStaffId?: string
-  includeInactive?: boolean
+  search?: string;
+  categoryId?: string;
+  frequency?: ExpenseRuleFrequency | "all";
+  assignedStaffId?: string;
+  includeInactive?: boolean;
 }
 
 export interface CreateExpenseRecurringRulePayload {
-  title?: string
-  categoryId?: string
-  expectedAmount?: string
-  frequency?: ExpenseRuleFrequency
-  dueDay?: number
-  startDate?: string
-  endDate?: string | null
-  vendorName?: string | null
-  assignedStaffId?: string | null
-  notes?: string | null
+  title?: string;
+  categoryId?: string;
+  expectedAmount?: string;
+  frequency?: ExpenseRuleFrequency;
+  dueDay?: number;
+  startDate?: string;
+  endDate?: string | null;
+  vendorName?: string | null;
+  assignedStaffId?: string | null;
+  notes?: string | null;
 }
 
 export interface UpdateExpenseRecurringRulePayload extends Partial<CreateExpenseRecurringRulePayload> {
-  isActive?: boolean
+  isActive?: boolean;
 }
 
 export interface ExpenseReportFilters {
-  startDate?: string
-  endDate?: string
-  categoryId?: string
-  status?: ExpenseDisplayStatus | "all"
-  search?: string
-  frequency?: ExpenseFrequency | "all"
-  paymentMethod?: string
-  vendorName?: string
-  assignedStaffId?: string
+  startDate?: string;
+  endDate?: string;
+  categoryId?: string;
+  status?: ExpenseDisplayStatus | "all";
+  search?: string;
+  frequency?: ExpenseFrequency | "all";
+  paymentMethod?: string;
+  vendorName?: string;
+  assignedStaffId?: string;
 }
 
 export interface ExpenseReportSummary {
-  totalExpenses: number
-  totalExpectedAmount: string
-  paidAmount: string
-  unpaidAmount: string
-  overdueCount: number
-  overdueAmount: string
-  dueWithinSevenDaysCount: number
-  dueWithinSevenDaysAmount: string
-  highestSpendingCategory: ExpenseCategoryBreakdown | null
-  asOfDate: string
+  totalExpenses: number;
+  totalExpectedAmount: string;
+  paidAmount: string;
+  unpaidAmount: string;
+  overdueCount: number;
+  overdueAmount: string;
+  dueWithinSevenDaysCount: number;
+  dueWithinSevenDaysAmount: string;
+  highestSpendingCategory: ExpenseCategoryBreakdown | null;
+  asOfDate: string;
 }
 
 export interface ExpenseCategoryBreakdown {
-  categoryId: string
-  categoryName: string
-  count: number
-  expectedAmount: string
-  paidAmount: string
-  unpaidAmount: string
+  categoryId: string;
+  categoryName: string;
+  count: number;
+  expectedAmount: string;
+  paidAmount: string;
+  unpaidAmount: string;
 }
 
 export interface ExpenseSettlementBreakdown {
-  status: ExpenseSettlementStatus
-  count: number
-  expectedAmount: string
-  paidAmount: string
+  status: ExpenseSettlementStatus;
+  count: number;
+  expectedAmount: string;
+  paidAmount: string;
 }
 
 export interface ExpenseReportItem {
-  id: string
-  title: string
-  categoryId: string
-  categoryName: string
-  expectedAmount: string
-  actualPaidAmount: string | null
-  dueDate: string
-  paidAt: string | null
-  vendorName: string | null
-  paymentMethod: string | null
-  assignedStaffId: string | null
-  assignedStaffName: string
-  status: ExpenseSettlementStatus
-  displayStatus: ExpenseDisplayStatus
+  id: string;
+  title: string;
+  categoryId: string;
+  categoryName: string;
+  expectedAmount: string;
+  actualPaidAmount: string | null;
+  dueDate: string;
+  paidAt: string | null;
+  vendorName: string | null;
+  paymentMethod: string | null;
+  assignedStaffId: string | null;
+  assignedStaffName: string;
+  status: ExpenseSettlementStatus;
+  displayStatus: ExpenseDisplayStatus;
 }
 
 export interface ExpenseMonthlyTrendPoint {
-  month: string
-  count: number
-  expectedAmount: string
-  paidAmount: string
-  unpaidAmount: string
+  month: string;
+  count: number;
+  expectedAmount: string;
+  paidAmount: string;
+  unpaidAmount: string;
 }
 
 export interface ExpenseReportResponse {
   filters: {
-    startDate: string | null
-    endDate: string | null
-    categoryId: string | null
-    status: string | null
-    search: string | null
-    frequency: string | null
-    paymentMethod: string | null
-    vendorName: string | null
-    assignedStaffId: string | null
-  }
-  summary: ExpenseReportSummary
-  byCategory: ExpenseCategoryBreakdown[]
-  paidVsUnpaid: ExpenseSettlementBreakdown[]
-  overdue: ExpenseReportItem[]
-  monthlyTrend: ExpenseMonthlyTrendPoint[]
+    startDate: string | null;
+    endDate: string | null;
+    categoryId: string | null;
+    status: string | null;
+    search: string | null;
+    frequency: string | null;
+    paymentMethod: string | null;
+    vendorName: string | null;
+    assignedStaffId: string | null;
+  };
+  summary: ExpenseReportSummary;
+  byCategory: ExpenseCategoryBreakdown[];
+  paidVsUnpaid: ExpenseSettlementBreakdown[];
+  overdue: ExpenseReportItem[];
+  monthlyTrend: ExpenseMonthlyTrendPoint[];
 }
 
-export type ExpenseExportDataset = "by-category" | "overdue" | "monthly-trend"
+export type ExpenseExportDataset = "by-category" | "overdue" | "monthly-trend";

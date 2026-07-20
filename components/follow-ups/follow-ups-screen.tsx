@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { format, formatDistanceToNow, isPast, isToday } from "date-fns"
-import type { DateRange } from "react-day-picker"
+import * as React from "react";
+import { format, formatDistanceToNow, isPast, isToday } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import {
   ArrowUpIcon,
   CalendarClockIcon,
@@ -15,25 +15,25 @@ import {
   PlusIcon,
   RotateCcwIcon,
   SearchIcon,
-} from "lucide-react"
-import { toast } from "@/components/ui/sileo"
+} from "lucide-react";
+import { toast } from "@/components/ui/sileo";
 
-import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { EmptyState } from "@/components/operations/empty-state"
-import { ModuleLoadingState } from "@/components/operations/module-loading-state"
-import { SubmitButton } from "@/components/operations/submit-button"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DateRangePicker } from "@/components/ui/date-picker"
-import { DateTimePicker } from "@/components/ui/date-time-picker"
+import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
+import { EmptyState } from "@/components/operations/empty-state";
+import { ModuleLoadingState } from "@/components/operations/module-loading-state";
+import { SubmitButton } from "@/components/operations/submit-button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DateRangePicker } from "@/components/ui/date-picker";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +41,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,17 +49,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/dropdown-menu";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
@@ -67,7 +67,7 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"
+} from "@/components/ui/sheet";
 import {
   Table,
   TableBody,
@@ -75,18 +75,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
-import { useCompleteFollowUpMutation } from "@/hooks/mutations/follow-ups/use-complete-follow-up-mutation"
-import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation"
-import { useUpdateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-update-follow-up-mutation"
-import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
-import { useFollowUpsQuery } from "@/hooks/queries/follow-ups/use-follow-ups-query"
-import { useFollowUpsSummaryQuery } from "@/hooks/queries/follow-ups/use-follow-ups-summary-query"
-import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query"
-import { getApiErrorMessage } from "@/types/api"
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel"
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { useCompleteFollowUpMutation } from "@/hooks/mutations/follow-ups/use-complete-follow-up-mutation";
+import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation";
+import { useUpdateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-update-follow-up-mutation";
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query";
+import { useFollowUpsQuery } from "@/hooks/queries/follow-ups/use-follow-ups-query";
+import { useFollowUpsSummaryQuery } from "@/hooks/queries/follow-ups/use-follow-ups-summary-query";
+import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query";
+import { getApiErrorMessage } from "@/types/api";
+import { ActivityHistoryPanel } from "../activity-history/activity-history-panel";
 import {
   LEAD_TYPES,
   type FollowUp,
@@ -96,32 +96,32 @@ import {
   type FollowUpStatus,
   type FollowUpStatusFilter,
   type LeadType,
-} from "@/types/follow-ups"
+} from "@/types/follow-ups";
 
 type FollowUpFormValues = {
-  leadType: LeadType
-  leadId: string
-  dueAt: Date | undefined
-  note: string
-}
+  leadType: LeadType;
+  leadId: string;
+  dueAt: Date | undefined;
+  note: string;
+};
 
-type StatusFilter = "all" | FollowUpStatus | "DueToday" | "Upcoming"
-type LeadTypeFilter = "all" | LeadType
-type AssigneeFilter = "all" | "mine"
+type StatusFilter = "all" | FollowUpStatus | "DueToday" | "Upcoming";
+type LeadTypeFilter = "all" | LeadType;
+type AssigneeFilter = "all" | "mine";
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50] as const
-const DEFAULT_PAGE_SIZE = 20
+const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+const DEFAULT_PAGE_SIZE = 20;
 
 function getFollowUpPageSizeOptions(total: number) {
   if (total <= 0) {
-    return [DEFAULT_PAGE_SIZE]
+    return [DEFAULT_PAGE_SIZE];
   }
 
   const largestVisibleOption =
     PAGE_SIZE_OPTIONS.find((option) => total <= option) ??
-    PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1]
+    PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1];
 
-  return PAGE_SIZE_OPTIONS.filter((option) => option <= largestVisibleOption)
+  return PAGE_SIZE_OPTIONS.filter((option) => option <= largestVisibleOption);
 }
 
 function getEmptyFollowUpFormValues(): FollowUpFormValues {
@@ -130,57 +130,61 @@ function getEmptyFollowUpFormValues(): FollowUpFormValues {
     leadId: "",
     dueAt: undefined,
     note: "",
-  }
+  };
 }
 
 function getAssigneeLabel(assigneeUserId: string, currentUserId?: string) {
   if (assigneeUserId === currentUserId) {
-    return "You"
+    return "You";
   }
-  return "Assigned"
+  return "Assigned";
 }
 
 function getFollowUpStatusBadgeClassName(status: FollowUpStatus) {
   switch (status) {
     case "Overdue":
-      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300"
+      return "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300";
     case "Due":
-      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+      return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
     case "Completed":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+      return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300";
+    case "Cancelled":
+      return "border-muted bg-muted text-muted-foreground";
     default:
-      return ""
+      return "";
   }
 }
 
 function getLeadTypeBadgeClassName(type: LeadType) {
   return type === "seller"
     ? "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900 dark:bg-violet-950/40 dark:text-violet-300"
-    : "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300"
+    : "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300";
 }
 
 function getQueueAccentClassName(status: FollowUpStatus) {
   switch (status) {
     case "Overdue":
-      return "border-rose-500"
+      return "border-rose-500";
     case "Due":
-      return "border-amber-500"
+      return "border-amber-500";
     case "Completed":
-      return "border-emerald-500"
+      return "border-emerald-500";
+    case "Cancelled":
+      return "border-muted-foreground";
     default:
-      return "border-border"
+      return "border-border";
   }
 }
 
 function truncateText(value: string, length: number) {
   if (value.length <= length) {
-    return value
+    return value;
   }
-  return `${value.slice(0, length - 1)}…`
+  return `${value.slice(0, length - 1)}…`;
 }
 
 function toStartOfDayIso(dateStr: string) {
-  return new Date(`${dateStr}T00:00:00`).toISOString()
+  return new Date(`${dateStr}T00:00:00`).toISOString();
 }
 
 function SortableColumnHeader({
@@ -190,21 +194,21 @@ function SortableColumnHeader({
   onSort,
   className,
 }: {
-  label: string
-  sortKey: FollowUpSortKey
-  currentSort: FollowUpSort
-  onSort: (sort: FollowUpSort) => void
-  className?: string
+  label: string;
+  sortKey: FollowUpSortKey;
+  currentSort: FollowUpSort;
+  onSort: (sort: FollowUpSort) => void;
+  className?: string;
 }) {
-  const isAsc = currentSort === sortKey
-  const isDesc = currentSort === (`-${sortKey}` as FollowUpSort)
-  const isActive = isAsc || isDesc
+  const isAsc = currentSort === sortKey;
+  const isDesc = currentSort === (`-${sortKey}` as FollowUpSort);
+  const isActive = isAsc || isDesc;
 
   function handleClick() {
     if (!isActive || isDesc) {
-      onSort(sortKey)
+      onSort(sortKey);
     } else {
-      onSort(`-${sortKey}` as FollowUpSort)
+      onSort(`-${sortKey}` as FollowUpSort);
     }
   }
 
@@ -227,7 +231,7 @@ function SortableColumnHeader({
         </span>
       </button>
     </TableHead>
-  )
+  );
 }
 
 function FollowUpForm({
@@ -235,15 +239,15 @@ function FollowUpForm({
   onChange,
   leadOptions,
 }: {
-  values: FollowUpFormValues
-  onChange: (values: FollowUpFormValues) => void
-  leadOptions: { id: string; label: string }[]
+  values: FollowUpFormValues;
+  onChange: (values: FollowUpFormValues) => void;
+  leadOptions: { id: string; label: string }[];
 }) {
   function updateField<K extends keyof FollowUpFormValues>(
     key: K,
     value: FollowUpFormValues[K],
   ) {
-    onChange({ ...values, [key]: value })
+    onChange({ ...values, [key]: value });
   }
 
   return (
@@ -332,110 +336,112 @@ function FollowUpForm({
         </Field>
       </section>
     </FieldGroup>
-  )
+  );
 }
 
 export function FollowUpsScreen() {
-  const authQuery = useAuthenticatedUserQuery()
-  const sellerLeadsQuery = useSellerLeadsQuery({ page: 1, pageSize: 100 })
-  const buyerLeadsQuery = useBuyerLeadsQuery({ page: 1, pageSize: 100 })
-  const createMutation = useCreateFollowUpMutation()
-  const completeMutation = useCompleteFollowUpMutation()
-  const updateMutation = useUpdateFollowUpMutation()
+  const authQuery = useAuthenticatedUserQuery();
+  const sellerLeadsQuery = useSellerLeadsQuery({ page: 1, pageSize: 100 });
+  const buyerLeadsQuery = useBuyerLeadsQuery({ page: 1, pageSize: 100 });
+  const createMutation = useCreateFollowUpMutation();
+  const completeMutation = useCompleteFollowUpMutation();
+  const updateMutation = useUpdateFollowUpMutation();
 
-  const [createOpen, setCreateOpen] = React.useState(false)
-  const [createStep, setCreateStep] = React.useState<"form" | "confirm">("form")
-  const [searchInput, setSearchInput] = React.useState("")
-  const [debouncedSearch, setDebouncedSearch] = React.useState("")
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all")
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [createStep, setCreateStep] = React.useState<"form" | "confirm">(
+    "form",
+  );
+  const [searchInput, setSearchInput] = React.useState("");
+  const [debouncedSearch, setDebouncedSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [leadTypeFilter, setLeadTypeFilter] =
-    React.useState<LeadTypeFilter>("all")
+    React.useState<LeadTypeFilter>("all");
   const [assigneeFilter, setAssigneeFilter] =
-    React.useState<AssigneeFilter>("all")
+    React.useState<AssigneeFilter>("all");
   const [dueDateRange, setDueDateRange] = React.useState<DateRange | undefined>(
     undefined,
-  )
-  const [sort, setSort] = React.useState<FollowUpSort>("dueAt")
-  const [page, setPage] = React.useState(1)
-  const [pageSize, setPageSize] = React.useState<number>(DEFAULT_PAGE_SIZE)
+  );
+  const [sort, setSort] = React.useState<FollowUpSort>("dueAt");
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState<number>(DEFAULT_PAGE_SIZE);
   const [form, setForm] = React.useState<FollowUpFormValues>(
     getEmptyFollowUpFormValues,
-  )
+  );
   const [completeTarget, setCompleteTarget] = React.useState<FollowUp | null>(
     null,
-  )
-  const [editTarget, setEditTarget] = React.useState<FollowUp | null>(null)
+  );
+  const [editTarget, setEditTarget] = React.useState<FollowUp | null>(null);
   const [rescheduleTarget, setRescheduleTarget] =
-    React.useState<FollowUp | null>(null)
+    React.useState<FollowUp | null>(null);
   const [outcomeNotes, setOutcomeNotes] = React.useState<
     Record<string, string>
-  >({})
+  >({});
 
-  const currentUserId = authQuery.data?.user.id
-  const canAssignToCurrentUser = Boolean(currentUserId) && !authQuery.isPending
+  const currentUserId = authQuery.data?.user.id;
+  const canAssignToCurrentUser = Boolean(currentUserId) && !authQuery.isPending;
 
   React.useEffect(() => {
     const handle = setTimeout(() => {
-      setDebouncedSearch(searchInput)
-      setPage(1)
-    }, 300)
-    return () => clearTimeout(handle)
-  }, [searchInput])
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [searchInput]);
 
   const handleStatusChange = (value: StatusFilter) => {
-    setStatusFilter(value)
-    setPage(1)
-  }
+    setStatusFilter(value);
+    setPage(1);
+  };
   const handleLeadTypeChange = (value: LeadTypeFilter) => {
-    setLeadTypeFilter(value)
-    setPage(1)
-  }
+    setLeadTypeFilter(value);
+    setPage(1);
+  };
   const handleAssigneeChange = (value: AssigneeFilter) => {
-    setAssigneeFilter(value)
-    setPage(1)
-  }
+    setAssigneeFilter(value);
+    setPage(1);
+  };
   const handleDueDateRangeChange = (value: DateRange | undefined) => {
-    setDueDateRange(value)
-    setPage(1)
-  }
+    setDueDateRange(value);
+    setPage(1);
+  };
   const handleSortChange = (value: FollowUpSort) => {
-    setSort(value)
-    setPage(1)
-  }
+    setSort(value);
+    setPage(1);
+  };
   const handlePageSizeChange = (value: number) => {
-    setPageSize(value)
-    setPage(1)
-  }
+    setPageSize(value);
+    setPage(1);
+  };
 
-  const assigneeScopeId = assigneeFilter === "mine" ? currentUserId : undefined
+  const assigneeScopeId = assigneeFilter === "mine" ? currentUserId : undefined;
 
   const filters = React.useMemo<FollowUpListFilters>(() => {
-    let apiStatus: FollowUpStatusFilter | undefined
-    let filterDueFrom: string | undefined
-    let filterDueTo: string | undefined
+    let apiStatus: FollowUpStatusFilter | undefined;
+    let filterDueFrom: string | undefined;
+    let filterDueTo: string | undefined;
 
     if (statusFilter === "all") {
-      apiStatus = undefined
+      apiStatus = undefined;
     } else if (statusFilter === "DueToday") {
-      apiStatus = "DueToday"
+      apiStatus = "DueToday";
     } else if (statusFilter === "Upcoming") {
-      apiStatus = "Due"
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      const pad = (v: number) => String(v).padStart(2, "0")
-      const tomorrowStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`
-      filterDueFrom = toStartOfDayIso(tomorrowStr)
+      apiStatus = "Due";
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const pad = (v: number) => String(v).padStart(2, "0");
+      const tomorrowStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`;
+      filterDueFrom = toStartOfDayIso(tomorrowStr);
     } else {
-      apiStatus = statusFilter
+      apiStatus = statusFilter;
     }
 
     if (dueDateRange?.from && dueDateRange?.to) {
-      const dFrom = new Date(dueDateRange.from)
-      dFrom.setHours(0, 0, 0, 0)
-      filterDueFrom = dFrom.toISOString()
-      const dTo = new Date(dueDateRange.to)
-      dTo.setHours(23, 59, 59, 999)
-      filterDueTo = dTo.toISOString()
+      const dFrom = new Date(dueDateRange.from);
+      dFrom.setHours(0, 0, 0, 0);
+      filterDueFrom = dFrom.toISOString();
+      const dTo = new Date(dueDateRange.to);
+      dTo.setHours(23, 59, 59, 999);
+      filterDueTo = dTo.toISOString();
     }
 
     return {
@@ -448,7 +454,7 @@ export function FollowUpsScreen() {
       sort,
       page,
       pageSize,
-    }
+    };
   }, [
     statusFilter,
     leadTypeFilter,
@@ -458,26 +464,26 @@ export function FollowUpsScreen() {
     sort,
     page,
     pageSize,
-  ])
+  ]);
 
-  const followUpsQuery = useFollowUpsQuery(filters)
-  const summaryQuery = useFollowUpsSummaryQuery(assigneeScopeId)
+  const followUpsQuery = useFollowUpsQuery(filters);
+  const summaryQuery = useFollowUpsSummaryQuery(assigneeScopeId);
 
   const followUps = React.useMemo(
     () => followUpsQuery.data?.followUps ?? [],
     [followUpsQuery.data?.followUps],
-  )
-  const paginationData = followUpsQuery.data
-  const summary = summaryQuery.data?.summary
+  );
+  const paginationData = followUpsQuery.data;
+  const summary = summaryQuery.data?.summary;
 
   const sellerLeads = React.useMemo(
     () => sellerLeadsQuery.data?.sellerLeads ?? [],
     [sellerLeadsQuery.data?.sellerLeads],
-  )
+  );
   const buyerLeads = React.useMemo(
     () => buyerLeadsQuery.data?.buyerLeads ?? [],
     [buyerLeadsQuery.data?.buyerLeads],
-  )
+  );
 
   const leadOptions =
     form.leadType === "seller"
@@ -488,47 +494,47 @@ export function FollowUpsScreen() {
       : buyerLeads.map((lead) => ({
           id: lead.id,
           label: `${lead.buyerName} • ${lead.contactNumber}`,
-        }))
+        }));
 
   const hasActiveFilters =
     statusFilter !== "all" ||
     leadTypeFilter !== "all" ||
     assigneeFilter !== "all" ||
     dueDateRange?.from !== undefined ||
-    Boolean(searchInput)
+    Boolean(searchInput);
 
   function resetFilters() {
-    setSearchInput("")
-    setStatusFilter("all")
-    setLeadTypeFilter("all")
-    setAssigneeFilter("all")
-    setDueDateRange(undefined)
-    setPage(1)
+    setSearchInput("");
+    setStatusFilter("all");
+    setLeadTypeFilter("all");
+    setAssigneeFilter("all");
+    setDueDateRange(undefined);
+    setPage(1);
   }
 
   function handleCreateOpen() {
-    setForm(getEmptyFollowUpFormValues())
-    setCreateStep("form")
-    setCreateOpen(true)
+    setForm(getEmptyFollowUpFormValues());
+    setCreateStep("form");
+    setCreateOpen(true);
   }
 
   function handleCreateClose() {
-    setCreateOpen(false)
-    setCreateStep("form")
-    setForm(getEmptyFollowUpFormValues())
+    setCreateOpen(false);
+    setCreateStep("form");
+    setForm(getEmptyFollowUpFormValues());
   }
 
   function handleCreateFormSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setCreateStep("confirm")
+    event.preventDefault();
+    setCreateStep("confirm");
   }
 
   async function handleCreateConfirm() {
     if (!currentUserId) {
       toast.error(
         "Your account is still loading. Please wait a moment and try again.",
-      )
-      return
+      );
+      return;
     }
 
     await createMutation.mutateAsync(
@@ -544,11 +550,11 @@ export function FollowUpsScreen() {
         onSuccess: () => {
           toast.success("Follow-up created", {
             details: `Reminder set for ${format(form.dueAt!, "MMM d, yyyy h:mm a")}.`,
-          })
-          handleCreateClose()
+          });
+          handleCreateClose();
         },
       },
-    )
+    );
   }
 
   function handleComplete(followUp: FollowUp) {
@@ -562,20 +568,21 @@ export function FollowUpsScreen() {
       {
         onSuccess: () => {
           toast.success("Follow-up completed", {
-            details: "This task has been removed from the active follow-up queue.",
-          })
-          setOutcomeNotes((current) => ({ ...current, [followUp.id]: "" }))
-          setCompleteTarget(null)
+            details:
+              "This task has been removed from the active follow-up queue.",
+          });
+          setOutcomeNotes((current) => ({ ...current, [followUp.id]: "" }));
+          setCompleteTarget(null);
         },
       },
-    )
+    );
   }
 
   const summaryCards: {
-    title: string
-    value: number
-    caption: string
-    badge: string
+    title: string;
+    value: number;
+    caption: string;
+    badge: string;
   }[] = [
     {
       title: "Overdue",
@@ -601,33 +608,33 @@ export function FollowUpsScreen() {
       caption: "Closed tasks",
       badge: "Finalized",
     },
-  ]
+  ];
 
-  const total = paginationData?.total ?? 0
-  const pageCount = paginationData?.totalPages ?? 1
+  const total = paginationData?.total ?? 0;
+  const pageCount = paginationData?.totalPages ?? 1;
   const pageSizeOptions = React.useMemo(
     () => getFollowUpPageSizeOptions(total),
     [total],
-  )
-  const currentPage = Math.min(page, pageCount)
-  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1
-  const rangeEnd = Math.min(currentPage * pageSize, total)
+  );
+  const currentPage = Math.min(page, pageCount);
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
 
   React.useEffect(() => {
     if (page > pageCount) {
-      setPage(pageCount)
+      setPage(pageCount);
     }
-  }, [page, pageCount])
+  }, [page, pageCount]);
 
   React.useEffect(() => {
     const largestPageSize =
-      pageSizeOptions[pageSizeOptions.length - 1] ?? DEFAULT_PAGE_SIZE
+      pageSizeOptions[pageSizeOptions.length - 1] ?? DEFAULT_PAGE_SIZE;
 
     if (pageSize > largestPageSize) {
-      setPageSize(largestPageSize)
-      setPage(1)
+      setPageSize(largestPageSize);
+      setPage(1);
     }
-  }, [pageSize, pageSizeOptions])
+  }, [pageSize, pageSizeOptions]);
 
   return (
     <AuthenticatedAppShell title="Follow-Ups">
@@ -709,6 +716,7 @@ export function FollowUpsScreen() {
                 <SelectItem value="Due">Due</SelectItem>
                 <SelectItem value="Upcoming">Upcoming</SelectItem>
                 <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -842,12 +850,12 @@ export function FollowUpsScreen() {
                   </TableHeader>
                   <TableBody>
                     {followUps.map((followUp) => {
-                      const notePreview = followUp.outcomeNote || followUp.note
+                      const notePreview = followUp.outcomeNote || followUp.note;
                       const isOverdue =
                         followUp.status === "Overdue" ||
                         (followUp.status === "Due" &&
                           isPast(new Date(followUp.dueAt)) &&
-                          !isToday(new Date(followUp.dueAt)))
+                          !isToday(new Date(followUp.dueAt)));
 
                       return (
                         <TableRow
@@ -958,14 +966,17 @@ export function FollowUpsScreen() {
                                 </DropdownMenuLabel>
                                 <DropdownMenuItem
                                   onClick={() => {
-                                    navigator.clipboard.writeText(followUp.note)
-                                    toast.success("Follow-up note copied")
+                                    navigator.clipboard.writeText(
+                                      followUp.note,
+                                    );
+                                    toast.success("Follow-up note copied");
                                   }}
                                 >
                                   <CalendarDaysIcon />
                                   Copy Note
                                 </DropdownMenuItem>
-                                {followUp.status !== "Completed" ? (
+                                {followUp.status !== "Completed" &&
+                                followUp.status !== "Cancelled" ? (
                                   <>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem
@@ -997,7 +1008,7 @@ export function FollowUpsScreen() {
                             </DropdownMenu>
                           </TableCell>
                         </TableRow>
-                      )
+                      );
                     })}
                   </TableBody>
                 </Table>
@@ -1085,7 +1096,7 @@ export function FollowUpsScreen() {
         <Sheet
           open={createOpen}
           onOpenChange={(open) => {
-            if (!open) handleCreateClose()
+            if (!open) handleCreateClose();
           }}
         >
           <SheetContent
@@ -1354,7 +1365,7 @@ export function FollowUpsScreen() {
         </Dialog>
       </div>
     </AuthenticatedAppShell>
-  )
+  );
 }
 
 // Edit: note only — simple "are you sure?" confirmation
@@ -1363,16 +1374,16 @@ function EditFollowUpDialogForm({
   mutation,
   onClose,
 }: {
-  followUp: FollowUp
-  mutation: ReturnType<typeof useUpdateFollowUpMutation>
-  onClose: () => void
+  followUp: FollowUp;
+  mutation: ReturnType<typeof useUpdateFollowUpMutation>;
+  onClose: () => void;
 }) {
-  const [note, setNote] = React.useState(followUp.note)
-  const [step, setStep] = React.useState<"form" | "confirm">("form")
+  const [note, setNote] = React.useState(followUp.note);
+  const [step, setStep] = React.useState<"form" | "confirm">("form");
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setStep("confirm")
+    event.preventDefault();
+    setStep("confirm");
   }
 
   async function handleConfirm() {
@@ -1385,11 +1396,11 @@ function EditFollowUpDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up note updated")
-          onClose()
+          toast.success("Follow-up note updated");
+          onClose();
         },
       },
-    )
+    );
   }
 
   if (step === "confirm") {
@@ -1423,7 +1434,7 @@ function EditFollowUpDialogForm({
           </SubmitButton>
         </DialogFooter>
       </>
-    )
+    );
   }
 
   return (
@@ -1458,7 +1469,7 @@ function EditFollowUpDialogForm({
         </DialogFooter>
       </form>
     </>
-  )
+  );
 }
 
 // Reschedule: date only — simple "are you sure?" confirmation
@@ -1467,16 +1478,18 @@ function RescheduleFollowUpDialogForm({
   mutation,
   onClose,
 }: {
-  followUp: FollowUp
-  mutation: ReturnType<typeof useUpdateFollowUpMutation>
-  onClose: () => void
+  followUp: FollowUp;
+  mutation: ReturnType<typeof useUpdateFollowUpMutation>;
+  onClose: () => void;
 }) {
-  const [dueAt, setDueAt] = React.useState<Date>(() => new Date(followUp.dueAt))
-  const [step, setStep] = React.useState<"form" | "confirm">("form")
+  const [dueAt, setDueAt] = React.useState<Date>(
+    () => new Date(followUp.dueAt),
+  );
+  const [step, setStep] = React.useState<"form" | "confirm">("form");
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setStep("confirm")
+    event.preventDefault();
+    setStep("confirm");
   }
 
   async function handleConfirm() {
@@ -1491,11 +1504,11 @@ function RescheduleFollowUpDialogForm({
         onSuccess: () => {
           toast.success("Follow-up rescheduled", {
             details: `New due date is ${format(dueAt, "MMM d, yyyy h:mm a")}.`,
-          })
-          onClose()
+          });
+          onClose();
         },
       },
-    )
+    );
   }
 
   if (step === "confirm") {
@@ -1529,7 +1542,7 @@ function RescheduleFollowUpDialogForm({
           </SubmitButton>
         </DialogFooter>
       </>
-    )
+    );
   }
 
   return (
@@ -1553,7 +1566,7 @@ function RescheduleFollowUpDialogForm({
             id="rescheduleFollowUpDueAt"
             value={dueAt}
             onChange={(date) => {
-              if (date) setDueAt(date)
+              if (date) setDueAt(date);
             }}
             minDate={new Date()}
             placeholder="Select new date & time"
@@ -1568,5 +1581,5 @@ function RescheduleFollowUpDialogForm({
         </DialogFooter>
       </form>
     </>
-  )
+  );
 }

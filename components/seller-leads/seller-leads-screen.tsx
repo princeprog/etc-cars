@@ -82,8 +82,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { DateTimePicker } from "@/components/ui/date-time-picker";
-import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation";
+import { LeadFollowUpDialogForm } from "@/components/follow-ups/lead-follow-up-dialog-form";
 import { useCreateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-create-seller-lead-mutation";
 import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation";
 import {
@@ -1159,7 +1158,6 @@ export function SellerLeadsScreen() {
   const authQuery = useAuthenticatedUserQuery();
   const createMutation = useCreateSellerLeadMutation();
   const updateMutation = useUpdateSellerLeadMutation();
-  const createFollowUpMutation = useCreateFollowUpMutation();
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [activeFilter, setActiveFilter] = React.useState<
@@ -1368,7 +1366,9 @@ export function SellerLeadsScreen() {
               </Button>
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <p>Showing {leads.length} of {total} seller leads</p>
+              <p>
+                Showing {leads.length} of {total} seller leads
+              </p>
             </div>
           </div>
         </section>
@@ -1588,9 +1588,7 @@ export function SellerLeadsScreen() {
               </div>
             )}
           </CardContent>
-          {!isLoadingSellerLeads &&
-          !sellerLeadsQuery.error &&
-          total > 0 ? (
+          {!isLoadingSellerLeads && !sellerLeadsQuery.error && total > 0 ? (
             <ListPagination
               page={page}
               totalPages={totalPages}
@@ -1678,11 +1676,16 @@ export function SellerLeadsScreen() {
         >
           <DialogContent className="max-w-xl">
             {followUpLead ? (
-              <ScheduleSellerFollowUpDialogForm
+              <LeadFollowUpDialogForm
                 key={followUpLead.id}
-                lead={followUpLead}
+                leadType="seller"
+                leadId={followUpLead.id}
+                leadName={followUpLead.sellerName}
+                leadSecondary={`${followUpLead.contactNumber} - ${followUpLead.vehicleBrand} ${followUpLead.vehicleModel}`}
                 currentUserId={currentUserId}
-                mutation={createFollowUpMutation}
+                assigneeUserId={followUpLead.assigneeUserId}
+                defaultDueAt={getDefaultSellerFollowUpDueAt()}
+                defaultNote={getDefaultSellerFollowUpNote(followUpLead)}
                 onClose={() => setFollowUpLead(null)}
               />
             ) : null}
@@ -1690,110 +1693,5 @@ export function SellerLeadsScreen() {
         </Dialog>
       </div>
     </AuthenticatedAppShell>
-  );
-}
-
-function ScheduleSellerFollowUpDialogForm({
-  lead,
-  currentUserId,
-  mutation,
-  onClose,
-}: {
-  lead: SellerLead;
-  currentUserId?: string;
-  mutation: ReturnType<typeof useCreateFollowUpMutation>;
-  onClose: () => void;
-}) {
-  const assigneeUserId = currentUserId ?? lead.assigneeUserId ?? "";
-  const [dueAt, setDueAt] = React.useState<Date | undefined>(() =>
-    getDefaultSellerFollowUpDueAt(),
-  );
-  const [note, setNote] = React.useState(() =>
-    getDefaultSellerFollowUpNote(lead),
-  );
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!assigneeUserId || !dueAt || !note.trim()) {
-      return;
-    }
-
-    await mutation.mutateAsync(
-      {
-        leadType: "seller",
-        sellerLeadId: lead.id,
-        assigneeUserId,
-        dueAt: dueAt.toISOString(),
-        note: note.trim(),
-      },
-      {
-        onSuccess: () => {
-          toast.success("Follow-up scheduled", {
-            details: `${lead.sellerName} is due on ${format(dueAt, "MMM d, yyyy h:mm a")}.`,
-          });
-          onClose();
-        },
-      },
-    );
-  }
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Schedule Follow-Up</DialogTitle>
-        <DialogDescription>
-          Create the next contact task for {lead.sellerName}.
-        </DialogDescription>
-      </DialogHeader>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <ApiErrorAlert
-          title="Unable to schedule follow-up"
-          message={getApiErrorMessage(mutation.error, "")}
-        />
-        <div className="rounded-md border bg-muted/20 px-3 py-3 text-sm">
-          <p className="font-medium text-foreground">{lead.sellerName}</p>
-          <p className="text-muted-foreground">
-            {lead.contactNumber} - {lead.vehicleBrand} {lead.vehicleModel}
-          </p>
-        </div>
-        <FieldGroup className="gap-4">
-          <Field>
-            <FieldLabel htmlFor="sellerFollowUpDueAt">Due at</FieldLabel>
-            <DateTimePicker
-              id="sellerFollowUpDueAt"
-              value={dueAt}
-              onChange={setDueAt}
-              minDate={new Date()}
-              placeholder="Select due date and time"
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="sellerFollowUpNote">Follow-up note</FieldLabel>
-            <Textarea
-              id="sellerFollowUpNote"
-              rows={4}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              required
-            />
-          </Field>
-        </FieldGroup>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <SubmitButton
-            type="submit"
-            pending={mutation.isPending}
-            pendingLabel="Scheduling follow-up"
-            disabled={!assigneeUserId || !dueAt || !note.trim()}
-          >
-            <CalendarPlusIcon />
-            Schedule Follow-Up
-          </SubmitButton>
-        </DialogFooter>
-      </form>
-    </>
   );
 }

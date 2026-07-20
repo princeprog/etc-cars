@@ -92,10 +92,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { LeadFollowUpDialogForm } from "@/components/follow-ups/lead-follow-up-dialog-form";
 import { useCreateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-create-buyer-lead-mutation";
 import { useUpdateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-update-buyer-lead-mutation";
-import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation";
 import { useActivityHistoryQuery } from "@/hooks/queries/activity-history/use-activity-history-query";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query";
@@ -677,7 +676,6 @@ export function BuyerLeadsScreen() {
   const authQuery = useAuthenticatedUserQuery();
   const createMutation = useCreateBuyerLeadMutation();
   const updateMutation = useUpdateBuyerLeadMutation();
-  const createFollowUpMutation = useCreateFollowUpMutation();
 
   const [searchTerm, setSearchTerm] = React.useState("");
   const [activeFilter, setActiveFilter] = React.useState<
@@ -1172,11 +1170,16 @@ export function BuyerLeadsScreen() {
         >
           <DialogContent className="max-w-xl">
             {followUpLead ? (
-              <ScheduleBuyerFollowUpDialogForm
+              <LeadFollowUpDialogForm
                 key={followUpLead.id}
-                lead={followUpLead}
+                leadType="buyer"
+                leadId={followUpLead.id}
+                leadName={followUpLead.buyerName}
+                leadSecondary={followUpLead.contactNumber}
                 currentUserId={currentUserId}
-                mutation={createFollowUpMutation}
+                assigneeUserId={followUpLead.assigneeUserId}
+                defaultDueAt={getDefaultFollowUpDueAt()}
+                defaultNote={getDefaultBuyerFollowUpNote(followUpLead)}
                 onClose={() => setFollowUpLead(null)}
               />
             ) : null}
@@ -1704,109 +1707,6 @@ function EditBuyerLeadDialogForm({
             pendingLabel="Saving changes"
           >
             Save Changes
-          </SubmitButton>
-        </DialogFooter>
-      </form>
-    </>
-  );
-}
-
-function ScheduleBuyerFollowUpDialogForm({
-  lead,
-  currentUserId,
-  mutation,
-  onClose,
-}: {
-  lead: BuyerLead;
-  currentUserId?: string;
-  mutation: ReturnType<typeof useCreateFollowUpMutation>;
-  onClose: () => void;
-}) {
-  const assigneeUserId = currentUserId ?? lead.assigneeUserId ?? "";
-  const [dueAt, setDueAt] = React.useState<Date | undefined>(() =>
-    getDefaultFollowUpDueAt(),
-  );
-  const [note, setNote] = React.useState(() =>
-    getDefaultBuyerFollowUpNote(lead),
-  );
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!assigneeUserId || !dueAt || !note.trim()) {
-      return;
-    }
-
-    await mutation.mutateAsync(
-      {
-        leadType: "buyer",
-        buyerLeadId: lead.id,
-        assigneeUserId,
-        dueAt: dueAt.toISOString(),
-        note: note.trim(),
-      },
-      {
-        onSuccess: () => {
-          toast.success("Follow-up scheduled", {
-            details: `${lead.buyerName} is due on ${format(dueAt, "MMM d, yyyy h:mm a")}.`,
-          });
-          onClose();
-        },
-      },
-    );
-  }
-
-  return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Schedule Follow-Up</DialogTitle>
-        <DialogDescription>
-          Create the next contact task for {lead.buyerName}.
-        </DialogDescription>
-      </DialogHeader>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <ApiErrorAlert
-          title="Unable to schedule follow-up"
-          message={getApiErrorMessage(mutation.error, "")}
-        />
-        <div className="rounded-md border bg-muted/20 px-3 py-3 text-sm">
-          <p className="font-medium text-foreground">{lead.buyerName}</p>
-          <p className="text-muted-foreground">{lead.contactNumber}</p>
-        </div>
-        <FieldGroup className="gap-4">
-          <Field>
-            <FieldLabel htmlFor="buyerFollowUpDueAt">Due at</FieldLabel>
-            <DateTimePicker
-              id="buyerFollowUpDueAt"
-              value={dueAt}
-              onChange={setDueAt}
-              minDate={new Date()}
-              placeholder="Select due date and time"
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="buyerFollowUpNote">Follow-up note</FieldLabel>
-            <Textarea
-              id="buyerFollowUpNote"
-              rows={4}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              required
-            />
-          </Field>
-        </FieldGroup>
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <SubmitButton
-            type="submit"
-            pending={mutation.isPending}
-            pendingLabel="Scheduling follow-up"
-            disabled={!assigneeUserId || !dueAt || !note.trim()}
-          >
-            <CalendarPlusIcon />
-            Schedule Follow-Up
           </SubmitButton>
         </DialogFooter>
       </form>

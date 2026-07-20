@@ -1250,10 +1250,11 @@ function ExpensesTable({
     );
   }
 
+  const canManageExpense = (expense: Expense) =>
+    isAdmin ||
+    Boolean(currentUserId && expense.assignedStaffId === currentUserId);
   const canEditExpense = (expense: Expense) =>
-    expense.status === "unpaid" &&
-    (isAdmin ||
-      Boolean(currentUserId && expense.assignedStaffId === currentUserId));
+    expense.status === "unpaid" && canManageExpense(expense);
 
   return (
     <Table className="w-full border-collapse">
@@ -1364,7 +1365,7 @@ function ExpensesTable({
                       View receipt
                     </DropdownMenuItem>
                   ) : null}
-                  {isAdmin && expense.status === "paid" ? (
+                  {canManageExpense(expense) && expense.status === "paid" ? (
                     <>
                       <DropdownMenuItem
                         disabled={receiptActionPending}
@@ -1385,7 +1386,8 @@ function ExpensesTable({
                       ) : null}
                     </>
                   ) : null}
-                  {expense.receipt || (isAdmin && expense.status === "paid") ? (
+                  {expense.receipt ||
+                  (canManageExpense(expense) && expense.status === "paid") ? (
                     <DropdownMenuSeparator />
                   ) : null}
                   {canEditExpense(expense) ? (
@@ -1394,7 +1396,8 @@ function ExpensesTable({
                         <PencilIcon data-icon="inline-start" />
                         Edit
                       </DropdownMenuItem>
-                      {isAdmin && expense.status === "unpaid" ? (
+                      {canManageExpense(expense) &&
+                      expense.status === "unpaid" ? (
                         <>
                           <DropdownMenuItem onClick={() => onMarkPaid(expense)}>
                             <CheckCircle2Icon data-icon="inline-start" />
@@ -1413,7 +1416,9 @@ function ExpensesTable({
                     </>
                   ) : (
                     <DropdownMenuItem disabled>
-                      {isAdmin ? "No actions available" : "Read only"}
+                      {canManageExpense(expense)
+                        ? "No actions available"
+                        : "Read only"}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>

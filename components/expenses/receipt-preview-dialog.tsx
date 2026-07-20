@@ -23,6 +23,9 @@ export function ReceiptPreviewDialog({
   const mimeType = receipt?.mimeType ?? "";
   const isPdf = mimeType === "application/pdf";
   const isImage = mimeType.startsWith("image/");
+  const pdfPreviewUrl = receipt
+    ? getCloudinaryPdfPreviewUrl(receipt.fileUrl)
+    : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -49,27 +52,60 @@ export function ReceiptPreviewDialog({
                 />
               </div>
             ) : isPdf ? (
-              <iframe
-                title={filename}
-                src={receipt.fileUrl}
-                className="h-[70vh] max-h-[720px] w-full border-0 bg-background"
-              />
-            ) : (
-              <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 p-6 text-center">
-                <FileTextIcon className="size-10 text-muted-foreground" />
-                <div className="max-w-sm">
-                  <p className="text-sm font-medium text-foreground">
-                    Preview unavailable
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    This receipt type cannot be previewed in the browser.
-                  </p>
-                </div>
+              <div className="flex h-[70vh] max-h-[720px] flex-col items-center justify-center gap-3 p-3">
+                {pdfPreviewUrl ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={pdfPreviewUrl}
+                      alt={filename}
+                      className="max-h-[calc(70vh-2.5rem)] max-w-full object-contain"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Showing page 1 of the PDF receipt.
+                    </p>
+                  </>
+                ) : (
+                  <PreviewUnavailable />
+                )}
               </div>
+            ) : (
+              <PreviewUnavailable />
             )}
           </div>
         ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function getCloudinaryPdfPreviewUrl(fileUrl: string) {
+  const imageUploadMarker = "/image/upload/";
+  const markerIndex = fileUrl.indexOf(imageUploadMarker);
+
+  if (markerIndex === -1) {
+    return null;
+  }
+
+  const prefix = fileUrl.slice(0, markerIndex + imageUploadMarker.length);
+  const suffix = fileUrl.slice(markerIndex + imageUploadMarker.length);
+  const withoutExtension = suffix.replace(/\.pdf(\?.*)?$/i, "");
+
+  return `${prefix}f_jpg,pg_1,w_1600,c_limit/${withoutExtension}.jpg`;
+}
+
+function PreviewUnavailable() {
+  return (
+    <div className="flex min-h-[320px] flex-col items-center justify-center gap-3 p-6 text-center">
+      <FileTextIcon className="size-10 text-muted-foreground" />
+      <div className="max-w-sm">
+        <p className="text-sm font-medium text-foreground">
+          Preview unavailable
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          This receipt type cannot be previewed in the browser.
+        </p>
+      </div>
+    </div>
   );
 }

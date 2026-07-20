@@ -8,6 +8,7 @@ import type {
   ListUsersParams,
   LoginPayload,
   LogoutResponse,
+  RealtimeTokenResponse,
   UpdateUserStatusPayload,
 } from "@/types/auth"
 
@@ -24,6 +25,12 @@ export function login(payload: LoginPayload) {
 
 export function getAuthenticatedUser() {
   return apiRequest<AuthenticatedUserResponse>(API_ENDPOINTS.auth.me)
+}
+
+export function getRealtimeToken() {
+  return apiRequest<RealtimeTokenResponse>(API_ENDPOINTS.auth.realtimeToken, {
+    retryOnUnauthorized: false,
+  })
 }
 
 export function createStaff(payload: CreateStaffPayload) {

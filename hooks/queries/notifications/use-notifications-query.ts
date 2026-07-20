@@ -11,7 +11,7 @@ export function useNotificationsQuery(filters: NotificationListFilters = {}) {
     queryKey: notificationsQueryKeys.filteredList(filters),
     queryFn: () => getNotifications(filters),
     placeholderData: keepPreviousData,
-    refetchInterval: 60_000,
+    refetchInterval: 5 * 60_000,
     retry: false,
   })
 }

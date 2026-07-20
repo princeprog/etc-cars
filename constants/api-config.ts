@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
     login: "/auth/login",
     logout: "/auth/logout",
     me: "/auth/me",
+    realtimeToken: "/auth/realtime-token",
     refresh: "/auth/refresh",
     users: "/auth/users",
     userStatus: (id: string) => `/auth/users/${id}/status`,

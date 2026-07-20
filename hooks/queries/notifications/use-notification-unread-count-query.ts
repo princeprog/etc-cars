@@ -9,7 +9,7 @@ export function useNotificationUnreadCountQuery() {
   return useQuery({
     queryKey: notificationsQueryKeys.unreadCount(),
     queryFn: getNotificationUnreadCount,
-    refetchInterval: 30_000,
+    refetchInterval: 5 * 60_000,
     retry: false,
   })
 }

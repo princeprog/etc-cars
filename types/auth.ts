@@ -16,6 +16,11 @@ export interface AuthenticatedUserResponse {
   user: AuthenticatedUser
 }
 
+export interface RealtimeTokenResponse {
+  token: string
+  expiresAt: string
+}
+
 export interface CreateStaffPayload {
   email: string
   fullName?: string

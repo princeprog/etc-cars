@@ -39,6 +39,14 @@ export function createStaff(payload: CreateStaffPayload) {
 export function getUsers(params?: ListUsersParams) {
   const searchParams = new URLSearchParams()
 
+  if (params?.page) {
+    searchParams.set("page", String(params.page))
+  }
+
+  if (params?.pageSize) {
+    searchParams.set("pageSize", String(params.pageSize))
+  }
+
   if (params?.search?.trim()) {
     searchParams.set("search", params.search.trim())
   }

@@ -133,16 +133,16 @@ export function AppSidebar({
             <SidebarMenuButton
               asChild
               size="lg"
-              className="data-[slot=sidebar-menu-button]:h-12! data-[slot=sidebar-menu-button]:justify-start data-[slot=sidebar-menu-button]:p-2!"
+              className="data-[slot=sidebar-menu-button]:h-16! data-[slot=sidebar-menu-button]:justify-start data-[slot=sidebar-menu-button]:p-2!"
             >
               <Link href="/dashboard" aria-label="ETC Cars dashboard">
-                <div className="relative h-9 w-32 shrink-0 overflow-hidden">
+                <div className="relative h-12 w-44 shrink-0 overflow-hidden">
                   <Image
                     src="/etc_light_logo.png"
                     alt="ETC Cars"
                     fill
                     className="object-contain dark:hidden"
-                    sizes="128px"
+                    sizes="176px"
                     priority
                   />
                   <Image
@@ -150,7 +150,7 @@ export function AppSidebar({
                     alt="ETC Cars"
                     fill
                     className="hidden object-contain dark:block"
-                    sizes="128px"
+                    sizes="176px"
                     priority
                   />
                 </div>

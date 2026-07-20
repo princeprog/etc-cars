@@ -28,9 +28,21 @@ export interface ChangePasswordPayload {
 
 export interface AuthenticatedUsersResponse {
   users: AuthenticatedUser[]
+  page: number
+  pageSize: number
+  total: number
+  totalPages: number
+  summary: {
+    adminCount: number
+    totalStaffCount: number
+    activeStaffCount: number
+    disabledStaffCount: number
+  }
 }
 
 export interface ListUsersParams {
+  page?: number
+  pageSize?: number
   search?: string
   status?: "active" | "disabled" | "change_password_required" | "all"
 }

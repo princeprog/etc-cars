@@ -3,6 +3,8 @@
 import * as React from "react"
 import {
   BanIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   GripVerticalIcon,
   MailIcon,
   MoreHorizontalIcon,
@@ -35,6 +37,9 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card"
 import {
   Dialog,
@@ -81,6 +86,8 @@ import { getApiErrorMessage } from "@/types/api"
 import type { AuthenticatedUser, ListUsersParams } from "@/types/auth"
 
 const DEFAULT_STAFF_PASSWORD = "123456"
+const STAFF_PAGE_SIZE_OPTIONS = [10, 20, 50] as const
+const DEFAULT_STAFF_PAGE_SIZE = 10
 const STATUS_FILTER_OPTIONS: Array<{
   label: string
   value: NonNullable<ListUsersParams["status"]>
@@ -91,14 +98,19 @@ const STATUS_FILTER_OPTIONS: Array<{
   { label: "change password required", value: "change_password_required" },
 ]
 
-const SUMMARY_CARD_STYLES = {
-  admins:
-    "border-sky-200/70 bg-linear-to-br from-sky-50 via-white to-sky-100/70",
-  active:
-    "border-emerald-200/70 bg-linear-to-br from-emerald-50 via-white to-emerald-100/70",
-  total:
-    "border-violet-200/70 bg-linear-to-br from-violet-50 via-white to-violet-100/70",
-} as const
+function getStaffPageSizeOptions(total: number) {
+  if (total <= DEFAULT_STAFF_PAGE_SIZE) {
+    return [DEFAULT_STAFF_PAGE_SIZE]
+  }
+
+  const largestVisibleOption =
+    STAFF_PAGE_SIZE_OPTIONS.find((option) => total <= option) ??
+    STAFF_PAGE_SIZE_OPTIONS[STAFF_PAGE_SIZE_OPTIONS.length - 1]
+
+  return STAFF_PAGE_SIZE_OPTIONS.filter(
+    (option) => option <= largestVisibleOption,
+  )
+}
 
 export function StaffScreen() {
   return (
@@ -116,9 +128,15 @@ function StaffScreenContent() {
   const [search, setSearch] = React.useState("")
   const [statusFilter, setStatusFilter] =
     React.useState<NonNullable<ListUsersParams["status"]>>("all")
+  const [page, setPage] = React.useState(1)
+  const [pageSize, setPageSize] = React.useState<number>(
+    DEFAULT_STAFF_PAGE_SIZE,
+  )
   const usersQuery = useUsersQuery({
     search,
     status: statusFilter,
+    page,
+    pageSize,
   })
   const createStaffMutation = useCreateStaffMutation()
   const updateUserStatusMutation = useUpdateUserStatusMutation()
@@ -130,6 +148,28 @@ function StaffScreenContent() {
     React.useState<AuthenticatedUser | null>(null)
   const [createdUser, setCreatedUser] =
     React.useState<AuthenticatedUser | null>(null)
+  const total = usersQuery.data?.total ?? 0
+  const totalPages = usersQuery.data?.totalPages ?? 1
+  const pageSizeOptions = React.useMemo(
+    () => getStaffPageSizeOptions(total),
+    [total],
+  )
+
+  React.useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
+
+  React.useEffect(() => {
+    const largestPageSize =
+      pageSizeOptions[pageSizeOptions.length - 1] ?? DEFAULT_STAFF_PAGE_SIZE
+
+    if (pageSize > largestPageSize) {
+      setPageSize(largestPageSize)
+      setPage(1)
+    }
+  }, [pageSize, pageSizeOptions])
 
   if (authQuery.data?.user.role !== "admin") {
     return (
@@ -177,7 +217,9 @@ function StaffScreenContent() {
     }
 
     if (pendingStatusUser.active && pendingStatusUser.mustChangePassword) {
-      toast.error("This account must complete its first password change before it can be disabled.")
+      toast.error(
+        "This account must complete its first password change before it can be disabled.",
+      )
       setPendingStatusUser(null)
       return
     }
@@ -200,17 +242,32 @@ function StaffScreenContent() {
     )
   }
 
-  const users = usersQuery.data?.users ?? []
-  const staffUsers = users.filter((user) => user.role === "staff")
-  const totalStaffCount = staffUsers.length
-  const activeStaffCount = staffUsers.filter((user) => user.active).length
-  const listedAdminCount = users.filter((user) => user.role === "admin").length
-  const currentUser = authQuery.data?.user
-  const adminCount =
-    currentUser?.role === "admin" && !users.some((user) => user.id === currentUser.id)
-      ? listedAdminCount + 1
-      : listedAdminCount
-  const disabledStaffCount = staffUsers.filter((user) => !user.active).length
+  const staffUsers = usersQuery.data?.users ?? []
+  const summary = usersQuery.data?.summary
+  const totalStaffCount = summary?.totalStaffCount ?? 0
+  const activeStaffCount = summary?.activeStaffCount ?? 0
+  const adminCount = summary?.adminCount ?? 0
+  const disabledStaffCount = summary?.disabledStaffCount ?? 0
+  const currentPage = Math.min(page, totalPages)
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1
+  const rangeEnd = Math.min(currentPage * pageSize, total)
+
+  function handleSearchChange(value: string) {
+    setSearch(value)
+    setPage(1)
+  }
+
+  function handleStatusFilterChange(
+    value: NonNullable<ListUsersParams["status"]>,
+  ) {
+    setStatusFilter(value)
+    setPage(1)
+  }
+
+  function handlePageSizeChange(value: number) {
+    setPageSize(value)
+    setPage(1)
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
@@ -224,9 +281,7 @@ function StaffScreenContent() {
             </p>
           </div>
 
-          <Button
-            onClick={() => setCreateDialogOpen(true)}
-          >
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <UserPlusIcon />
             New Staff
           </Button>
@@ -234,38 +289,35 @@ function StaffScreenContent() {
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
-            label="Admin"
+            label="Admin users"
             value={adminCount}
-            className={SUMMARY_CARD_STYLES.admins}
+            description="Can manage staff, settings, and workspace controls"
           />
           <SummaryCard
-            label="All Staff"
+            label="Staff accounts"
             value={totalStaffCount}
-            className={SUMMARY_CARD_STYLES.total}
+            description="Team members registered for daily operations"
           />
           <SummaryCard
-            label="Active"
+            label="Active access"
             value={activeStaffCount}
-            className={SUMMARY_CARD_STYLES.active}
+            description="Staff who can currently sign in to the workspace"
           />
           <SummaryCard
-            label="Disabled"
+            label="Disabled access"
             value={disabledStaffCount}
-            className="border-amber-200/70 bg-linear-to-br from-amber-50 via-white to-amber-100/70"
+            description="Accounts blocked from signing in"
           />
         </div>
       </section>
 
-      <AlertDialog
-        open={createConfirmOpen}
-        onOpenChange={setCreateConfirmOpen}
-      >
+      <AlertDialog open={createConfirmOpen} onOpenChange={setCreateConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm staff creation</AlertDialogTitle>
             <AlertDialogDescription>
-              Create a staff account for {email || "this user"} with the
-              default password {DEFAULT_STAFF_PASSWORD}?
+              Create a staff account for {email || "this user"} with the default
+              password {DEFAULT_STAFF_PASSWORD}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -300,7 +352,7 @@ function StaffScreenContent() {
               <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => handleSearchChange(event.target.value)}
                 placeholder="Search staff"
                 className="pl-9"
               />
@@ -308,7 +360,9 @@ function StaffScreenContent() {
             <Select
               value={statusFilter}
               onValueChange={(value) =>
-                setStatusFilter(value as NonNullable<ListUsersParams["status"]>)
+                handleStatusFilterChange(
+                  value as NonNullable<ListUsersParams["status"]>,
+                )
               }
             >
               <SelectTrigger className="w-full md:w-[180px]">
@@ -327,6 +381,7 @@ function StaffScreenContent() {
               onClick={() => {
                 setSearch("")
                 setStatusFilter("all")
+                setPage(1)
               }}
             >
               Reset
@@ -334,11 +389,11 @@ function StaffScreenContent() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Showing {staffUsers.length} filtered staff accounts
+            Showing {total} filtered staff accounts
           </p>
         </div>
 
-        <Card className="overflow-hidden border-border/70 py-0 shadow-xs">
+        <Card>
           <CardContent className="p-0">
             <ApiErrorAlert
               title="Unable to load staff data"
@@ -357,133 +412,222 @@ function StaffScreenContent() {
                 No staff accounts yet.
               </div>
             ) : (
-              <Table className="min-w-[980px] border-collapse">
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="h-10 w-8 px-3" />
-                    <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
-                      ID
-                    </TableHead>
-                    <TableHead className="h-10 min-w-[240px] px-4 text-xs font-semibold text-foreground/80">
-                      Staff Member
-                    </TableHead>
-                    <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
-                      Email
-                    </TableHead>
-                    <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
-                      Status
-                    </TableHead>
-                    <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
-                      Access
-                    </TableHead>
-                    <TableHead className="h-10 w-12 px-4 text-right text-xs font-semibold text-foreground/80">
-                      Actions
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {staffUsers.map((user) => {
-                    const isUpdating =
-                      updateUserStatusMutation.isPending &&
-                      updateUserStatusMutation.variables?.id === user.id
-                    const status = getStaffStatus(user)
-                    const disableBlockedByPasswordReset = user.active && user.mustChangePassword
-
-                    return (
-                      <TableRow key={user.id} className="hover:bg-muted/15">
-                        <TableCell className="px-3 py-3 text-muted-foreground">
-                          <GripVerticalIcon className="size-4 opacity-55" />
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
-                            variant="outline"
-                            className="rounded-md border-border/70 bg-background px-1.5 py-0 font-mono text-[10px] tracking-wide text-muted-foreground"
-                          >
-                            {getStaffCode(user)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="size-11 border border-border/60 bg-muted">
-                              <AvatarFallback className="bg-transparent text-sm font-semibold text-foreground">
-                                {getInitials(user.fullName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="space-y-1">
-                              <p className="font-medium text-foreground">
-                                {user.fullName}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {user.active ? "Can access workspace" : "Access currently blocked"}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-muted-foreground">
-                          <div className="inline-flex items-center gap-2">
-                            <MailIcon className="size-4 text-muted-foreground/80" />
-                            <span>{user.email}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={status.variant}
-                            className="rounded-full border px-3 py-1 font-medium"
-                          >
-                            {status.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3">
-                          <Badge
-                            variant="outline"
-                            className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground"
-                          >
-                            {user.mustChangePassword ? "Password reset needed" : "Ready to sign in"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="px-4 py-3 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                aria-label={`Actions for ${user.fullName}`}
-                                className="text-muted-foreground hover:bg-muted hover:text-foreground"
-                              >
-                                <MoreHorizontalIcon />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              <DropdownMenuLabel>Staff actions</DropdownMenuLabel>
-                              <DropdownMenuItem
-                                onClick={() => setPendingStatusUser(user)}
-                                disabled={isUpdating || disableBlockedByPasswordReset}
-                              >
-                                {user.active ? (
-                                  <>
-                                    <BanIcon />
-                                    Disable
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheckIcon />
-                                    Enable
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              {disableBlockedByPasswordReset ? (
-                                <DropdownMenuItem disabled className="text-xs text-muted-foreground opacity-100">
-                                  Password change required before disabling
-                                </DropdownMenuItem>
-                              ) : null}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+              <>
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[980px] border-collapse">
+                    <TableHeader className="bg-muted/30">
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="h-10 w-8 px-3" />
+                        <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
+                          ID
+                        </TableHead>
+                        <TableHead className="h-10 min-w-[240px] px-4 text-xs font-semibold text-foreground/80">
+                          Staff Member
+                        </TableHead>
+                        <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
+                          Email
+                        </TableHead>
+                        <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
+                          Status
+                        </TableHead>
+                        <TableHead className="h-10 px-4 text-xs font-semibold text-foreground/80">
+                          Access
+                        </TableHead>
+                        <TableHead className="h-10 w-12 px-4 text-right text-xs font-semibold text-foreground/80">
+                          Actions
+                        </TableHead>
                       </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {staffUsers.map((user) => {
+                        const isUpdating =
+                          updateUserStatusMutation.isPending &&
+                          updateUserStatusMutation.variables?.id === user.id
+                        const status = getStaffStatus(user)
+                        const disableBlockedByPasswordReset =
+                          user.active && user.mustChangePassword
+
+                        return (
+                          <TableRow key={user.id} className="hover:bg-muted/15">
+                            <TableCell className="px-3 py-3 text-muted-foreground">
+                              <GripVerticalIcon className="size-4 opacity-55" />
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              <Badge
+                                variant="outline"
+                                className="rounded-md border-border/70 bg-background px-1.5 py-0 font-mono text-[10px] tracking-wide text-muted-foreground"
+                              >
+                                {getStaffCode(user)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="size-11 border border-border/60 bg-muted">
+                                  <AvatarFallback className="bg-transparent text-sm font-semibold text-foreground">
+                                    {getInitials(user.fullName)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="space-y-1">
+                                  <p className="font-medium text-foreground">
+                                    {user.fullName}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {user.active
+                                      ? "Can access workspace"
+                                      : "Access currently blocked"}
+                                  </p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-muted-foreground">
+                              <div className="inline-flex items-center gap-2">
+                                <MailIcon className="size-4 text-muted-foreground/80" />
+                                <span>{user.email}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={status.variant}
+                                className="rounded-full border px-3 py-1 font-medium"
+                              >
+                                {status.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-4 py-3">
+                              <Badge
+                                variant="outline"
+                                className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground"
+                              >
+                                {user.mustChangePassword
+                                  ? "Password reset needed"
+                                  : "Ready to sign in"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="px-4 py-3 text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label={`Actions for ${user.fullName}`}
+                                    className="text-muted-foreground hover:bg-muted hover:text-foreground"
+                                  >
+                                    <MoreHorizontalIcon />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-44"
+                                >
+                                  <DropdownMenuLabel>
+                                    Staff actions
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuItem
+                                    onClick={() => setPendingStatusUser(user)}
+                                    disabled={
+                                      isUpdating ||
+                                      disableBlockedByPasswordReset
+                                    }
+                                  >
+                                    {user.active ? (
+                                      <>
+                                        <BanIcon />
+                                        Disable
+                                      </>
+                                    ) : (
+                                      <>
+                                        <UserCheckIcon />
+                                        Enable
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  {disableBlockedByPasswordReset ? (
+                                    <DropdownMenuItem
+                                      disabled
+                                      className="text-xs text-muted-foreground opacity-100"
+                                    >
+                                      Password change required before disabling
+                                    </DropdownMenuItem>
+                                  ) : null}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 sm:flex-row">
+                  <p className="text-sm text-muted-foreground">
+                    Showing{" "}
+                    <span className="font-medium text-foreground">
+                      {rangeStart}
+                    </span>
+                    –
+                    <span className="font-medium text-foreground">
+                      {rangeEnd}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-medium text-foreground">{total}</span>
+                  </p>
+                  <div className="flex flex-col items-center gap-3 sm:flex-row">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Rows
+                      </span>
+                      <Select
+                        value={String(pageSize)}
+                        onValueChange={(value) =>
+                          handlePageSizeChange(Number(value))
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[76px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {pageSizeOptions.map((option) => (
+                            <SelectItem key={option} value={String(option)}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label="Previous staff page"
+                        onClick={() =>
+                          setPage((current) => Math.max(1, current - 1))
+                        }
+                        disabled={currentPage <= 1 || usersQuery.isFetching}
+                      >
+                        <ChevronLeftIcon />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon-sm"
+                        aria-label="Next staff page"
+                        onClick={() =>
+                          setPage((current) =>
+                            Math.min(totalPages, current + 1),
+                          )
+                        }
+                        disabled={
+                          currentPage >= totalPages || usersQuery.isFetching
+                        }
+                      >
+                        <ChevronRightIcon />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -607,23 +751,25 @@ function CreateStaffDialog({
             </Field>
           </FieldGroup>
 
-          <div className="rounded-lg border border-border/70 bg-muted/20 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Role</p>
-                <p className="text-xs text-muted-foreground">
-                  Staff can use the operational workspace.
-                </p>
+          <Card size="sm">
+            <CardContent>
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Role</p>
+                  <p className="text-xs text-muted-foreground">
+                    Staff can use the operational workspace.
+                  </p>
+                </div>
+                <Badge variant="secondary" className="rounded-md">
+                  Staff
+                </Badge>
               </div>
-              <Badge variant="secondary" className="rounded-md">
-                Staff
-              </Badge>
-            </div>
-            <div className="mt-4 space-y-1">
-              <p className="text-sm font-medium">Default Password</p>
-              <p className="font-mono text-sm">{DEFAULT_STAFF_PASSWORD}</p>
-            </div>
-          </div>
+              <div className="mt-4 space-y-1">
+                <p className="text-sm font-medium">Default Password</p>
+                <p className="font-mono text-sm">{DEFAULT_STAFF_PASSWORD}</p>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="flex justify-end">
             <SubmitButton
@@ -644,27 +790,21 @@ function CreateStaffDialog({
 function SummaryCard({
   label,
   value,
-  className,
+  description,
 }: {
   label: string
   value: number
-  className?: string
+  description: string
 }) {
   return (
-    <Card className={className}>
-      <CardContent className="py-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-xs font-medium tracking-normal text-muted-foreground">
-              {label}
-            </p>
-            <p className="text-2xl font-semibold leading-none text-foreground">
-              {value}
-            </p>
-          </div>
-          <span className="mt-0.5 inline-flex h-2.5 w-2.5 rounded-full bg-border" />
-        </div>
-      </CardContent>
+    <Card>
+      <CardHeader>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className="text-4xl font-semibold tabular-nums">
+          {value}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
     </Card>
   )
 }

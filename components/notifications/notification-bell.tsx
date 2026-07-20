@@ -103,7 +103,7 @@ export function NotificationBell() {
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[min(calc(100vw-1.5rem),360px)] overflow-hidden rounded-xl border-border/70 p-0 shadow-xl"
+        className="w-[min(calc(100vw-1.5rem),390px)] overflow-hidden rounded-xl border-border/70 p-0 shadow-xl"
       >
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <h2 className="text-base font-semibold tracking-tight text-foreground">
@@ -120,7 +120,7 @@ export function NotificationBell() {
             Mark all as read
           </Button>
         </div>
-        <ScrollArea className="max-h-[280px]">
+        <ScrollArea className="h-[280px]">
           {notificationsQuery.isPending ? (
             <div className="flex flex-col px-4 pb-1">
               {Array.from({ length: 5 }).map((_, index) => (
@@ -139,7 +139,7 @@ export function NotificationBell() {
               ))}
             </div>
           ) : notifications.length ? (
-            <div className="flex flex-col px-4">
+            <div className="flex flex-col">
               {notifications.map((notification) => (
                 <NotificationPreviewRow
                   key={notification.id}
@@ -196,7 +196,7 @@ function NotificationPreviewRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[40px_minmax(0,1fr)_36px] items-start gap-2.5 border-b py-2.5 last:border-b-0",
+        "grid grid-cols-[40px_minmax(0,1fr)_36px] items-start gap-2.5 border-b px-4 py-2.5 last:border-b-0",
         !notification.isRead && "bg-primary/[0.015]",
       )}
     >

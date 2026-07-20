@@ -5,6 +5,7 @@ import {
   sileo,
   type SileoOptions,
 } from "sileo"
+import { useTheme } from "next-themes"
 
 type ToastMessage = string | SileoOptions
 
@@ -105,11 +106,14 @@ export const toast = {
 }
 
 export function Toaster() {
+  const { resolvedTheme } = useTheme()
+  const sileoTheme = resolvedTheme === "dark" ? "dark" : "light"
+
   return (
     <SileoToaster
       position="top-center"
       offset={18}
-      theme="system"
+      theme={sileoTheme}
       options={{
         roundness: 16,
         autopilot: {

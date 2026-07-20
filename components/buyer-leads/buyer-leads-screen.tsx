@@ -1365,13 +1365,15 @@ function BuyerLeadDetailsDialog({
             </BuyerLeadPanel>
           </section>
 
-          <Alert className="mt-4 border-amber-300 bg-amber-50/70 px-4 py-3 text-amber-950 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
-            <AlertTriangleIcon className="size-8 text-amber-600 dark:text-amber-300" />
-            <AlertTitle className="text-base">Needs attention</AlertTitle>
-            <AlertDescription className="text-sm text-amber-950/90 dark:text-amber-100/90">
-              {attentionMessage}
-            </AlertDescription>
-          </Alert>
+          {!isWonLead ? (
+            <Alert className="mt-4 border-amber-300 bg-amber-50/70 px-4 py-3 text-amber-950 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
+              <AlertTriangleIcon className="size-8 text-amber-600 dark:text-amber-300" />
+              <AlertTitle className="text-base">Needs attention</AlertTitle>
+              <AlertDescription className="text-sm text-amber-950/90 dark:text-amber-100/90">
+                {attentionMessage}
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
             <BuyerLeadLinkedVehicles vehicles={lead.vehicles} />

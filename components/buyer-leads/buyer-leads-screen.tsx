@@ -1,14 +1,22 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   AlertTriangleIcon,
   CalendarPlusIcon,
   CarFrontIcon,
+  CheckCircle2Icon,
+  CircleDollarSignIcon,
+  ClipboardListIcon,
   Clock3Icon,
   EyeIcon,
+  FileTextIcon,
+  FlagIcon,
+  FunnelIcon,
+  HeartIcon,
   MailIcon,
   MessageCircleIcon,
   MoreHorizontalIcon,
@@ -17,6 +25,7 @@ import {
   PlusIcon,
   ReceiptTextIcon,
   SearchIcon,
+  TargetIcon,
   UserRoundIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -87,6 +96,7 @@ import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { useCreateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-create-buyer-lead-mutation";
 import { useUpdateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-update-buyer-lead-mutation";
 import { useCreateFollowUpMutation } from "@/hooks/mutations/follow-ups/use-create-follow-up-mutation";
+import { useActivityHistoryQuery } from "@/hooks/queries/activity-history/use-activity-history-query";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query";
 import {
@@ -103,8 +113,8 @@ import {
   type CreateBuyerLeadPayload,
   type UpdateBuyerLeadPayload,
 } from "@/types/buyer-leads";
+import type { ActivityHistoryEvent } from "@/types/activity-history";
 import { formatVehicleMoney } from "../vehicles/vehicles.helpers";
-import { ActivityHistoryPanel } from "../activity-history/activity-history-panel";
 
 const BUYER_LEAD_INQUIRY_SOURCES = [
   "Facebook Marketplace",
@@ -1203,46 +1213,58 @@ function BuyerLeadDetailsDialog({
   const warning = getBuyerLeadWarning(lead);
   const stage = lead.pipeline?.stageLabel ?? getBuyerLeadStage(lead.status);
   const latestActivityAt = lead.latestActivityAt ?? lead.updatedAt;
+  const attentionMessage =
+    blocker ??
+    warning ??
+    "Continue with the next planned action for this buyer.";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto p-0">
-        <DialogHeader className="border-b px-6 py-5 pr-14">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <DialogTitle className="truncate text-xl">
-                  {lead.buyerName}
-                </DialogTitle>
-                <Badge
-                  variant={getBuyerLeadStatusBadgeVariant(lead.status)}
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${getBuyerLeadStatusClassName(lead.status)}`}
-                >
-                  {stage}
-                </Badge>
+      <DialogContent className="max-h-[92vh] max-w-[1100px] gap-0 overflow-y-auto rounded-xl p-0 shadow-2xl">
+        <DialogHeader className="px-6 pt-5 pb-0 pr-14">
+          <DialogTitle className="text-lg font-semibold text-foreground">
+            Buyer Lead Details
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="px-6 pb-6">
+          <header className="mt-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 ring-1 ring-blue-200/70 dark:bg-blue-950/50 dark:text-blue-300 dark:ring-blue-900/70">
+                <UserRoundIcon className="size-8" />
               </div>
-              <DialogDescription className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span className="inline-flex items-center gap-1.5">
-                  <PhoneIcon className="size-3.5" />
-                  {lead.contactNumber}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock3Icon className="size-3.5" />
-                  Active{" "}
-                  {formatDistanceToNow(new Date(latestActivityAt), {
-                    addSuffix: true,
-                  })}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <UserRoundIcon className="size-3.5" />
-                  {getAssigneeLabel(lead.assigneeUserId, currentUserId)}
-                </span>
-              </DialogDescription>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="truncate text-xl font-semibold tracking-tight text-foreground">
+                    {lead.buyerName}
+                  </h2>
+                  <BuyerLeadPill tone="amber">{stage}</BuyerLeadPill>
+                </div>
+                <DialogDescription className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+                  <span className="inline-flex items-center gap-2">
+                    <PhoneIcon className="size-4" />
+                    {lead.contactNumber}
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Clock3Icon className="size-4" />
+                    Active{" "}
+                    {formatDistanceToNow(new Date(latestActivityAt), {
+                      addSuffix: true,
+                    })}
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <UserRoundIcon className="size-4" />
+                    Assignee:{" "}
+                    {getAssigneeLabel(lead.assigneeUserId, currentUserId)}
+                  </span>
+                </DialogDescription>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3 xl:justify-end">
               <Button
                 type="button"
                 variant="outline"
+                className="h-10 border-border/80 bg-background px-4 shadow-xs"
                 onClick={() => onEdit(lead)}
               >
                 <PencilIcon />
@@ -1250,199 +1272,359 @@ function BuyerLeadDetailsDialog({
               </Button>
               <Button
                 type="button"
-                variant={cta.action === "follow-up" ? "default" : "outline"}
+                variant="outline"
+                className="h-10 border-border/80 bg-background px-4 shadow-xs"
                 onClick={() => onScheduleFollowUp(lead)}
               >
                 <CalendarPlusIcon />
                 Schedule Follow-Up
               </Button>
               {cta.action === "sale" ? (
-                <Button type="button" onClick={() => onFinalizeSale(lead)}>
-                  <ReceiptTextIcon />
+                <Button
+                  type="button"
+                  className="h-10 bg-blue-600 px-4 text-white shadow-xs hover:bg-blue-700"
+                  onClick={() => onFinalizeSale(lead)}
+                >
+                  <CheckCircle2Icon />
                   Finalize Sale
                 </Button>
               ) : null}
             </div>
-          </div>
-        </DialogHeader>
+          </header>
 
-        <div className="grid gap-5 px-6 py-6">
-          <section className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-lg border border-border/70 bg-background p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <UserRoundIcon className="size-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">
-                  Contact
-                </h3>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <BuyerLeadDetailItem
+          <section className="mt-6 grid gap-4 lg:grid-cols-2">
+            <BuyerLeadPanel
+              title="Contact Information"
+              icon={UserRoundIcon}
+              iconClassName="text-blue-600"
+            >
+              <div className="space-y-4">
+                <BuyerLeadInfoRow
                   icon={PhoneIcon}
                   label="Phone"
                   value={lead.contactNumber}
                 />
-                <BuyerLeadDetailItem
+                <BuyerLeadInfoRow
                   icon={MailIcon}
                   label="Email"
                   value={lead.email ?? "Not provided"}
                 />
-                <BuyerLeadDetailItem
+                <BuyerLeadInfoRow
                   icon={MessageCircleIcon}
-                  label="Facebook"
+                  label="Facebook Name"
                   value={lead.facebookName ?? "Not provided"}
                 />
-                <BuyerLeadDetailItem
+                <BuyerLeadInfoRow
                   icon={SearchIcon}
-                  label="Inquiry source"
+                  label="Inquiry Source"
                   value={lead.inquirySource ?? "Not provided"}
                 />
               </div>
-            </div>
+            </BuyerLeadPanel>
 
-            <div className="rounded-lg border border-border/70 bg-background p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <ReceiptTextIcon className="size-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">
-                  Buying Intent
-                </h3>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <BuyerLeadDetailItem
-                  label="Desired budget"
+            <BuyerLeadPanel
+              title="Buying Intent"
+              icon={TargetIcon}
+              iconClassName="text-blue-600"
+            >
+              <div className="space-y-4">
+                <BuyerLeadInfoRow
+                  icon={CircleDollarSignIcon}
+                  label="Desired Budget"
                   value={formatVehicleMoney(lead.desiredBudget)}
                 />
-                <BuyerLeadDetailItem label="Stage" value={stage} />
-                <BuyerLeadDetailItem
+                <BuyerLeadInfoRow
+                  icon={FunnelIcon}
+                  label="Stage"
+                  value={<BuyerLeadPill tone="amber">{stage}</BuyerLeadPill>}
+                />
+                <BuyerLeadInfoRow
+                  icon={HeartIcon}
                   label="Status"
-                  value={lead.status}
-                  className="sm:col-span-2"
+                  value={
+                    <BuyerLeadPill tone="green">{lead.status}</BuyerLeadPill>
+                  }
                 />
-                <BuyerLeadDetailItem
-                  icon={Clock3Icon}
-                  label="Next action"
+                <BuyerLeadInfoRow
+                  icon={ClipboardListIcon}
+                  label="Next Action"
                   value={getBuyerLeadNextAction(lead)}
-                  className="sm:col-span-2"
                 />
               </div>
-            </div>
+            </BuyerLeadPanel>
           </section>
 
-          <section className="grid gap-3">
-            <h3 className="text-sm font-semibold text-foreground">
-              Pipeline Health
-            </h3>
-            {blocker ? (
-              <Alert variant="destructive">
-                <AlertTriangleIcon className="size-4" />
-                <AlertTitle>Blocker</AlertTitle>
-                <AlertDescription>{blocker}</AlertDescription>
-              </Alert>
-            ) : warning ? (
-              <Alert>
-                <AlertTriangleIcon className="size-4" />
-                <AlertTitle>Needs attention</AlertTitle>
-                <AlertDescription>{warning}</AlertDescription>
-              </Alert>
-            ) : (
-              <Alert>
-                <Clock3Icon className="size-4" />
-                <AlertTitle>No blockers flagged</AlertTitle>
-                <AlertDescription>
-                  Continue with the next planned action for this buyer.
-                </AlertDescription>
-              </Alert>
-            )}
+          <Alert className="mt-4 border-amber-300 bg-amber-50/70 px-4 py-3 text-amber-950 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
+            <AlertTriangleIcon className="size-8 text-amber-600 dark:text-amber-300" />
+            <AlertTitle className="text-base">Needs attention</AlertTitle>
+            <AlertDescription className="text-sm text-amber-950/90 dark:text-amber-100/90">
+              {attentionMessage}
+            </AlertDescription>
+          </Alert>
+
+          <section className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,1fr)]">
+            <BuyerLeadLinkedVehicles vehicles={lead.vehicles} />
+            <BuyerLeadNotes lead={lead} />
           </section>
 
-          <section className="rounded-lg border border-border/70 bg-background p-4">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <CarFrontIcon className="size-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">
-                  Linked Vehicles
-                </h3>
-              </div>
-              <Badge variant="outline" className="rounded-full text-[11px]">
-                {lead.vehicles.length}
-              </Badge>
-            </div>
-            {lead.vehicles.length ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                {lead.vehicles.map((vehicle) => (
-                  <div
-                    key={vehicle.id}
-                    className="rounded-lg border border-border/70 bg-muted/15 p-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {vehicle.year} {vehicle.brand} {vehicle.model}
-                        </p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Stock {vehicle.stockNumber}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="shrink-0 text-[11px]">
-                        {vehicle.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title="No vehicles linked yet"
-                description="Attach matching vehicles once this buyer is qualified."
-              />
-            )}
-          </section>
-
-          <section className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-lg border border-border/70 bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">Notes</h3>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
-                {lead.notes?.trim() || "No notes recorded."}
-              </p>
-            </div>
-            <div className="rounded-lg border border-border/70 bg-background p-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Closing Note
-              </h3>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
-                {lead.closingNote?.trim() || "No closing note recorded."}
-              </p>
-            </div>
-          </section>
-
-          <Separator />
-
-          <ActivityHistoryPanel entityType="buyer_lead" entityId={lead.id} />
+          <BuyerLeadActivityTimeline leadId={lead.id} />
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function BuyerLeadDetailItem({
+function BuyerLeadPanel({
+  title,
+  icon: Icon,
+  iconClassName,
+  children,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconClassName?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border border-border/80 bg-background p-5 shadow-xs">
+      <div className="mb-5 flex items-center gap-3">
+        <Icon
+          className={`size-5 ${iconClassName ?? "text-muted-foreground"}`}
+        />
+        <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function BuyerLeadInfoRow({
   label,
   value,
   icon: Icon,
-  className,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   icon?: React.ComponentType<{ className?: string }>;
-  className?: string;
 }) {
   return (
-    <div className={`min-w-0 space-y-1 ${className ?? ""}`}>
-      <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {Icon ? <Icon className="size-3.5" /> : null}
-        {label}
-      </p>
-      <p className="truncate text-sm font-medium text-foreground">{value}</p>
+    <div className="grid min-w-0 grid-cols-[24px_minmax(120px,0.75fr)_minmax(0,1fr)] items-start gap-3 text-sm">
+      <div className="pt-0.5 text-muted-foreground">
+        {Icon ? <Icon className="size-4" /> : null}
+      </div>
+      <p className="text-muted-foreground">{label}</p>
+      <div className="min-w-0 font-medium text-foreground [overflow-wrap:anywhere]">
+        {value}
+      </div>
     </div>
   );
+}
+
+function BuyerLeadPill({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: "amber" | "green" | "blue" | "gray";
+}) {
+  const toneClassName = {
+    amber:
+      "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
+    green:
+      "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
+    blue: "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300",
+    gray: "border-border bg-muted/40 text-muted-foreground",
+  }[tone];
+
+  return (
+    <Badge
+      variant="outline"
+      className={`w-fit rounded-md px-2.5 py-0.5 text-xs font-medium ${toneClassName}`}
+    >
+      {children}
+    </Badge>
+  );
+}
+
+function BuyerLeadLinkedVehicles({
+  vehicles,
+}: {
+  vehicles: BuyerLead["vehicles"];
+}) {
+  return (
+    <BuyerLeadPanel
+      title="Linked Vehicles"
+      icon={CarFrontIcon}
+      iconClassName="text-blue-600"
+    >
+      {vehicles.length ? (
+        <div className="grid gap-3 md:grid-cols-2">
+          {vehicles.map((vehicle) => (
+            <div
+              key={vehicle.id}
+              className="grid min-w-0 grid-cols-[96px_minmax(0,1fr)] gap-4 rounded-lg border border-border/80 bg-background p-3"
+            >
+              <div className="relative aspect-[4/3] overflow-hidden rounded-md bg-muted">
+                <Image
+                  src="/default-vehicle-image.png"
+                  alt={`${vehicle.year} ${vehicle.brand} ${vehicle.model}`}
+                  fill
+                  sizes="96px"
+                  className="object-cover"
+                />
+              </div>
+              <div className="min-w-0 py-1">
+                <p className="truncate text-sm text-muted-foreground">
+                  Stock {vehicle.stockNumber}
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                  {vehicle.year} {vehicle.brand} {vehicle.model}
+                </p>
+                <BuyerLeadVehicleStatusPill status={vehicle.status} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No vehicles linked yet"
+          description="Attach matching vehicles once this buyer is qualified."
+        />
+      )}
+    </BuyerLeadPanel>
+  );
+}
+
+function BuyerLeadVehicleStatusPill({ status }: { status: string }) {
+  const normalizedStatus = status.toLowerCase();
+  const tone = normalizedStatus.includes("reserved")
+    ? "amber"
+    : normalizedStatus.includes("available")
+      ? "green"
+      : "gray";
+
+  return (
+    <div className="mt-2">
+      <BuyerLeadPill tone={tone}>{status}</BuyerLeadPill>
+    </div>
+  );
+}
+
+function BuyerLeadNotes({ lead }: { lead: BuyerLead }) {
+  const noteText = lead.notes?.trim() || "No notes recorded.";
+  const closingNote = lead.closingNote?.trim();
+
+  return (
+    <BuyerLeadPanel
+      title="Notes"
+      icon={FileTextIcon}
+      iconClassName="text-blue-600"
+    >
+      <div className="min-h-[108px] rounded-lg border border-border/80 bg-background p-4">
+        <p className="whitespace-pre-wrap text-sm leading-7 text-foreground [overflow-wrap:anywhere]">
+          {closingNote
+            ? `${noteText}\n\nClosing note: ${closingNote}`
+            : noteText}
+        </p>
+      </div>
+    </BuyerLeadPanel>
+  );
+}
+
+function BuyerLeadActivityTimeline({ leadId }: { leadId: string }) {
+  const historyQuery = useActivityHistoryQuery("buyer_lead", leadId, 3);
+  const events = historyQuery.data?.events.slice(0, 3) ?? [];
+
+  return (
+    <BuyerLeadPanel
+      title="Activity History"
+      icon={Clock3Icon}
+      iconClassName="text-blue-600"
+    >
+      {historyQuery.isPending ? (
+        <ModuleLoadingState label="Loading activity history" />
+      ) : historyQuery.error ? (
+        <ApiErrorAlert
+          title="Unable to load activity history"
+          message={getApiErrorMessage(historyQuery.error, "")}
+        />
+      ) : events.length ? (
+        <div className="space-y-0">
+          {events.map((event, index) => (
+            <BuyerLeadActivityRow
+              key={event.id}
+              event={event}
+              isLast={index === events.length - 1}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No activity yet"
+          description="Operational history will appear here once the record starts moving through the workflow."
+        />
+      )}
+    </BuyerLeadPanel>
+  );
+}
+
+function BuyerLeadActivityRow({
+  event,
+  isLast,
+}: {
+  event: ActivityHistoryEvent;
+  isLast: boolean;
+}) {
+  const Icon = getBuyerLeadActivityIcon(event.actionType);
+
+  return (
+    <div className="grid grid-cols-[92px_24px_minmax(0,1fr)] gap-3 py-2 text-sm md:grid-cols-[150px_32px_minmax(0,1fr)_160px] md:gap-4">
+      <p className="pt-1 text-xs text-muted-foreground md:text-sm">
+        {format(new Date(event.timestamp), "MMM d, h:mm a")}
+      </p>
+      <div className="relative flex justify-center">
+        <span className="mt-2 size-2.5 rounded-full bg-blue-600" />
+        {!isLast ? (
+          <span className="absolute top-5 bottom-[-18px] w-px bg-blue-200 dark:bg-blue-900" />
+        ) : null}
+      </div>
+      <div className="grid min-w-0 grid-cols-[32px_minmax(0,1fr)] gap-3 md:grid-cols-[36px_minmax(0,1fr)] md:gap-4">
+        <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300">
+          <Icon className="size-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="line-clamp-2 font-semibold text-foreground [overflow-wrap:anywhere]">
+            {event.summary}
+          </p>
+          <p className="mt-1 line-clamp-2 text-muted-foreground [overflow-wrap:anywhere]">
+            {formatActivityDescription(event)}
+          </p>
+        </div>
+      </div>
+      <p className="hidden pt-1 text-right text-muted-foreground md:block">
+        {event.actorDisplayName ?? "System"}
+      </p>
+    </div>
+  );
+}
+
+function getBuyerLeadActivityIcon(actionType: string) {
+  if (actionType.includes("follow")) return UserRoundIcon;
+  if (actionType.includes("status")) return FlagIcon;
+  return PencilIcon;
+}
+
+function formatActivityDescription(event: ActivityHistoryEvent) {
+  const metadataSummary =
+    typeof event.metadata.description === "string"
+      ? event.metadata.description
+      : null;
+
+  return metadataSummary ?? getActionLabel(event.actionType);
+}
+
+function getActionLabel(actionType: string) {
+  return actionType.split(".").at(-1)?.replaceAll("_", " ") ?? actionType;
 }
 
 function EditBuyerLeadDialogForm({

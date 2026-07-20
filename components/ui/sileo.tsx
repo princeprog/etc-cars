@@ -117,7 +117,8 @@ export function Toaster() {
           collapse: 2200,
         },
         styles: {
-          description: "normal-case text-[13px] leading-5",
+          description:
+            "normal-case text-[13px] leading-5 text-foreground/75 dark:text-foreground/80",
         },
       }}
     />

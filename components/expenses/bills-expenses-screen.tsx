@@ -875,7 +875,7 @@ export function BillsExpensesScreen() {
               <div className="flex min-w-0 flex-col gap-1">
                 <CardTitle className="text-base">Expense Register</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Review bills by urgency, category, frequency, and ownership.
+                  Review bills by urgency, category, frequency, and assignment.
                 </p>
               </div>
               <div className="grid w-full gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(260px,1fr)_180px_220px_180px]">
@@ -967,6 +967,7 @@ export function BillsExpensesScreen() {
                   isLoading={expensesQuery.isPending}
                   error={expensesQuery.error}
                   isAdmin={isAdmin}
+                  currentUserId={currentUser?.id}
                   onEdit={openEditExpenseSheet}
                   onMarkPaid={(expense) => {
                     setMarkPaidExpense(expense);
@@ -1026,6 +1027,7 @@ export function BillsExpensesScreen() {
         categories={categories}
         staffUsers={staffUsers}
         editingExpense={editingExpense}
+        canManageAssignee={isAdmin}
         pending={
           createExpenseMutation.isPending || updateExpenseMutation.isPending
         }
@@ -1200,6 +1202,7 @@ function ExpensesTable({
   isLoading,
   error,
   isAdmin,
+  currentUserId,
   onEdit,
   onMarkPaid,
   onVoid,
@@ -1212,6 +1215,7 @@ function ExpensesTable({
   isLoading: boolean;
   error: unknown;
   isAdmin: boolean;
+  currentUserId?: string;
   onEdit: (expense: Expense) => void;
   onMarkPaid: (expense: Expense) => void;
   onVoid: (expense: Expense) => void;
@@ -1246,6 +1250,11 @@ function ExpensesTable({
     );
   }
 
+  const canEditExpense = (expense: Expense) =>
+    expense.status === "unpaid" &&
+    (isAdmin ||
+      Boolean(currentUserId && expense.assignedStaffId === currentUserId));
+
   return (
     <Table className="w-full border-collapse">
       <TableHeader className="bg-muted/30">
@@ -1263,7 +1272,7 @@ function ExpensesTable({
             Amount
           </TableHead>
           <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-            Owner
+            Assigned to
           </TableHead>
           <TableHead className="px-4 text-xs font-semibold text-foreground/80">
             Status
@@ -1379,24 +1388,28 @@ function ExpensesTable({
                   {expense.receipt || (isAdmin && expense.status === "paid") ? (
                     <DropdownMenuSeparator />
                   ) : null}
-                  {isAdmin && expense.status === "unpaid" ? (
+                  {canEditExpense(expense) ? (
                     <>
                       <DropdownMenuItem onClick={() => onEdit(expense)}>
                         <PencilIcon data-icon="inline-start" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onMarkPaid(expense)}>
-                        <CheckCircle2Icon data-icon="inline-start" />
-                        Mark Paid
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onClick={() => onVoid(expense)}
-                      >
-                        <Trash2Icon data-icon="inline-start" />
-                        Void
-                      </DropdownMenuItem>
+                      {isAdmin && expense.status === "unpaid" ? (
+                        <>
+                          <DropdownMenuItem onClick={() => onMarkPaid(expense)}>
+                            <CheckCircle2Icon data-icon="inline-start" />
+                            Mark Paid
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => onVoid(expense)}
+                          >
+                            <Trash2Icon data-icon="inline-start" />
+                            Void
+                          </DropdownMenuItem>
+                        </>
+                      ) : null}
                     </>
                   ) : (
                     <DropdownMenuItem disabled>
@@ -1473,7 +1486,7 @@ function RecurringRulesTable({
             Amount
           </TableHead>
           <TableHead className="px-4 text-xs font-semibold text-foreground/80">
-            Owner
+            Assigned to
           </TableHead>
           <TableHead className="px-4 text-xs font-semibold text-foreground/80">
             State
@@ -1609,6 +1622,7 @@ function ExpenseSheet({
   categories,
   staffUsers,
   editingExpense,
+  canManageAssignee,
   pending,
   apiError,
   onSubmit,
@@ -1621,6 +1635,7 @@ function ExpenseSheet({
   categories: Array<{ id: string; name: string }>;
   staffUsers: AuthenticatedUser[];
   editingExpense: Expense | null;
+  canManageAssignee: boolean;
   pending: boolean;
   apiError: unknown;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -1650,8 +1665,8 @@ function ExpenseSheet({
             {editingExpense ? "Edit Expense" : "Add Expense"}
           </SheetTitle>
           <SheetDescription>
-            Record a one-time dealership bill, due date, owner, and supporting
-            payment context.
+            Record a one-time dealership bill, due date, assigned staff, and
+            supporting payment context.
           </SheetDescription>
         </SheetHeader>
         <form
@@ -1674,6 +1689,7 @@ function ExpenseSheet({
                 categories={categories}
                 staffUsers={staffUsers}
                 onUpdate={update}
+                canManageAssignee={canManageAssignee}
                 portalContainer={selectPortalContainer}
               />
             </FieldGroup>
@@ -1880,8 +1896,8 @@ function RecurringRuleSheet({
           </div>
           <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              New generated bills inherit this category, owner, amount, and
-              notes.
+              New generated bills inherit this category, assigned staff, amount,
+              and notes.
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -1912,6 +1928,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
   categories,
   staffUsers,
   onUpdate,
+  canManageAssignee = true,
   hideDateFields = false,
   portalContainer,
 }: {
@@ -1920,6 +1937,7 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
   categories: Array<{ id: string; name: string }>;
   staffUsers: AuthenticatedUser[];
   onUpdate: <K extends keyof TValues>(key: K, value: TValues[K]) => void;
+  canManageAssignee?: boolean;
   hideDateFields?: boolean;
   portalContainer?: HTMLElement | ShadowRoot | null;
 }) {
@@ -2035,9 +2053,10 @@ function ExpenseFormFields<TValues extends ExpenseFormValues>({
           </>
         ) : null}
         <Field>
-          <FieldLabel>Responsible staff</FieldLabel>
+          <FieldLabel>Assigned to</FieldLabel>
           <Select
             value={values.assignedStaffId}
+            disabled={!canManageAssignee}
             onValueChange={(value) =>
               onUpdate(
                 "assignedStaffId" as keyof TValues,

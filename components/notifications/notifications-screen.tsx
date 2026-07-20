@@ -232,16 +232,16 @@ function NotificationListRow({
       </div>
       <div className="min-w-0">
         <div className="grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <p className="truncate text-base font-semibold text-foreground">
+          <p className="min-w-0 truncate text-base font-semibold text-foreground">
             {notification.title}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="shrink-0 text-sm text-muted-foreground">
             {formatDistanceToNow(new Date(notification.createdAt), {
               addSuffix: false,
             })}
           </p>
         </div>
-        <p className="mt-1 max-w-3xl text-base leading-7 text-muted-foreground">
+        <p className="mt-1 max-w-3xl whitespace-normal text-base leading-7 text-muted-foreground break-words [overflow-wrap:anywhere]">
           {notification.message}
         </p>
       </div>
@@ -251,19 +251,19 @@ function NotificationListRow({
   return (
     <div
       className={cn(
-        "grid grid-cols-[minmax(0,1fr)_28px] items-center gap-4 border-b px-5 py-5 last:border-b-0",
+        "grid grid-cols-[minmax(0,1fr)_28px] items-start gap-4 border-b px-5 py-5 last:border-b-0",
         !notification.isRead && "bg-primary/[0.025]",
       )}
     >
       {notification.actionUrl ? (
         <Link
           href={notification.actionUrl}
-          className="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-4"
+          className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)] gap-4 sm:grid-cols-[64px_minmax(0,1fr)]"
         >
           {content}
         </Link>
       ) : (
-        <div className="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-4">
+        <div className="grid min-w-0 grid-cols-[56px_minmax(0,1fr)] gap-4 sm:grid-cols-[64px_minmax(0,1fr)]">
           {content}
         </div>
       )}
@@ -274,7 +274,7 @@ function NotificationListRow({
             ? "Mark notification unread"
             : "Mark notification read"
         }
-        className="flex size-7 items-center justify-center rounded-full"
+        className="mt-3 flex size-7 items-center justify-center rounded-full"
         onClick={onToggleRead}
       >
         <span

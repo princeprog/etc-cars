@@ -212,7 +212,7 @@ function NotificationPreviewRow({
         <p className="truncate text-xs font-semibold text-foreground">
           {notification.title}
         </p>
-        <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-muted-foreground">
+        <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-muted-foreground break-words [overflow-wrap:anywhere]">
           {notification.message}
         </p>
       </button>

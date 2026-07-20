@@ -794,6 +794,8 @@ function renderNotificationIcon(type: NotificationType, className: string) {
       return <BellIcon className={className} />;
     case "follow_up_due_soon":
       return <CalendarClockIcon className={className} />;
+    case "vehicle_available":
+      return <CarFrontIcon className={className} />;
   }
 }
 
@@ -808,6 +810,8 @@ function getNotificationTone(type: NotificationType): NotificationTone {
     case "follow_up_due_today":
     case "follow_up_due_soon":
       return "blue";
+    case "vehicle_available":
+      return "gray";
   }
 }
 
@@ -824,6 +828,7 @@ function getNotificationToneIconClassName(tone: NotificationTone) {
 function getNotificationCategory(type: NotificationType): string {
   if (type.startsWith("expense")) return "Bills";
   if (type.startsWith("follow_up")) return "Follow-up";
+  if (type.startsWith("vehicle")) return "Vehicle";
   return "System";
 }
 
@@ -870,7 +875,10 @@ function getNotificationDetails(notification: AppNotification) {
       : "Not scheduled";
 
   return {
-    person: personCandidate?.trim() || "Not specified",
+    person:
+      notification.entityType === "vehicle"
+        ? "All users"
+        : personCandidate?.trim() || "Not specified",
     record: recordCandidate || notification.entityType.replaceAll("_", " "),
     dueTime,
     assignee: "Assigned staff",
@@ -886,11 +894,16 @@ function getDetailMessage(notification: AppNotification, category: string) {
     return "This reminder is scheduled for today. Review it and complete the next action on time.";
   }
 
+  if (notification.type === "vehicle_available") {
+    return "This inventory update was sent to all users because the vehicle is now available for buyer matching and sales activity.";
+  }
+
   return `${category} notification: ${notification.message}`;
 }
 
 function getOpenActionLabel(category: string) {
   if (category === "Follow-up") return "Open follow-up";
   if (category === "Bills") return "Open bill";
+  if (category === "Vehicle") return "Open vehicle";
   return "Open record";
 }

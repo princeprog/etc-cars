@@ -4,7 +4,8 @@ export type NotificationType =
   | "expense_overdue"
   | "follow_up_due_soon"
   | "follow_up_due_today"
-  | "follow_up_overdue";
+  | "follow_up_overdue"
+  | "vehicle_available";
 
 export interface AppNotification {
   id: string;

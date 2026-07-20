@@ -1,80 +1,81 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BellIcon,
   CalendarClockIcon,
+  CarFrontIcon,
   CircleAlertIcon,
   Clock3Icon,
   ChevronRightIcon,
-} from "lucide-react"
-import { toast } from "@/components/ui/sileo"
+} from "lucide-react";
+import { toast } from "@/components/ui/sileo";
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   useMarkAllNotificationsReadMutation,
   useMarkNotificationReadMutation,
   useMarkNotificationUnreadMutation,
-} from "@/hooks/mutations/notifications/use-notification-mutations"
-import { useNotificationUnreadCountQuery } from "@/hooks/queries/notifications/use-notification-unread-count-query"
-import { useNotificationsQuery } from "@/hooks/queries/notifications/use-notifications-query"
-import { cn } from "@/lib/utils"
-import { getApiErrorMessage } from "@/types/api"
-import type { AppNotification, NotificationType } from "@/types/notifications"
+} from "@/hooks/mutations/notifications/use-notification-mutations";
+import { useNotificationUnreadCountQuery } from "@/hooks/queries/notifications/use-notification-unread-count-query";
+import { useNotificationsQuery } from "@/hooks/queries/notifications/use-notifications-query";
+import { cn } from "@/lib/utils";
+import { getApiErrorMessage } from "@/types/api";
+import type { AppNotification, NotificationType } from "@/types/notifications";
 
 export function NotificationBell() {
-  const router = useRouter()
-  const unreadCountQuery = useNotificationUnreadCountQuery()
+  const router = useRouter();
+  const unreadCountQuery = useNotificationUnreadCountQuery();
   const notificationsQuery = useNotificationsQuery({
     page: 1,
     pageSize: 5,
-  })
-  const markReadMutation = useMarkNotificationReadMutation()
-  const markUnreadMutation = useMarkNotificationUnreadMutation()
-  const markAllReadMutation = useMarkAllNotificationsReadMutation()
-  const notifications = notificationsQuery.data?.notifications ?? []
-  const unreadCount = unreadCountQuery.data?.count ?? 0
+  });
+  const markReadMutation = useMarkNotificationReadMutation();
+  const markUnreadMutation = useMarkNotificationUnreadMutation();
+  const markAllReadMutation = useMarkAllNotificationsReadMutation();
+  const notifications = notificationsQuery.data?.notifications ?? [];
+  const unreadCount = unreadCountQuery.data?.count ?? 0;
 
   async function openNotification(notification: AppNotification) {
     try {
       if (!notification.isRead) {
-        await markReadMutation.mutateAsync(notification.id)
+        await markReadMutation.mutateAsync(notification.id);
       }
       if (notification.actionUrl) {
-        router.push(notification.actionUrl)
+        router.push(notification.actionUrl);
       }
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to open notification"))
+      toast.error(getApiErrorMessage(error, "Unable to open notification"));
     }
   }
 
   async function toggleRead(notification: AppNotification) {
     try {
       if (notification.isRead) {
-        await markUnreadMutation.mutateAsync(notification.id)
+        await markUnreadMutation.mutateAsync(notification.id);
       } else {
-        await markReadMutation.mutateAsync(notification.id)
+        await markReadMutation.mutateAsync(notification.id);
       }
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update notification"))
+      toast.error(getApiErrorMessage(error, "Unable to update notification"));
     }
   }
 
   async function markAllRead() {
     try {
-      await markAllReadMutation.mutateAsync()
-      toast.success("Notifications marked as read")
+      await markAllReadMutation.mutateAsync();
+      toast.success("Notifications marked as read");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update notifications"))
+      toast.error(getApiErrorMessage(error, "Unable to update notifications"));
     }
   }
 
@@ -145,10 +146,10 @@ export function NotificationBell() {
                   key={notification.id}
                   notification={notification}
                   onOpen={() => {
-                    void openNotification(notification)
+                    void openNotification(notification);
                   }}
                   onToggleRead={() => {
-                    void toggleRead(notification)
+                    void toggleRead(notification);
                   }}
                 />
               ))}
@@ -181,7 +182,7 @@ export function NotificationBell() {
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 function NotificationPreviewRow({
@@ -189,9 +190,9 @@ function NotificationPreviewRow({
   onOpen,
   onToggleRead,
 }: {
-  notification: AppNotification
-  onOpen: () => void
-  onToggleRead: () => void
+  notification: AppNotification;
+  onOpen: () => void;
+  onToggleRead: () => void;
 }) {
   return (
     <div
@@ -241,67 +242,71 @@ function NotificationPreviewRow({
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 function formatNotificationAge(createdAt: string) {
-  const elapsedMs = Math.max(0, Date.now() - new Date(createdAt).getTime())
-  const elapsedMinutes = Math.floor(elapsedMs / 60_000)
+  const elapsedMs = Math.max(0, Date.now() - new Date(createdAt).getTime());
+  const elapsedMinutes = Math.floor(elapsedMs / 60_000);
 
   if (elapsedMinutes < 1) {
-    return "now"
+    return "now";
   }
 
   if (elapsedMinutes < 60) {
-    return `${elapsedMinutes}m`
+    return `${elapsedMinutes}m`;
   }
 
-  const elapsedHours = Math.floor(elapsedMinutes / 60)
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
 
   if (elapsedHours < 24) {
-    return `${elapsedHours}h`
+    return `${elapsedHours}h`;
   }
 
-  const elapsedDays = Math.floor(elapsedHours / 24)
+  const elapsedDays = Math.floor(elapsedHours / 24);
 
   if (elapsedDays < 30) {
-    return `${elapsedDays}d`
+    return `${elapsedDays}d`;
   }
 
-  const elapsedMonths = Math.floor(elapsedDays / 30)
+  const elapsedMonths = Math.floor(elapsedDays / 30);
 
-  return `${elapsedMonths}mo`
+  return `${elapsedMonths}mo`;
 }
 
 function renderNotificationIcon(type: NotificationType, className: string) {
   switch (type) {
     case "expense_overdue":
-      return <CircleAlertIcon className={className} />
+      return <CircleAlertIcon className={className} />;
     case "expense_due_today":
     case "follow_up_due_today":
-      return <Clock3Icon className={className} />
+      return <Clock3Icon className={className} />;
     case "expense_due_soon":
-      return <BellIcon className={className} />
+      return <BellIcon className={className} />;
     case "follow_up_due_soon":
-      return <CalendarClockIcon className={className} />
+      return <CalendarClockIcon className={className} />;
     case "follow_up_overdue":
-      return <CircleAlertIcon className={className} />
+      return <CircleAlertIcon className={className} />;
+    case "vehicle_available":
+      return <CarFrontIcon className={className} />;
   }
 }
 
 function getNotificationIconClassName(type: NotificationType) {
   switch (type) {
     case "expense_overdue":
-      return "bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-300"
+      return "bg-orange-50 text-orange-600 dark:bg-orange-950/30 dark:text-orange-300";
     case "expense_due_today":
-      return "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300"
+      return "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-300";
     case "expense_due_soon":
-      return "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300"
+      return "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-300";
     case "follow_up_overdue":
-      return "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-300"
+      return "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-300";
     case "follow_up_due_today":
-      return "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-300"
+      return "bg-violet-50 text-violet-600 dark:bg-violet-950/30 dark:text-violet-300";
     case "follow_up_due_soon":
-      return "bg-cyan-50 text-cyan-600 dark:bg-cyan-950/30 dark:text-cyan-300"
+      return "bg-cyan-50 text-cyan-600 dark:bg-cyan-950/30 dark:text-cyan-300";
+    case "vehicle_available":
+      return "bg-slate-50 text-slate-600 dark:bg-slate-950/30 dark:text-slate-300";
   }
 }

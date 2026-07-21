@@ -749,10 +749,15 @@ export function BuyerLeadsScreen() {
         },
       });
 
-      toast.success(`Buyer lead moved to ${nextStatus}`);
+      toast.success(`Buyer lead moved to ${nextStatus}`, {
+        details: `${lead.buyerName} is now tracked as ${nextStatus} in the buyer pipeline.`,
+      });
     } catch (error) {
       toast.error(
         getApiErrorMessage(error, "Unable to update buyer lead status"),
+        {
+          details: `The status for ${lead.buyerName} could not be changed to ${nextStatus}.`,
+        },
       );
     }
   }
@@ -771,7 +776,9 @@ export function BuyerLeadsScreen() {
       parseBuyerLeadPayload(createForm, currentUserId ?? null),
       {
         onSuccess: () => {
-          toast.success("Buyer lead created");
+          toast.success("Buyer lead created", {
+            details: `${createForm.buyerName.trim()} is ready for matching, follow-up, and sales activity.`,
+          });
           setCreateOpen(false);
           setCreateForm(getEmptyBuyerLeadFormValues());
           setCreateFormErrors({});
@@ -1674,7 +1681,9 @@ function EditBuyerLeadDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Buyer lead updated");
+          toast.success("Buyer lead updated", {
+            details: `${values.buyerName.trim()} now has the latest buyer details and demand context.`,
+          });
           onClose();
         },
       },

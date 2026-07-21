@@ -41,11 +41,15 @@ export function NavUser({
   async function handleLogout() {
     await logoutMutation.mutateAsync(undefined, {
       onSuccess: () => {
-        toast.success("Logged out")
+        toast.success("Logged out", {
+          details: "Your current session has ended and the sign-in screen is ready.",
+        })
         router.replace("/login")
       },
       onError: (error) => {
-        toast.error(error instanceof Error ? error.message : "Logout failed")
+        toast.error(error instanceof Error ? error.message : "Logout failed", {
+          details: "Your session could not be ended. Try signing out again.",
+        })
       },
     })
   }

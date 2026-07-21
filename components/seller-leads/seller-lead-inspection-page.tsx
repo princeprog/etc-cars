@@ -151,7 +151,12 @@ function InspectionWorkspace({ lead }: { lead: SellerLead }) {
   async function saveDraft() {
     await updateMutation.mutateAsync(
       { id: lead.id, payload: buildInspectionPayload(draft) },
-      { onSuccess: () => toast.success("Inspection draft saved") },
+      {
+        onSuccess: () =>
+          toast.success("Inspection draft saved", {
+            details: `${lead.sellerName}'s inspection answers were saved and can be resumed later.`,
+          }),
+      },
     );
   }
 
@@ -166,7 +171,12 @@ function InspectionWorkspace({ lead }: { lead: SellerLead }) {
           status: getStatusAfterInspection(lead.status),
         },
       },
-      { onSuccess: () => toast.success("Inspection completed for review") },
+      {
+        onSuccess: () =>
+          toast.success("Inspection completed for review", {
+            details: `${lead.sellerName}'s inspection is ready for the acquisition decision step.`,
+          }),
+      },
     );
     router.push(`/seller-leads/${lead.id}/decision`);
   }

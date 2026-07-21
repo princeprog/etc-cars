@@ -1818,7 +1818,10 @@ export function SalesScreen() {
 
   async function handleSaveDraft() {
     if (!form.buyerLeadId || !form.vehicleId) {
-      toast.error("Select a buyer lead and vehicle before saving a draft");
+      toast.error("Select a buyer lead and vehicle before saving a draft", {
+        details:
+          "A sales draft must link one buyer lead to one inventory vehicle before it can be saved.",
+      });
       return;
     }
 
@@ -1829,7 +1832,10 @@ export function SalesScreen() {
         { id: activeDraftId, payload },
         {
           onSuccess: () => {
-            toast.success("Sales draft updated");
+            toast.success("Sales draft updated", {
+              details:
+                "The current draft now has the latest buyer, vehicle, pricing, and closing details.",
+            });
             resetCreateSaleState();
             setCreateOpen(false);
           },
@@ -1840,7 +1846,10 @@ export function SalesScreen() {
 
     await saveDraftMutation.mutateAsync(payload, {
       onSuccess: () => {
-        toast.success("Sales draft saved");
+        toast.success("Sales draft saved", {
+          details:
+            "The draft sale is saved and can be resumed from the sales workspace.",
+        });
         resetCreateSaleState();
         setCreateOpen(false);
       },
@@ -1854,7 +1863,10 @@ export function SalesScreen() {
 
     await deleteDraftMutation.mutateAsync(draftPendingDelete.id, {
       onSuccess: () => {
-        toast.success("Sales draft deleted");
+        toast.success("Sales draft deleted", {
+          details:
+            "The selected draft was removed from the active sales workflow.",
+        });
         setDraftPendingDelete(null);
       },
     });
@@ -1868,7 +1880,10 @@ export function SalesScreen() {
       });
       await finalizeDraftMutation.mutateAsync(activeDraftId, {
         onSuccess: () => {
-          toast.success("Sale finalized");
+          toast.success("Sale finalized", {
+            details:
+              "The draft was finalized as a sale and the linked vehicle is no longer available.",
+          });
           resetCreateSaleState();
           setCreateOpen(false);
         },
@@ -1887,7 +1902,10 @@ export function SalesScreen() {
       },
       {
         onSuccess: () => {
-          toast.success("Sale finalized");
+          toast.success("Sale finalized", {
+            details:
+              "The sale record was completed and the linked vehicle inventory status was updated.",
+          });
           resetCreateSaleState();
           setCreateOpen(false);
         },
@@ -1903,7 +1921,10 @@ export function SalesScreen() {
 
     if (hasSaleFormErrors(nextErrors)) {
       setReviewSaleOpen(false);
-      toast.error("Please complete the required sale details first.");
+      toast.error("Please complete the required sale details first.", {
+        details:
+          "Fill in the highlighted buyer, vehicle, sale date, price, and closing fields before finalizing.",
+      });
       return;
     }
 
@@ -2295,6 +2316,9 @@ export function SalesScreen() {
                                     sale.recordType === "draft"
                                       ? "Draft number copied"
                                       : "Sale number copied",
+                                    {
+                                      details: `${recordNumber} is ready to paste into messages, forms, or records.`,
+                                    },
                                   );
                                 }}
                               >
@@ -2307,7 +2331,9 @@ export function SalesScreen() {
                                   navigator.clipboard.writeText(
                                     sale.vehicle.stockNumber,
                                   );
-                                  toast.success("Vehicle stock number copied");
+                                  toast.success("Vehicle stock number copied", {
+                                    details: `${sale.vehicle.stockNumber} is ready to paste into messages, forms, or records.`,
+                                  });
                                 }}
                               >
                                 Copy Vehicle Stock

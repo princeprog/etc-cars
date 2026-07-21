@@ -140,13 +140,17 @@ export function ExpenseCategoriesScreen() {
             isActive: form.isActive,
           },
         })
-        toast.success("Expense category updated")
+        toast.success("Expense category updated", {
+          details: `${form.name.trim()} is ready for classifying bills and expenses.`,
+        })
       } else {
         await createMutation.mutateAsync({
           name: form.name.trim(),
           description: form.description.trim() || null,
         })
-        toast.success("Expense category created")
+        toast.success("Expense category created", {
+          details: `${form.name.trim()} can now be selected on expense records.`,
+        })
       }
       setSheetOpen(false)
     } catch {

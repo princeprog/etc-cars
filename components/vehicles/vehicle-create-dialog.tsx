@@ -31,7 +31,10 @@ export function VehicleCreateDialog() {
 
     await createMutation.mutateAsync(buildCreateVehiclePayload(values), {
       onSuccess: () => {
-        toast.success("Vehicle created")
+        toast.success("Vehicle created", {
+          details:
+            "A generated stock number was added to inventory from this dialog.",
+        })
         setValues(getEmptyVehicleFormValues())
         setOpen(false)
       },

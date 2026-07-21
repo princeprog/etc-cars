@@ -84,7 +84,9 @@ export function LeadFollowUpDialogForm({
     setDueAt(new Date(followUp.dueAt));
     setNote(followUp.note);
     createMutation.reset();
-    toast.info("Existing follow-up loaded. Review and reschedule it.");
+    toast.info("Existing follow-up loaded. Review and reschedule it.", {
+      details: `${leadName} already has an active ${leadType} lead follow-up, so its current reminder was loaded.`,
+    });
     return true;
   }
 
@@ -105,7 +107,9 @@ export function LeadFollowUpDialogForm({
         id: activeFollowUp.id,
         payload,
       });
-      toast.success("Follow-up rescheduled");
+      toast.success("Follow-up rescheduled", {
+        details: `${leadName}'s ${leadType} lead reminder now uses the updated date, time, and note.`,
+      });
       onSuccess?.();
       onClose();
       return;
@@ -120,7 +124,9 @@ export function LeadFollowUpDialogForm({
         assigneeUserId,
         ...payload,
       });
-      toast.success("Follow-up scheduled");
+      toast.success("Follow-up scheduled", {
+        details: `${leadName}'s ${leadType} lead reminder was scheduled for ${dueAt.toLocaleString()}.`,
+      });
       onSuccess?.();
       onClose();
     } catch (error) {

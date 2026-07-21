@@ -245,17 +245,23 @@ function VehicleCatalogContent() {
     try {
       if (dialogMode === "add") {
         await createCatalogItem(activeTab, name);
-        toast.success("Catalog item added");
+        toast.success("Catalog item added", {
+          details: `${name} is now available in the ${getTabPluralLabel(activeTab)} catalog.`,
+        });
       } else if (dialogMode === "rename" && dialogItem) {
         await updateCatalogItem(activeTab, dialogItem.id, { name });
-        toast.success("Catalog item renamed");
+        toast.success("Catalog item renamed", {
+          details: `${dialogItem.name} was renamed to ${name} in the ${getTabPluralLabel(activeTab)} catalog.`,
+        });
       }
 
       setDialogMode(null);
       setDialogItem(null);
       setItemName("");
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to save catalog item"));
+      toast.error(getApiErrorMessage(error, "Unable to save catalog item"), {
+        details: `${name} could not be saved in the ${getTabPluralLabel(activeTab)} catalog.`,
+      });
     }
   }
 
@@ -272,10 +278,15 @@ function VehicleCatalogContent() {
         pendingArchive.archived
           ? "Catalog item archived"
           : "Catalog item restored",
+        {
+          details: `${pendingArchive.item.name} is now ${pendingArchive.archived ? "hidden from" : "available in"} ${getTabPluralLabel(pendingArchive.tab)} selections.`,
+        },
       );
       setPendingArchive(null);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update catalog item"));
+      toast.error(getApiErrorMessage(error, "Unable to update catalog item"), {
+        details: `${pendingArchive.item.name} could not be updated in the ${getTabPluralLabel(pendingArchive.tab)} catalog.`,
+      });
     }
   }
 

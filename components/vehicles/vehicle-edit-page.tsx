@@ -134,7 +134,9 @@ function VehicleEditPageContent({ vehicle }: { vehicle: Vehicle }) {
       },
       {
         onSuccess: () => {
-          toast.success("Vehicle updated");
+          toast.success("Vehicle updated", {
+            details: `${vehicle.stockNumber} now has the latest inventory details, photos, and commercial readiness data.`,
+          });
           router.push("/vehicles");
         },
       },

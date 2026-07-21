@@ -54,7 +54,9 @@ export function NotificationBell() {
         router.push(notification.actionUrl);
       }
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to open notification"));
+      toast.error(getApiErrorMessage(error, "Unable to open notification"), {
+        details: `The notification "${notification.title}" could not be opened or marked read.`,
+      });
     }
   }
 
@@ -66,16 +68,23 @@ export function NotificationBell() {
         await markReadMutation.mutateAsync(notification.id);
       }
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update notification"));
+      toast.error(getApiErrorMessage(error, "Unable to update notification"), {
+        details: `The notification "${notification.title}" could not be marked ${notification.isRead ? "unread" : "read"}.`,
+      });
     }
   }
 
   async function markAllRead() {
     try {
       await markAllReadMutation.mutateAsync();
-      toast.success("Notifications marked as read");
+      toast.success("Notifications marked as read", {
+        details: `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"} were cleared from the bell menu.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update notifications"));
+      toast.error(getApiErrorMessage(error, "Unable to update notifications"), {
+        details:
+          "The notification bell could not clear all unread items. Try again from the notifications screen.",
+      });
     }
   }
 

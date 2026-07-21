@@ -61,7 +61,9 @@ export function PasswordChangeRequired({
         onSuccess: () => {
           setNewPassword("")
           setConfirmPassword("")
-          toast.success("Password updated")
+          toast.success("Password updated", {
+            details: "Your new password is active and you can continue to the dashboard.",
+          })
           router.replace("/dashboard")
         },
       },

@@ -993,7 +993,9 @@ export function VehicleDetailsPage({ vehicleId }: { vehicleId: string }) {
         },
       )
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Photo upload failed"))
+      toast.error(getApiErrorMessage(error, "Photo upload failed"), {
+        details: `${vehicle.stockNumber} could not be updated with the selected photo upload.`,
+      })
     } finally {
       event.target.value = ""
     }

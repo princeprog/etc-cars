@@ -218,6 +218,9 @@ export function VehiclesTable({
     ) {
       toast.error(
         "Set pricing and add at least one vehicle photo before moving this unit to Available.",
+        {
+          details: `${vehicle.stockNumber} needs target price, minimum acceptable price, and at least one photo.`,
+        },
       )
       return
     }
@@ -232,9 +235,13 @@ export function VehiclesTable({
         },
       })
 
-      toast.success(`Vehicle moved to ${nextStatus}`)
+      toast.success(`Vehicle moved to ${nextStatus}`, {
+        details: `${vehicle.stockNumber} is now tracked as ${nextStatus} in inventory.`,
+      })
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update vehicle status"))
+      toast.error(getApiErrorMessage(error, "Unable to update vehicle status"), {
+        details: `${vehicle.stockNumber} could not be moved to ${nextStatus}.`,
+      })
     } finally {
       setPendingStatusChange(null)
     }

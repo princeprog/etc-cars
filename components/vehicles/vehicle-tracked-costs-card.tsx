@@ -193,7 +193,9 @@ export function VehicleTrackedCostsCard({
           setAmount("");
           setNote("");
           setIsAddDialogOpen(false);
-          toast.success("Tracked cost added");
+          toast.success("Tracked cost added", {
+            details: `${category} cost of ${amount} was added to ${vehicle.stockNumber}.`,
+          });
         },
       },
     );
@@ -232,7 +234,9 @@ export function VehicleTrackedCostsCard({
       {
         onSuccess: () => {
           setEditingCost(null);
-          toast.success("Tracked cost updated");
+          toast.success("Tracked cost updated", {
+            details: `${editCategory} cost for ${vehicle.stockNumber} now uses the revised amount and note.`,
+          });
         },
       },
     );
@@ -241,7 +245,12 @@ export function VehicleTrackedCostsCard({
   async function handleDelete(costId: string) {
     await deleteMutation.mutateAsync(
       { id: vehicle.id, costId },
-      { onSuccess: () => toast.success("Tracked cost removed") },
+      {
+        onSuccess: () =>
+          toast.success("Tracked cost removed", {
+            details: `The selected cost was removed from ${vehicle.stockNumber}'s investment total.`,
+          }),
+      },
     );
   }
 

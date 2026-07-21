@@ -688,9 +688,13 @@ function SellerLeadForm({
         vehicleModel: "",
         vehicleVariant: "",
       });
-      toast.success("Vehicle brand added");
+      toast.success("Vehicle brand added", {
+        details: `${response.item.name} is now available for seller vehicle details.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to add vehicle brand"));
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle brand"), {
+        details: `${name} could not be added to the vehicle brand catalog.`,
+      });
     }
   }
 
@@ -711,9 +715,13 @@ function SellerLeadForm({
         vehicleModel: response.item.name,
         vehicleVariant: "",
       });
-      toast.success("Vehicle model added");
+      toast.success("Vehicle model added", {
+        details: `${response.item.name} is now available under ${selectedBrand.name}.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to add vehicle model"));
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle model"), {
+        details: `${name} could not be added under ${selectedBrand.name}.`,
+      });
     }
   }
 
@@ -730,9 +738,13 @@ function SellerLeadForm({
         name,
       });
       updateField("vehicleVariant", response.item.name);
-      toast.success("Vehicle variant added");
+      toast.success("Vehicle variant added", {
+        details: `${response.item.name} is now available under ${selectedModel.name}.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to add vehicle variant"));
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle variant"), {
+        details: `${name} could not be added under ${selectedModel.name}.`,
+      });
     }
   }
 
@@ -1267,10 +1279,15 @@ export function SellerLeadsScreen() {
         },
       });
 
-      toast.success(`Seller lead moved to ${nextStatus}`);
+      toast.success(`Seller lead moved to ${nextStatus}`, {
+        details: `${lead.sellerName} is now tracked as ${nextStatus} in the seller pipeline.`,
+      });
     } catch (error) {
       toast.error(
         getApiErrorMessage(error, "Unable to update seller lead status"),
+        {
+          details: `The status for ${lead.sellerName} could not be changed to ${nextStatus}.`,
+        },
       );
     }
   }
@@ -1289,7 +1306,9 @@ export function SellerLeadsScreen() {
       parseSellerLeadPayload(createForm, currentUserId ?? null),
       {
         onSuccess: () => {
-          toast.success("Seller lead created");
+          toast.success("Seller lead created", {
+            details: `${createForm.sellerName.trim()} is ready for vehicle details and acquisition review.`,
+          });
           setCreateOpen(false);
           setCreateForm(getEmptySellerLeadFormValues());
           setCreateFormErrors({});

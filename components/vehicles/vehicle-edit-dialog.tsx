@@ -45,7 +45,9 @@ function VehicleEditDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Vehicle updated");
+          toast.success("Vehicle updated", {
+            details: `${vehicle.stockNumber} now has the latest inventory details.`,
+          });
           onClose();
         },
       },

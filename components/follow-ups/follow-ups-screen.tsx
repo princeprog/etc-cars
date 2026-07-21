@@ -583,6 +583,10 @@ export function FollowUpsScreen() {
     if (!currentUserId) {
       toast.error(
         "Your account is still loading. Please wait a moment and try again.",
+        {
+          details:
+            "The follow-up cannot be assigned until your staff account finishes loading.",
+        },
       );
       return;
     }
@@ -957,7 +961,9 @@ export function FollowUpsScreen() {
                                     navigator.clipboard.writeText(
                                       followUp.note,
                                     );
-                                    toast.success("Follow-up note copied");
+                                    toast.success("Follow-up note copied", {
+                                      details: `${followUp.leadName ?? "This lead"}'s follow-up note is ready to paste into another record or message.`,
+                                    });
                                   }}
                                 >
                                   <CalendarDaysIcon />
@@ -1321,7 +1327,9 @@ function EditFollowUpDialogForm({
       },
       {
         onSuccess: () => {
-          toast.success("Follow-up note updated");
+          toast.success("Follow-up note updated", {
+            details: `${followUp.leadName ?? "This lead"} now shows the revised follow-up note.`,
+          });
           onClose();
         },
       },

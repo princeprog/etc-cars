@@ -360,7 +360,9 @@ function VehiclePricingForm({ vehicle }: { vehicle: Vehicle }) {
     event.preventDefault()
 
     if (minimumExceedsTarget) {
-      toast.error("Minimum acceptable price cannot exceed target selling price")
+      toast.error("Minimum acceptable price cannot exceed target selling price", {
+        details: `${vehicle.stockNumber} needs a minimum price that is less than or equal to the target selling price.`,
+      })
       return
     }
 

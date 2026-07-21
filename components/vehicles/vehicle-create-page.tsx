@@ -114,7 +114,10 @@ function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreat
         },
         {
           onSuccess: () => {
-            toast.success("Seller lead converted to inventory")
+            toast.success("Seller lead converted to inventory", {
+              details:
+                "A generated stock number was created from the seller lead and added to inventory.",
+            })
             router.push("/vehicles")
           },
         },
@@ -125,7 +128,10 @@ function VehicleCreatePageContent({ searchParams }: { searchParams: VehicleCreat
 
     await createMutation.mutateAsync(buildCreateVehiclePayload(values), {
       onSuccess: () => {
-        toast.success("Vehicle created")
+        toast.success("Vehicle created", {
+          details:
+            "A generated stock number was added to inventory for details, photos, and pricing.",
+        })
         router.push("/vehicles")
       },
     })

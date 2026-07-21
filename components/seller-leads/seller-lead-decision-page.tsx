@@ -73,6 +73,9 @@ function DecisionWorkspace({ lead }: { lead: SellerLead }) {
         });
         toast.success(
           `${selectedChoice.successMessage}. Returning to seller lead overview.`,
+          {
+            details: `${lead.sellerName}'s acquisition decision was saved as ${selectedChoice.decision}.`,
+          },
         );
         router.push(`/seller-leads/${lead.id}`);
       } catch {

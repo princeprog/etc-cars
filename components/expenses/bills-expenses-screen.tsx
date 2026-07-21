@@ -662,13 +662,17 @@ export function BillsExpensesScreen() {
           id: editingExpense.id,
           payload: toExpensePayload(expenseForm),
         });
-        toast.success("Expense updated");
+        toast.success("Expense updated", {
+          details: `${editingExpense.title} now has the latest amount, due date, category, and payment details.`,
+        });
       } else {
         await createExpenseMutation.mutateAsync({
           ...toExpensePayload(expenseForm),
           frequency: "one_time",
         });
-        toast.success("Expense created");
+        toast.success("Expense created", {
+          details: `${expenseForm.title.trim()} was added to bills and expense tracking.`,
+        });
       }
       setExpenseSheetOpen(false);
     } catch {
@@ -693,10 +697,14 @@ export function BillsExpensesScreen() {
           id: editingRule.id,
           payload: toRecurringPayload(recurringForm),
         });
-        toast.success("Recurring rule updated");
+        toast.success("Recurring rule updated", {
+          details: `${editingRule.title} will use the revised schedule and expense details going forward.`,
+        });
       } else {
         await createRuleMutation.mutateAsync(toRecurringPayload(recurringForm));
-        toast.success("Recurring rule created");
+        toast.success("Recurring rule created", {
+          details: `${recurringForm.title.trim()} will generate future expense records on schedule.`,
+        });
       }
       setRecurringSheetOpen(false);
     } catch {
@@ -722,7 +730,9 @@ export function BillsExpensesScreen() {
           receipt: paidForm.receipt,
         },
       });
-      toast.success("Expense marked as paid");
+      toast.success("Expense marked as paid", {
+        details: `${markPaidExpense.title} was recorded as paid for ${paidForm.actualPaidAmount.trim() || markPaidExpense.expectedAmount}.`,
+      });
       setMarkPaidExpense(null);
       setPaidForm((current) => ({ ...current, receipt: null }));
     } catch {
@@ -754,10 +764,14 @@ export function BillsExpensesScreen() {
         id: receiptReplaceExpense.id,
         payload: getReceiptPayload(response.file),
       });
-      toast.success("Receipt updated");
+      toast.success("Receipt updated", {
+        details: `${response.file.originalFilename ?? file.name} is now attached to ${receiptReplaceExpense.title}.`,
+      });
       setReceiptReplaceExpense(null);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to update receipt"));
+      toast.error(getApiErrorMessage(error, "Unable to update receipt"), {
+        details: `${file.name} could not be attached to ${receiptReplaceExpense.title}.`,
+      });
       setReceiptReplaceExpense(null);
     } finally {
       setReceiptReplaceFileName("");
@@ -771,7 +785,9 @@ export function BillsExpensesScreen() {
 
     try {
       await removeReceiptMutation.mutateAsync(receiptRemoveExpense.id);
-      toast.success("Receipt removed");
+      toast.success("Receipt removed", {
+        details: `${receiptRemoveExpense.title} no longer has a receipt attachment.`,
+      });
       setReceiptRemoveExpense(null);
     } catch {
       // The dialog-level error renders below.
@@ -788,7 +804,9 @@ export function BillsExpensesScreen() {
         id: voidExpenseTarget.id,
         payload: { reason: voidReason.trim() },
       });
-      toast.success("Expense voided");
+      toast.success("Expense voided", {
+        details: `${voidExpenseTarget.title} was removed from active payment tracking.`,
+      });
       setVoidExpenseTarget(null);
       setVoidReason("");
     } catch {
@@ -799,9 +817,13 @@ export function BillsExpensesScreen() {
   async function handleDeactivateRule(rule: ExpenseRecurringRule) {
     try {
       await deactivateRuleMutation.mutateAsync(rule.id);
-      toast.success("Recurring rule deactivated");
+      toast.success("Recurring rule deactivated", {
+        details: `${rule.title} will no longer create future expense records.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to deactivate rule"));
+      toast.error(getApiErrorMessage(error, "Unable to deactivate rule"), {
+        details: `${rule.title} could not be deactivated. Try again after reviewing the rule status.`,
+      });
     }
   }
 
@@ -2152,7 +2174,9 @@ function MarkPaidDialog({
         ...values,
         receipt: getReceiptPayload(response.file),
       });
-      toast.success("Receipt uploaded");
+      toast.success("Receipt uploaded", {
+        details: `${response.file.originalFilename ?? file.name} is ready to attach to this expense payment.`,
+      });
     } catch {
       // The dialog-level upload alert renders below.
     }

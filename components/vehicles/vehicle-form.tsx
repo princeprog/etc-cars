@@ -123,9 +123,13 @@ export function VehicleForm({
         model: "",
         variant: "",
       });
-      toast.success("Vehicle brand added");
+      toast.success("Vehicle brand added", {
+        details: `${response.item.name} is now available in vehicle inventory forms.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to add vehicle brand"));
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle brand"), {
+        details: `${name} could not be added to the vehicle brand catalog.`,
+      });
     }
   }
 
@@ -142,9 +146,13 @@ export function VehicleForm({
         name,
       });
       onChange({ ...values, model: response.item.name, variant: "" });
-      toast.success("Vehicle model added");
+      toast.success("Vehicle model added", {
+        details: `${response.item.name} is now available under ${selectedBrand.name}.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to add vehicle model"));
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle model"), {
+        details: `${name} could not be added under ${selectedBrand.name}.`,
+      });
     }
   }
 
@@ -161,9 +169,13 @@ export function VehicleForm({
         name,
       });
       updateField("variant", response.item.name);
-      toast.success("Vehicle variant added");
+      toast.success("Vehicle variant added", {
+        details: `${response.item.name} is now available under ${selectedModel.name}.`,
+      });
     } catch (error) {
-      toast.error(getApiErrorMessage(error, "Unable to add vehicle variant"));
+      toast.error(getApiErrorMessage(error, "Unable to add vehicle variant"), {
+        details: `${name} could not be added under ${selectedModel.name}.`,
+      });
     }
   }
 

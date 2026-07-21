@@ -205,7 +205,9 @@ function StaffScreenContent() {
           setFullName("")
           setCreateConfirmOpen(false)
           setCreateDialogOpen(false)
-          toast.success("Staff account created")
+          toast.success("Staff account created", {
+            details: `${response.user.fullName ?? response.user.email} can now sign in with the generated credentials.`,
+          })
         },
       },
     )
@@ -219,6 +221,9 @@ function StaffScreenContent() {
     if (pendingStatusUser.active && pendingStatusUser.mustChangePassword) {
       toast.error(
         "This account must complete its first password change before it can be disabled.",
+        {
+          details: `${pendingStatusUser.fullName ?? pendingStatusUser.email} must sign in and change their temporary password first.`,
+        },
       )
       setPendingStatusUser(null)
       return
@@ -235,6 +240,9 @@ function StaffScreenContent() {
             pendingStatusUser.active
               ? "Staff account disabled"
               : "Staff account enabled",
+            {
+              details: `${pendingStatusUser.fullName ?? pendingStatusUser.email} is now ${pendingStatusUser.active ? "disabled" : "enabled"} for staff access.`,
+            },
           )
           setPendingStatusUser(null)
         },

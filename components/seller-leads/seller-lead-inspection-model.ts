@@ -1,4 +1,8 @@
 import type {
+  SellerLeadInspection,
+  InspectionTemplateSection as DynamicInspectionSection,
+} from "@/types/inspection-checklists";
+import type {
   SellerLead,
   SellerLeadInspectionFindings,
   SellerLeadInspectionRating,
@@ -183,6 +187,30 @@ export const ALL_INSPECTION_ITEMS = INSPECTION_SECTIONS.flatMap(
   (section) => section.items,
 );
 
+export function getActiveInspectionSections(
+  sections: DynamicInspectionSection[],
+): InspectionSection[] {
+  return sections
+    .filter((section) => section.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((section) => ({
+      id: section.id ?? section.label,
+      label: section.label,
+      items: section.items
+        .filter((item) => item.isActive)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((item) => ({
+          id: item.id ?? item.stableKey ?? item.label,
+          label: item.label,
+          key: (item.findingKey ?? "exterior") as InspectionKey,
+        })),
+    }));
+}
+
+function getItems(sections: InspectionSection[] = INSPECTION_SECTIONS) {
+  return sections.flatMap((section) => section.items);
+}
+
 type StoredInspectionDraft = Omit<InspectionDraft, "items"> & {
   items: Record<string, InspectionItemValue>;
 };
@@ -263,6 +291,36 @@ export function getInspectionDraft(lead: SellerLead): InspectionDraft {
   };
 }
 
+export function getInspectionDraftFromRecord(
+  inspection: SellerLeadInspection,
+): InspectionDraft {
+  const sections = getActiveInspectionSections(
+    inspection.templateSnapshot.sections,
+  );
+  const items = Object.fromEntries(
+    getItems(sections).map((item) => {
+      const answer = inspection.answers[item.id];
+
+      return [
+        item.id,
+        {
+          rating: answer?.rating ?? null,
+          notes: answer?.notes ?? "",
+        },
+      ];
+    }),
+  );
+
+  return {
+    items,
+    majorIssues: inspection.majorIssues ?? "",
+    recommendedRepairs: inspection.recommendedRepairs ?? "",
+    inspectorNotes: inspection.inspectorNotes ?? "",
+    estimatedRepairCost: inspection.estimatedRepairCost ?? "",
+    overallCondition: inspection.overallCondition,
+  };
+}
+
 const RATING_WEIGHT: Record<Exclude<InspectionRating, null>, number> = {
   good: 100,
   fair: 60,
@@ -277,8 +335,10 @@ const RATING_PRIORITY: Record<Exclude<InspectionRating, null>, number> = {
 
 export function getCalculatedOverallCondition(
   draft: InspectionDraft,
+  sections: InspectionSection[] = INSPECTION_SECTIONS,
 ): CalculatedOverallCondition {
-  const checked = ALL_INSPECTION_ITEMS.map((item) => draft.items[item.id])
+  const checked = getItems(sections)
+    .map((item) => draft.items[item.id])
     .filter((value) => value.rating !== null)
     .map((value) => value.rating);
 
@@ -294,8 +354,13 @@ function getOverallConditionForStorage(draft: InspectionDraft) {
   return condition === "pending" ? "fair" : condition;
 }
 
-export function getInspectionMetrics(draft: InspectionDraft) {
-  const values = ALL_INSPECTION_ITEMS.map((item) => draft.items[item.id]);
+export function getInspectionMetrics(
+  draft: InspectionDraft,
+  sections: InspectionSection[] = INSPECTION_SECTIONS,
+) {
+  const values = getItems(sections).map(
+    (item) => draft.items[item.id] ?? { rating: null, notes: "" },
+  );
   const checked = values.filter((value) => value.rating !== null);
   const counts = {
     good: checked.filter((value) => value.rating === "good").length,
@@ -319,7 +384,7 @@ export function getInspectionMetrics(draft: InspectionDraft) {
     completion,
     score,
     counts,
-    overallCondition: getCalculatedOverallCondition(draft),
+    overallCondition: getCalculatedOverallCondition(draft, sections),
     requiredRemaining: values.length - checked.length,
     readiness:
       counts.poor > 0 || checked.length < values.length

@@ -3,6 +3,10 @@ export interface AuthenticatedUser {
   email: string
   fullName: string
   role: "admin" | "staff"
+  roleId: string
+  roleName: string
+  isAdministrator: boolean
+  permissions: Record<string, "assigned" | "all">
   mustChangePassword: boolean
   active: boolean
 }
@@ -24,7 +28,8 @@ export interface RealtimeTokenResponse {
 export interface CreateStaffPayload {
   email: string
   fullName?: string
-  role: "staff"
+  role?: "staff"
+  roleId?: string
 }
 
 export interface ChangePasswordPayload {
@@ -54,6 +59,10 @@ export interface ListUsersParams {
 
 export interface UpdateUserStatusPayload {
   active: boolean
+}
+
+export interface UpdateUserRolePayload {
+  roleId: string
 }
 
 export interface LogoutResponse {

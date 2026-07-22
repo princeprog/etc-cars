@@ -387,8 +387,8 @@ export function Toaster() {
 
   return (
     <SileoToaster
-      position="top-center"
-      offset={18}
+      position="top-right"
+      offset={{ top: 18, right: 18 }}
       theme={sileoTheme}
       options={{
         roundness: 16,

@@ -84,6 +84,7 @@ import {
   useUpdateVehicleCatalogVariantMutation,
 } from "@/hooks/mutations/vehicle-catalog/use-vehicle-catalog-mutations";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { can } from "@/lib/permissions";
 import {
   useVehicleCatalogBrandsQuery,
   useVehicleCatalogModelsQuery,
@@ -190,7 +191,7 @@ function VehicleCatalogContent() {
   const updateModelMutation = useUpdateVehicleCatalogModelMutation();
   const updateVariantMutation = useUpdateVehicleCatalogVariantMutation();
 
-  if (authQuery.data?.user.role !== "admin") {
+  if (!can(authQuery.data?.user, "vehicle_catalog.manage")) {
     return (
       <div className="flex flex-1 items-start px-4 py-6 md:px-6">
         <Alert variant="destructive" className="max-w-xl">

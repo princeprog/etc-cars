@@ -57,6 +57,7 @@ import {
   useUpdateExpenseCategoryMutation,
 } from "@/hooks/mutations/expenses/use-expense-mutations"
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
+import { can } from "@/lib/permissions"
 import { useExpenseCategoriesQuery } from "@/hooks/queries/expenses/use-expense-categories-query"
 import { getApiErrorMessage } from "@/types/api"
 import type { ExpenseCategory } from "@/types/expenses"
@@ -95,7 +96,10 @@ function getCategoryFormErrors(values: CategoryFormValues) {
 
 export function ExpenseCategoriesScreen() {
   const authQuery = useAuthenticatedUserQuery()
-  const isAdmin = authQuery.data?.user.role === "admin"
+  const canManageCategories = can(
+    authQuery.data?.user,
+    "expense_categories.manage",
+  )
   const categoriesQuery = useExpenseCategoriesQuery(true)
   const createMutation = useCreateExpenseCategoryMutation()
   const updateMutation = useUpdateExpenseCategoryMutation()
@@ -167,7 +171,7 @@ export function ExpenseCategoriesScreen() {
         { label: "Expense Categories" },
       ]}
     >
-      {isAdmin ? (
+      {canManageCategories ? (
         <main className="flex flex-1 flex-col gap-5 bg-muted/15 p-4 md:p-6">
           <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex max-w-3xl flex-col gap-1">

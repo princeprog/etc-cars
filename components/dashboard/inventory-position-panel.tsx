@@ -1,5 +1,7 @@
 "use client";
 
+import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Bar,
   BarChart,
@@ -27,6 +29,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { formatCompactMoney } from "@/components/reports/report-format";
 import type { DashboardInventory } from "@/types/dashboard";
+import type { VehicleStatus } from "@/types/vehicles";
 
 const chartConfig = {
   count: { label: "Vehicles" },
@@ -36,6 +39,12 @@ const chartConfig = {
   incoming: { label: "Incoming", color: "var(--chart-4)" },
 } satisfies ChartConfig;
 
+type InventoryChartItem = {
+  status: VehicleStatus;
+  count: number;
+  fill: string;
+};
+
 export function InventoryPositionPanel({
   inventory,
   totalInventoryValue,
@@ -43,7 +52,8 @@ export function InventoryPositionPanel({
   inventory: DashboardInventory;
   totalInventoryValue?: string;
 }) {
-  const chartData = [
+  const router = useRouter();
+  const chartData: InventoryChartItem[] = [
     {
       status: "Available",
       count: inventory.statuses.Available,
@@ -65,6 +75,25 @@ export function InventoryPositionPanel({
       fill: "var(--color-incoming)",
     },
   ];
+
+  function openVehiclesByStatus(status: VehicleStatus) {
+    router.push(`/vehicles?status=${encodeURIComponent(status)}`);
+  }
+
+  function handleBarKeyDown(
+    event: React.KeyboardEvent<SVGElement>,
+    status: VehicleStatus,
+    count: number,
+  ) {
+    if (count <= 0) {
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openVehiclesByStatus(status);
+    }
+  }
 
   return (
     <Card className="min-w-0 gap-2 py-0 shadow-none">
@@ -115,7 +144,30 @@ export function InventoryPositionPanel({
             />
             <Bar dataKey="count" radius={3} barSize={16}>
               {chartData.map((item) => (
-                <Cell key={item.status} fill={item.fill} />
+                <Cell
+                  key={item.status}
+                  fill={item.fill}
+                  className={
+                    item.count > 0
+                      ? "cursor-pointer outline-none transition-opacity hover:opacity-80 focus:opacity-80"
+                      : undefined
+                  }
+                  role={item.count > 0 ? "link" : undefined}
+                  tabIndex={item.count > 0 ? 0 : undefined}
+                  aria-label={
+                    item.count > 0
+                      ? `View ${item.count.toLocaleString()} ${item.status.toLowerCase()} vehicles`
+                      : undefined
+                  }
+                  onClick={
+                    item.count > 0
+                      ? () => openVehiclesByStatus(item.status)
+                      : undefined
+                  }
+                  onKeyDown={(event) =>
+                    handleBarKeyDown(event, item.status, item.count)
+                  }
+                />
               ))}
               <LabelList
                 dataKey="count"

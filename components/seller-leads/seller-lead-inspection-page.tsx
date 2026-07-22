@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { ArrowLeftIcon, SaveIcon } from "lucide-react";
+import { ArrowLeftIcon, SaveIcon, SettingsIcon } from "lucide-react";
 import { toast } from "@/components/ui/sileo";
 
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
@@ -15,17 +15,25 @@ import { SubmitButton } from "@/components/operations/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation";
+import {
+  useCompleteSellerLeadInspectionMutation,
+  useStartSellerLeadInspectionMutation,
+  useUpdateSellerLeadInspectionMutation,
+} from "@/hooks/mutations/inspection-checklists/use-inspection-checklists-mutations";
+import { useSellerLeadInspectionQuery } from "@/hooks/queries/inspection-checklists/use-inspection-checklists-query";
 import { useSellerLeadQuery } from "@/hooks/queries/seller-leads/use-seller-lead-query";
 import { cn } from "@/lib/utils";
 import { getApiErrorMessage } from "@/types/api";
+import type {
+  SellerLeadInspection,
+  SellerLeadInspectionAnswer,
+} from "@/types/inspection-checklists";
 import type { SellerLead, SellerLeadStatus } from "@/types/seller-leads";
 import { SellerLeadInspectionChecklist } from "./seller-lead-inspection-checklist";
 import {
-  buildInspectionPayload,
   formatSellerLeadMoney,
-  getInspectionDraft,
-  getStatusAfterInspection,
+  getActiveInspectionSections,
+  getInspectionDraftFromRecord,
   getVehicleTitle,
   type InspectionDraft,
 } from "./seller-lead-inspection-model";
@@ -90,10 +98,7 @@ function LeadInspectionSummary({ lead }: { lead: SellerLead }) {
     <Card size="sm" className="gap-0 overflow-hidden rounded-lg py-0">
       <CardContent className="grid gap-px bg-border p-0 sm:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
         <SummaryItem label="Seller">
-          <p
-            className="w-full truncate font-semibold"
-            title={lead.sellerName}
-          >
+          <p className="w-full truncate font-semibold" title={lead.sellerName}>
             {lead.sellerName}
           </p>
         </SummaryItem>
@@ -142,43 +147,14 @@ function LeadInspectionSummary({ lead }: { lead: SellerLead }) {
 }
 
 function InspectionWorkspace({ lead }: { lead: SellerLead }) {
-  const router = useRouter();
-  const updateMutation = useUpdateSellerLeadMutation();
-  const [draft, setDraft] = React.useState<InspectionDraft>(() =>
-    getInspectionDraft(lead),
-  );
+  const inspectionQuery = useSellerLeadInspectionQuery(lead.id);
+  const startMutation = useStartSellerLeadInspectionMutation(lead.id);
+  const inspection = inspectionQuery.data?.inspection ?? null;
 
-  async function saveDraft() {
-    await updateMutation.mutateAsync(
-      { id: lead.id, payload: buildInspectionPayload(draft) },
-      {
-        onSuccess: () =>
-          toast.success("Inspection draft saved", {
-            details: `${lead.sellerName}'s inspection answers were saved and can be resumed later.`,
-          }),
-      },
-    );
-  }
-
-  async function completeInspection() {
-    await updateMutation.mutateAsync(
-      {
-        id: lead.id,
-        payload: {
-          ...buildInspectionPayload(draft),
-          inspectionCompletedAt:
-            lead.inspectionCompletedAt ?? new Date().toISOString(),
-          status: getStatusAfterInspection(lead.status),
-        },
-      },
-      {
-        onSuccess: () =>
-          toast.success("Inspection completed for review", {
-            details: `${lead.sellerName}'s inspection is ready for the acquisition decision step.`,
-          }),
-      },
-    );
-    router.push(`/seller-leads/${lead.id}/decision`);
+  async function startInspection() {
+    await startMutation.mutateAsync(undefined, {
+      onSuccess: () => toast.success("Inspection checklist started"),
+    });
   }
 
   return (
@@ -203,51 +179,185 @@ function InspectionWorkspace({ lead }: { lead: SellerLead }) {
 
       <LeadInspectionSummary lead={lead} />
 
+      {inspectionQuery.isPending ? (
+        <ModuleLoadingState label="Loading inspection checklist" />
+      ) : inspectionQuery.error ? (
+        <ApiErrorAlert
+          title="Unable to load inspection checklist"
+          message={getApiErrorMessage(inspectionQuery.error, "")}
+        />
+      ) : !inspection ? (
+        <Card size="sm" className="rounded-lg">
+          <CardContent className="flex flex-col gap-4 p-5">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-semibold">Start inspection</h2>
+              <p className="text-sm text-muted-foreground">
+                Use the dealership checklist configured in inspection settings.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Checklist changes made by admins will update draft inspections
+                until they are completed.
+              </p>
+              <SubmitButton
+                type="button"
+                pending={startMutation.isPending}
+                pendingLabel="Starting inspection"
+                onClick={() => void startInspection()}
+              >
+                Start Inspection
+              </SubmitButton>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <ActiveInspectionForm
+          key={`${inspection.id}-${inspection.updatedAt}`}
+          lead={lead}
+          inspection={inspection}
+        />
+      )}
+    </div>
+  );
+}
+
+function ActiveInspectionForm({
+  lead,
+  inspection,
+}: {
+  lead: SellerLead;
+  inspection: SellerLeadInspection;
+}) {
+  const router = useRouter();
+  const updateMutation = useUpdateSellerLeadInspectionMutation(lead.id);
+  const completeMutation = useCompleteSellerLeadInspectionMutation(lead.id);
+  const [draft, setDraft] = React.useState<InspectionDraft>(() =>
+    getInspectionDraftFromRecord(inspection),
+  );
+  const sections = getActiveInspectionSections(
+    inspection.templateSnapshot.sections,
+  );
+  const readOnly = inspection.status === "completed";
+  const pending = updateMutation.isPending || completeMutation.isPending;
+
+  async function saveDraft() {
+    await updateMutation.mutateAsync(buildInspectionUpdatePayload(draft), {
+      onSuccess: () => toast.success("Inspection draft saved"),
+    });
+  }
+
+  async function completeInspection() {
+    await updateMutation.mutateAsync(buildInspectionUpdatePayload(draft));
+    await completeMutation.mutateAsync(undefined, {
+      onSuccess: () => toast.success("Inspection completed for review"),
+    });
+    router.push(`/seller-leads/${lead.id}/decision`);
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">
+            {inspection.templateSnapshot.templateName} v
+            {inspection.templateSnapshot.versionNumber}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {readOnly
+              ? "Completed inspections are read-only."
+              : "Draft inspection"}
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" asChild>
+          <Link href="/settings/inspection-checklists">
+            <SettingsIcon data-icon="inline-start" />
+            Manage Checklists
+          </Link>
+        </Button>
+      </div>
+
       <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[1.35fr_1fr] xl:items-start">
         <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
           <div className="order-1 xl:order-none">
-            <SellerLeadInspectionChecklist draft={draft} onChange={setDraft} />
+            <SellerLeadInspectionChecklist
+              draft={draft}
+              onChange={setDraft}
+              sections={sections}
+              readOnly={readOnly}
+            />
           </div>
           <div className="order-4 xl:order-none">
-            <InspectionSummaryPanel draft={draft} onChange={setDraft} />
+            <InspectionSummaryPanel
+              draft={draft}
+              onChange={setDraft}
+              sections={sections}
+              readOnly={readOnly}
+            />
           </div>
         </div>
         <div className="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-4">
           <div className="order-2 xl:order-none">
-            <InspectionProgressPanel draft={draft} />
+            <InspectionProgressPanel draft={draft} sections={sections} />
           </div>
           <div className="order-3 xl:order-none">
-            <InspectionFindingsPanel draft={draft} onChange={setDraft} />
+            <InspectionFindingsPanel
+              draft={draft}
+              onChange={setDraft}
+              readOnly={readOnly}
+            />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-        <p className="text-xs text-muted-foreground sm:mr-2">
-          Completing the inspection will move this seller lead to Decision
-          Review.
-        </p>
-        <SubmitButton
-          type="button"
-          variant="outline"
-          pending={updateMutation.isPending}
-          pendingLabel="Saving draft"
-          onClick={() => void saveDraft()}
-        >
-          Save as Draft
-        </SubmitButton>
-        <SubmitButton
-          type="button"
-          pending={updateMutation.isPending}
-          pendingLabel="Completing inspection"
-          onClick={() => void completeInspection()}
-        >
-          <SaveIcon data-icon="inline-start" />
-          Complete Inspection
-        </SubmitButton>
-      </div>
-    </div>
+      {!readOnly ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <p className="text-xs text-muted-foreground sm:mr-2">
+            Completing the inspection will move this seller lead to Decision
+            Review.
+          </p>
+          <SubmitButton
+            type="button"
+            variant="outline"
+            pending={pending}
+            pendingLabel="Saving draft"
+            onClick={() => void saveDraft()}
+          >
+            Save as Draft
+          </SubmitButton>
+          <SubmitButton
+            type="button"
+            pending={pending}
+            pendingLabel="Completing inspection"
+            onClick={() => void completeInspection()}
+          >
+            <SaveIcon data-icon="inline-start" />
+            Complete Inspection
+          </SubmitButton>
+        </div>
+      ) : null}
+    </>
   );
+}
+
+function buildInspectionUpdatePayload(draft: InspectionDraft) {
+  const answers = Object.fromEntries(
+    Object.entries(draft.items).map(([id, value]) => [
+      id,
+      {
+        rating: value.rating,
+        notes: value.notes.trim() || null,
+      } satisfies SellerLeadInspectionAnswer,
+    ]),
+  );
+
+  return {
+    answers,
+    majorIssues: draft.majorIssues || null,
+    recommendedRepairs: draft.recommendedRepairs || null,
+    inspectorNotes: draft.inspectorNotes || null,
+    estimatedRepairCost: draft.estimatedRepairCost || null,
+  };
 }
 
 export function SellerLeadInspectionPage({ leadId }: { leadId: string }) {

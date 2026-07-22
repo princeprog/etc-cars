@@ -8,6 +8,7 @@ import {
   CarFrontIcon,
   ChevronRightIcon,
   ClipboardClockIcon,
+  ClipboardListIcon,
   LockIcon,
   PercentIcon,
   ReceiptTextIcon,
@@ -22,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 type SettingsCard = {
@@ -46,10 +48,17 @@ const SETTINGS_CARDS: SettingsCard[] = [
   },
   {
     title: "Staff & Access",
-    description: "Manage staff accounts, roles, and access controls.",
+    description: "Manage team accounts and account access status.",
     href: "/staff",
     actionLabel: "Manage Staff",
     icon: UsersRoundIcon,
+  },
+  {
+    title: "Roles & Access",
+    description: "Configure role permissions and access levels.",
+    href: "/settings/roles",
+    actionLabel: "Manage Roles",
+    icon: ShieldCheckIcon,
   },
   {
     title: "Activity & Audit",
@@ -65,6 +74,14 @@ const SETTINGS_CARDS: SettingsCard[] = [
     href: "/settings/expense-categories",
     actionLabel: "Manage Categories",
     icon: ReceiptTextIcon,
+  },
+  {
+    title: "Inspection Checklists",
+    description:
+      "Customize vehicle inspection sections and required checklist items.",
+    href: "/settings/inspection-checklists",
+    actionLabel: "Manage Checklists",
+    icon: ClipboardListIcon,
   },
   {
     title: "Dealership Profile",
@@ -97,7 +114,14 @@ export function SettingsScreen() {
 function SettingsScreenContent() {
   const authQuery = useAuthenticatedUserQuery();
 
-  if (authQuery.data?.user.role !== "admin") {
+  const user = authQuery.data?.user;
+  const canOpenSettings =
+    user?.isAdministrator === true ||
+    can(user, "vehicle_catalog.manage") ||
+    can(user, "inspection_checklists.manage") ||
+    can(user, "expense_categories.manage");
+
+  if (!canOpenSettings) {
     return (
       <div className="flex flex-1 items-start px-4 py-6 md:px-6">
         <Alert variant="destructive" className="max-w-xl">

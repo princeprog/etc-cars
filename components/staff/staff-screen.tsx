@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   BanIcon,
   ChevronLeftIcon,
@@ -13,14 +13,13 @@ import {
   UserCheckIcon,
   UserCogIcon,
   UserPlusIcon,
-  UsersIcon,
-} from "lucide-react"
-import { toast } from "@/components/ui/sileo"
+} from "lucide-react";
+import { toast } from "@/components/ui/sileo";
 
-import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
-import { ApiErrorAlert } from "@/components/operations/api-error-alert"
-import { SubmitButton } from "@/components/operations/submit-button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell";
+import { ApiErrorAlert } from "@/components/operations/api-error-alert";
+import { SubmitButton } from "@/components/operations/submit-button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,46 +29,46 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
+} from "@/components/ui/field";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Spinner } from "@/components/ui/spinner"
+} from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Table,
   TableBody,
@@ -77,39 +76,41 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { useCreateStaffMutation } from "@/hooks/mutations/auth/use-create-staff-mutation"
-import { useUpdateUserStatusMutation } from "@/hooks/mutations/auth/use-update-user-status-mutation"
-import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query"
-import { useUsersQuery } from "@/hooks/queries/auth/use-users-query"
-import { getApiErrorMessage } from "@/types/api"
-import type { AuthenticatedUser, ListUsersParams } from "@/types/auth"
+} from "@/components/ui/table";
+import { useCreateStaffMutation } from "@/hooks/mutations/auth/use-create-staff-mutation";
+import { useUpdateUserRoleMutation } from "@/hooks/mutations/auth/use-update-user-role-mutation";
+import { useUpdateUserStatusMutation } from "@/hooks/mutations/auth/use-update-user-status-mutation";
+import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useUsersQuery } from "@/hooks/queries/auth/use-users-query";
+import { useRolesQuery } from "@/hooks/queries/roles/use-roles-query";
+import { getApiErrorMessage } from "@/types/api";
+import type { AuthenticatedUser, ListUsersParams } from "@/types/auth";
 
-const DEFAULT_STAFF_PASSWORD = "123456"
-const STAFF_PAGE_SIZE_OPTIONS = [10, 20, 50] as const
-const DEFAULT_STAFF_PAGE_SIZE = 10
+const DEFAULT_STAFF_PASSWORD = "123456";
+const STAFF_PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
+const DEFAULT_STAFF_PAGE_SIZE = 10;
 const STATUS_FILTER_OPTIONS: Array<{
-  label: string
-  value: NonNullable<ListUsersParams["status"]>
+  label: string;
+  value: NonNullable<ListUsersParams["status"]>;
 }> = [
   { label: "all", value: "all" },
   { label: "active", value: "active" },
   { label: "disabled", value: "disabled" },
   { label: "change password required", value: "change_password_required" },
-]
+];
 
 function getStaffPageSizeOptions(total: number) {
   if (total <= DEFAULT_STAFF_PAGE_SIZE) {
-    return [DEFAULT_STAFF_PAGE_SIZE]
+    return [DEFAULT_STAFF_PAGE_SIZE];
   }
 
   const largestVisibleOption =
     STAFF_PAGE_SIZE_OPTIONS.find((option) => total <= option) ??
-    STAFF_PAGE_SIZE_OPTIONS[STAFF_PAGE_SIZE_OPTIONS.length - 1]
+    STAFF_PAGE_SIZE_OPTIONS[STAFF_PAGE_SIZE_OPTIONS.length - 1];
 
   return STAFF_PAGE_SIZE_OPTIONS.filter(
     (option) => option <= largestVisibleOption,
-  )
+  );
 }
 
 export function StaffScreen() {
@@ -120,75 +121,98 @@ export function StaffScreen() {
     >
       <StaffScreenContent />
     </AuthenticatedAppShell>
-  )
+  );
 }
 
 function StaffScreenContent() {
-  const authQuery = useAuthenticatedUserQuery()
-  const [search, setSearch] = React.useState("")
+  const authQuery = useAuthenticatedUserQuery();
+  const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] =
-    React.useState<NonNullable<ListUsersParams["status"]>>("all")
-  const [page, setPage] = React.useState(1)
+    React.useState<NonNullable<ListUsersParams["status"]>>("all");
+  const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState<number>(
     DEFAULT_STAFF_PAGE_SIZE,
-  )
+  );
   const usersQuery = useUsersQuery({
     search,
     status: statusFilter,
     page,
     pageSize,
-  })
-  const createStaffMutation = useCreateStaffMutation()
-  const updateUserStatusMutation = useUpdateUserStatusMutation()
-  const [createDialogOpen, setCreateDialogOpen] = React.useState(false)
-  const [createConfirmOpen, setCreateConfirmOpen] = React.useState(false)
-  const [email, setEmail] = React.useState("")
-  const [fullName, setFullName] = React.useState("")
+  });
+  const createStaffMutation = useCreateStaffMutation();
+  const updateUserStatusMutation = useUpdateUserStatusMutation();
+  const updateUserRoleMutation = useUpdateUserRoleMutation();
+  const rolesQuery = useRolesQuery();
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [createConfirmOpen, setCreateConfirmOpen] = React.useState(false);
+  const [email, setEmail] = React.useState("");
+  const [fullName, setFullName] = React.useState("");
+  const [roleId, setRoleId] = React.useState("");
   const [pendingStatusUser, setPendingStatusUser] =
-    React.useState<AuthenticatedUser | null>(null)
+    React.useState<AuthenticatedUser | null>(null);
   const [createdUser, setCreatedUser] =
-    React.useState<AuthenticatedUser | null>(null)
-  const total = usersQuery.data?.total ?? 0
-  const totalPages = usersQuery.data?.totalPages ?? 1
+    React.useState<AuthenticatedUser | null>(null);
+  const total = usersQuery.data?.total ?? 0;
+  const totalPages = usersQuery.data?.totalPages ?? 1;
   const pageSizeOptions = React.useMemo(
     () => getStaffPageSizeOptions(total),
     [total],
-  )
+  );
 
   React.useEffect(() => {
     if (page > totalPages) {
-      setPage(totalPages)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPage(totalPages);
     }
-  }, [page, totalPages])
+  }, [page, totalPages]);
 
   React.useEffect(() => {
     const largestPageSize =
-      pageSizeOptions[pageSizeOptions.length - 1] ?? DEFAULT_STAFF_PAGE_SIZE
+      pageSizeOptions[pageSizeOptions.length - 1] ?? DEFAULT_STAFF_PAGE_SIZE;
 
     if (pageSize > largestPageSize) {
-      setPageSize(largestPageSize)
-      setPage(1)
+      setPageSize(largestPageSize);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPage(1);
     }
-  }, [pageSize, pageSizeOptions])
+  }, [pageSize, pageSizeOptions]);
 
-  if (authQuery.data?.user.role !== "admin") {
+  const activeRoles = React.useMemo(
+    () =>
+      rolesQuery.data?.roles.filter(
+        (role) => !role.archivedAt && !role.isAdministrator,
+      ) ?? [],
+    [rolesQuery.data?.roles],
+  );
+
+  React.useEffect(() => {
+    if (!roleId && activeRoles.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRoleId(
+        activeRoles.find((role) => role.name === "Staff")?.id ??
+          activeRoles[0].id,
+      );
+    }
+  }, [activeRoles, roleId]);
+
+  if (authQuery.data?.user.isAdministrator !== true) {
     return (
       <div className="flex flex-1 items-start px-4 py-6 md:px-6">
         <Alert variant="destructive" className="max-w-xl">
           <ShieldCheckIcon />
           <AlertTitle>Admin access required</AlertTitle>
           <AlertDescription>
-            Staff management is available only to admin users.
+            Team management is available only to admin users.
           </AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setCreatedUser(null)
-    setCreateConfirmOpen(true)
+    event.preventDefault();
+    setCreatedUser(null);
+    setCreateConfirmOpen(true);
   }
 
   async function confirmCreateStaff() {
@@ -196,26 +220,31 @@ function StaffScreenContent() {
       {
         email,
         fullName: fullName.trim() || undefined,
-        role: "staff",
+        roleId,
       },
       {
         onSuccess: (response) => {
-          setCreatedUser(response.user)
-          setEmail("")
-          setFullName("")
-          setCreateConfirmOpen(false)
-          setCreateDialogOpen(false)
-          toast.success("Staff account created", {
+          setCreatedUser(response.user);
+          setEmail("");
+          setFullName("");
+          setRoleId(
+            activeRoles.find((role) => role.name === "Staff")?.id ??
+              activeRoles[0]?.id ??
+              "",
+          );
+          setCreateConfirmOpen(false);
+          setCreateDialogOpen(false);
+          toast.success("Team account created", {
             details: `${response.user.fullName ?? response.user.email} can now sign in with the generated credentials.`,
-          })
+          });
         },
       },
-    )
+    );
   }
 
   async function confirmStatusToggle() {
     if (!pendingStatusUser) {
-      return
+      return;
     }
 
     if (pendingStatusUser.active && pendingStatusUser.mustChangePassword) {
@@ -224,9 +253,9 @@ function StaffScreenContent() {
         {
           details: `${pendingStatusUser.fullName ?? pendingStatusUser.email} must sign in and change their temporary password first.`,
         },
-      )
-      setPendingStatusUser(null)
-      return
+      );
+      setPendingStatusUser(null);
+      return;
     }
 
     await updateUserStatusMutation.mutateAsync(
@@ -238,43 +267,43 @@ function StaffScreenContent() {
         onSuccess: () => {
           toast.success(
             pendingStatusUser.active
-              ? "Staff account disabled"
-              : "Staff account enabled",
+              ? "Team account disabled"
+              : "Team account enabled",
             {
               details: `${pendingStatusUser.fullName ?? pendingStatusUser.email} is now ${pendingStatusUser.active ? "disabled" : "enabled"} for staff access.`,
             },
-          )
-          setPendingStatusUser(null)
+          );
+          setPendingStatusUser(null);
         },
       },
-    )
+    );
   }
 
-  const staffUsers = usersQuery.data?.users ?? []
-  const summary = usersQuery.data?.summary
-  const totalStaffCount = summary?.totalStaffCount ?? 0
-  const activeStaffCount = summary?.activeStaffCount ?? 0
-  const adminCount = summary?.adminCount ?? 0
-  const disabledStaffCount = summary?.disabledStaffCount ?? 0
-  const currentPage = Math.min(page, totalPages)
-  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1
-  const rangeEnd = Math.min(currentPage * pageSize, total)
+  const staffUsers = usersQuery.data?.users ?? [];
+  const summary = usersQuery.data?.summary;
+  const totalStaffCount = summary?.totalStaffCount ?? 0;
+  const activeStaffCount = summary?.activeStaffCount ?? 0;
+  const adminCount = summary?.adminCount ?? 0;
+  const disabledStaffCount = summary?.disabledStaffCount ?? 0;
+  const currentPage = Math.min(page, totalPages);
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
 
   function handleSearchChange(value: string) {
-    setSearch(value)
-    setPage(1)
+    setSearch(value);
+    setPage(1);
   }
 
   function handleStatusFilterChange(
     value: NonNullable<ListUsersParams["status"]>,
   ) {
-    setStatusFilter(value)
-    setPage(1)
+    setStatusFilter(value);
+    setPage(1);
   }
 
   function handlePageSizeChange(value: number) {
-    setPageSize(value)
-    setPage(1)
+    setPageSize(value);
+    setPage(1);
   }
 
   return (
@@ -291,7 +320,7 @@ function StaffScreenContent() {
 
           <Button onClick={() => setCreateDialogOpen(true)}>
             <UserPlusIcon />
-            New Staff
+            New Team Member
           </Button>
         </div>
 
@@ -302,7 +331,7 @@ function StaffScreenContent() {
             description="Can manage staff, settings, and workspace controls"
           />
           <SummaryCard
-            label="Staff accounts"
+            label="Team accounts"
             value={totalStaffCount}
             description="Team members registered for daily operations"
           />
@@ -324,7 +353,7 @@ function StaffScreenContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm staff creation</AlertDialogTitle>
             <AlertDialogDescription>
-              Create a staff account for {email || "this user"} with the default
+              Create a team account for {email || "this user"} with the default
               password {DEFAULT_STAFF_PASSWORD}?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -345,7 +374,7 @@ function StaffScreenContent() {
       {createdUser ? (
         <Alert className="border-emerald-200 bg-emerald-50/70 text-emerald-950 dark:border-emerald-900/70 dark:bg-emerald-950/20 dark:text-emerald-100">
           <UserPlusIcon />
-          <AlertTitle>Staff account created</AlertTitle>
+          <AlertTitle>Team account created</AlertTitle>
           <AlertDescription>
             {createdUser.email} can sign in with {DEFAULT_STAFF_PASSWORD} and
             will be asked to choose a new password.
@@ -387,9 +416,9 @@ function StaffScreenContent() {
             <Button
               variant="outline"
               onClick={() => {
-                setSearch("")
-                setStatusFilter("all")
-                setPage(1)
+                setSearch("");
+                setStatusFilter("all");
+                setPage(1);
               }}
             >
               Reset
@@ -397,14 +426,14 @@ function StaffScreenContent() {
           </div>
 
           <p className="text-sm text-muted-foreground">
-            Showing {total} filtered staff accounts
+            Showing {total} filtered team accounts
           </p>
         </div>
 
         <Card>
           <CardContent className="p-0">
             <ApiErrorAlert
-              title="Unable to load staff data"
+              title="Unable to load team data"
               message={
                 getApiErrorMessage(usersQuery.error, "") ||
                 getApiErrorMessage(updateUserStatusMutation.error, "")
@@ -417,7 +446,7 @@ function StaffScreenContent() {
               </div>
             ) : staffUsers.length === 0 ? (
               <div className="p-6 text-center text-sm text-muted-foreground">
-                No staff accounts yet.
+                No team accounts yet.
               </div>
             ) : (
               <>
@@ -450,10 +479,13 @@ function StaffScreenContent() {
                       {staffUsers.map((user) => {
                         const isUpdating =
                           updateUserStatusMutation.isPending &&
-                          updateUserStatusMutation.variables?.id === user.id
-                        const status = getStaffStatus(user)
+                          updateUserStatusMutation.variables?.id === user.id;
+                        const status = getStaffStatus(user);
                         const disableBlockedByPasswordReset =
-                          user.active && user.mustChangePassword
+                          user.active && user.mustChangePassword;
+                        const canChangeRole =
+                          user.id !== authQuery.data?.user.id &&
+                          !user.isAdministrator;
 
                         return (
                           <TableRow key={user.id} className="hover:bg-muted/15">
@@ -506,9 +538,7 @@ function StaffScreenContent() {
                                 variant="outline"
                                 className="rounded-full px-2.5 py-0.5 text-[11px] text-muted-foreground"
                               >
-                                {user.mustChangePassword
-                                  ? "Password reset needed"
-                                  : "Ready to sign in"}
+                                {user.roleName}
                               </Badge>
                             </TableCell>
                             <TableCell className="px-4 py-3 text-right">
@@ -528,7 +558,7 @@ function StaffScreenContent() {
                                   className="w-44"
                                 >
                                   <DropdownMenuLabel>
-                                    Staff actions
+                                    Team actions
                                   </DropdownMenuLabel>
                                   <DropdownMenuItem
                                     onClick={() => setPendingStatusUser(user)}
@@ -557,11 +587,37 @@ function StaffScreenContent() {
                                       Password change required before disabling
                                     </DropdownMenuItem>
                                   ) : null}
+                                  {activeRoles
+                                    .filter((role) => role.id !== user.roleId)
+                                    .map((role) => (
+                                      <DropdownMenuItem
+                                        key={role.id}
+                                        disabled={
+                                          !canChangeRole ||
+                                          updateUserRoleMutation.isPending
+                                        }
+                                        onClick={() => {
+                                          updateUserRoleMutation.mutate(
+                                            {
+                                              id: user.id,
+                                              payload: { roleId: role.id },
+                                            },
+                                            {
+                                              onSuccess: () =>
+                                                toast.success("Role updated"),
+                                            },
+                                          );
+                                        }}
+                                      >
+                                        <UserCogIcon />
+                                        Make {role.name}
+                                      </DropdownMenuItem>
+                                    ))}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
                           </TableRow>
-                        )
+                        );
                       })}
                     </TableBody>
                   </Table>
@@ -648,6 +704,9 @@ function StaffScreenContent() {
         fullName={fullName}
         onEmailChange={setEmail}
         onFullNameChange={setFullName}
+        roleId={roleId}
+        roles={activeRoles}
+        onRoleChange={setRoleId}
         onSubmit={handleSubmit}
         pending={createStaffMutation.isPending}
         errorMessage={getApiErrorMessage(createStaffMutation.error, "")}
@@ -657,7 +716,7 @@ function StaffScreenContent() {
         open={Boolean(pendingStatusUser)}
         onOpenChange={(open) => {
           if (!open) {
-            setPendingStatusUser(null)
+            setPendingStatusUser(null);
           }
         }}
       >
@@ -665,8 +724,8 @@ function StaffScreenContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>
               {pendingStatusUser?.active
-                ? "Disable staff account?"
-                : "Enable staff account?"}
+                ? "Disable team account?"
+                : "Enable team account?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingStatusUser
@@ -690,7 +749,7 @@ function StaffScreenContent() {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }
 
 function CreateStaffDialog({
@@ -698,29 +757,35 @@ function CreateStaffDialog({
   onOpenChange,
   email,
   fullName,
+  roleId,
+  roles,
   onEmailChange,
   onFullNameChange,
+  onRoleChange,
   onSubmit,
   pending,
   errorMessage,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  email: string
-  fullName: string
-  onEmailChange: (value: string) => void
-  onFullNameChange: (value: string) => void
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void
-  pending: boolean
-  errorMessage: string
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  email: string;
+  fullName: string;
+  roleId: string;
+  roles: Array<{ id: string; name: string; description: string | null }>;
+  onEmailChange: (value: string) => void;
+  onFullNameChange: (value: string) => void;
+  onRoleChange: (value: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  pending: boolean;
+  errorMessage: string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create staff account</DialogTitle>
+          <DialogTitle>Create team account</DialogTitle>
           <DialogDescription>
-            Staff accounts start with the default password and are required to
+            Team accounts start with the default password and are required to
             change it on first sign-in.
           </DialogDescription>
         </DialogHeader>
@@ -761,16 +826,25 @@ function CreateStaffDialog({
 
           <Card size="sm">
             <CardContent>
-              <div className="flex items-center justify-between gap-3">
+              <div className="space-y-3">
                 <div className="space-y-1">
                   <p className="text-sm font-medium">Role</p>
                   <p className="text-xs text-muted-foreground">
-                    Staff can use the operational workspace.
+                    Choose the access profile this user should receive.
                   </p>
                 </div>
-                <Badge variant="secondary" className="rounded-md">
-                  Staff
-                </Badge>
+                <Select value={roleId} onValueChange={onRoleChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.map((role) => (
+                      <SelectItem key={role.id} value={role.id}>
+                        {role.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="mt-4 space-y-1">
                 <p className="text-sm font-medium">Default Password</p>
@@ -783,16 +857,16 @@ function CreateStaffDialog({
             <SubmitButton
               type="submit"
               pending={pending}
-              pendingLabel="Creating staff"
+              pendingLabel="Creating account"
             >
               <UserPlusIcon />
-              Create Staff
+              Create Account
             </SubmitButton>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 function SummaryCard({
@@ -800,9 +874,9 @@ function SummaryCard({
   value,
   description,
 }: {
-  label: string
-  value: number
-  description: string
+  label: string;
+  value: number;
+  description: string;
 }) {
   return (
     <Card>
@@ -814,37 +888,37 @@ function SummaryCard({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
     </Card>
-  )
+  );
 }
 
 function getInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
+  const parts = name.trim().split(/\s+/).filter(Boolean);
 
   if (parts.length === 0) {
-    return "ST"
+    return "ST";
   }
 
   return parts
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("")
+    .join("");
 }
 
 function getStaffStatus(user: AuthenticatedUser): {
-  label: string
-  variant: "outline" | "secondary" | "destructive"
+  label: string;
+  variant: "outline" | "secondary" | "destructive";
 } {
   if (user.mustChangePassword) {
-    return { label: "change password required", variant: "outline" }
+    return { label: "change password required", variant: "outline" };
   }
 
   if (user.active) {
-    return { label: "active", variant: "secondary" }
+    return { label: "active", variant: "secondary" };
   }
 
-  return { label: "disabled", variant: "destructive" }
+  return { label: "disabled", variant: "destructive" };
 }
 
 function getStaffCode(user: AuthenticatedUser) {
-  return `STF-${user.id.slice(0, 8).toUpperCase()}`
+  return `STF-${user.id.slice(0, 8).toUpperCase()}`;
 }

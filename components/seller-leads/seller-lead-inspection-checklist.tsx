@@ -25,6 +25,7 @@ import {
   type InspectionDraft,
   type InspectionItemValue,
   type InspectionRating,
+  type InspectionSection,
 } from "./seller-lead-inspection-model";
 
 const RATING_OPTIONS: Array<{
@@ -54,10 +55,12 @@ function InspectionChecklistRow({
   label,
   value,
   onChange,
+  readOnly = false,
 }: {
   label: string;
   value: InspectionItemValue;
   onChange: (value: InspectionItemValue) => void;
+  readOnly?: boolean;
 }) {
   const [showNotes, setShowNotes] = React.useState(Boolean(value.notes));
 
@@ -72,6 +75,7 @@ function InspectionChecklistRow({
           spacing={0}
           value={value.rating ?? "not-checked"}
           onValueChange={(nextValue) => {
+            if (readOnly) return;
             if (!nextValue) return;
             onChange({
               ...value,
@@ -83,6 +87,7 @@ function InspectionChecklistRow({
           }}
           className="w-full [&_[data-slot=toggle-group-item]]:h-7"
           aria-label={`${label} condition`}
+          disabled={readOnly}
         >
           {RATING_OPTIONS.map((option) => (
             <ToggleGroupItem
@@ -116,6 +121,7 @@ function InspectionChecklistRow({
             onChange={(event) =>
               onChange({ ...value, notes: event.target.value })
             }
+            disabled={readOnly}
             placeholder={`Add a note for ${label.toLowerCase()}`}
             aria-label={`${label} note`}
           />
@@ -128,9 +134,13 @@ function InspectionChecklistRow({
 export function SellerLeadInspectionChecklist({
   draft,
   onChange,
+  sections = INSPECTION_SECTIONS,
+  readOnly = false,
 }: {
   draft: InspectionDraft;
   onChange: (draft: InspectionDraft) => void;
+  sections?: InspectionSection[];
+  readOnly?: boolean;
 }) {
   function updateItem(id: string, value: InspectionItemValue) {
     onChange({
@@ -157,9 +167,9 @@ export function SellerLeadInspectionChecklist({
           defaultValue="exterior"
           className="overflow-hidden rounded-md border"
         >
-          {INSPECTION_SECTIONS.map((section) => {
+          {sections.map((section) => {
             const checked = section.items.filter(
-              (item) => draft.items[item.id].rating !== null,
+              (item) => draft.items[item.id]?.rating !== null,
             ).length;
 
             return (
@@ -181,7 +191,8 @@ export function SellerLeadInspectionChecklist({
                     <InspectionChecklistRow
                       key={item.id}
                       label={item.label}
-                      value={draft.items[item.id]}
+                      value={draft.items[item.id] ?? { rating: null, notes: "" }}
+                      readOnly={readOnly}
                       onChange={(value) => updateItem(item.id, value)}
                     />
                   ))}

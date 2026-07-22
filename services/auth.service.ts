@@ -9,6 +9,7 @@ import type {
   LoginPayload,
   LogoutResponse,
   RealtimeTokenResponse,
+  UpdateUserRolePayload,
   UpdateUserStatusPayload,
 } from "@/types/auth"
 
@@ -72,6 +73,16 @@ export function getUsers(params?: ListUsersParams) {
 export function updateUserStatus(id: string, payload: UpdateUserStatusPayload) {
   return apiRequest<AuthenticatedUserResponse, UpdateUserStatusPayload>(
     API_ENDPOINTS.auth.userStatus(id),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  )
+}
+
+export function updateUserRole(id: string, payload: UpdateUserRolePayload) {
+  return apiRequest<AuthenticatedUserResponse, UpdateUserRolePayload>(
+    API_ENDPOINTS.auth.userRole(id),
     {
       method: "PATCH",
       body: payload,

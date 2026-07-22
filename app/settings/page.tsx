@@ -1,5 +1,5 @@
 import { createPageMetadata } from "@/lib/metadata";
-import { SettingsScreen } from "@/components/settings/settings-screen";
+import { redirect } from "next/navigation";
 
 export const metadata = createPageMetadata({
   title: "Settings",
@@ -7,5 +7,5 @@ export const metadata = createPageMetadata({
 });
 
 export default function SettingsPage() {
-  return <SettingsScreen />;
+  redirect("/settings/vehicle-catalog");
 }

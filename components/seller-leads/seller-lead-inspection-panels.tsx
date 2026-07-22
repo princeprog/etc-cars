@@ -19,6 +19,7 @@ import {
   getInspectionMetrics,
   type CalculatedOverallCondition,
   type InspectionDraft,
+  type InspectionSection,
 } from "./seller-lead-inspection-model";
 
 function CountRow({
@@ -71,8 +72,14 @@ function overallConditionBadgeClassName(condition: CalculatedOverallCondition) {
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
 
-export function InspectionProgressPanel({ draft }: { draft: InspectionDraft }) {
-  const metrics = getInspectionMetrics(draft);
+export function InspectionProgressPanel({
+  draft,
+  sections,
+}: {
+  draft: InspectionDraft;
+  sections?: InspectionSection[];
+}) {
+  const metrics = getInspectionMetrics(draft, sections);
 
   return (
     <Card size="sm" className="gap-0 rounded-lg py-0">
@@ -139,9 +146,11 @@ export function InspectionProgressPanel({ draft }: { draft: InspectionDraft }) {
 export function InspectionFindingsPanel({
   draft,
   onChange,
+  readOnly = false,
 }: {
   draft: InspectionDraft;
   onChange: (draft: InspectionDraft) => void;
+  readOnly?: boolean;
 }) {
   const fields = [
     {
@@ -186,8 +195,9 @@ export function InspectionFindingsPanel({
                 rows={2}
                 value={draft[field.key]}
                 onChange={(event) =>
-                  onChange({ ...draft, [field.key]: event.target.value })
-                }
+                onChange({ ...draft, [field.key]: event.target.value })
+              }
+                disabled={readOnly}
                 placeholder={field.placeholder}
                 className="min-h-16 resize-y text-sm leading-5"
               />
@@ -202,11 +212,15 @@ export function InspectionFindingsPanel({
 export function InspectionSummaryPanel({
   draft,
   onChange,
+  sections,
+  readOnly = false,
 }: {
   draft: InspectionDraft;
   onChange: (draft: InspectionDraft) => void;
+  sections?: InspectionSection[];
+  readOnly?: boolean;
 }) {
-  const metrics = getInspectionMetrics(draft);
+  const metrics = getInspectionMetrics(draft, sections);
 
   return (
     <Card size="sm" className="gap-0 rounded-lg py-0">
@@ -249,6 +263,7 @@ export function InspectionSummaryPanel({
                   ),
                 })
               }
+              disabled={readOnly}
               placeholder="0"
               aria-label="Estimated repair cost"
             />

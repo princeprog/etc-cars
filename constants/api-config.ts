@@ -15,7 +15,15 @@ export const API_ENDPOINTS = {
     realtimeToken: "/auth/realtime-token",
     refresh: "/auth/refresh",
     users: "/auth/users",
+    userRole: (id: string) => `/auth/users/${id}/role`,
     userStatus: (id: string) => `/auth/users/${id}/status`,
+  },
+  roles: {
+    root: "/roles",
+    permissions: "/roles/permissions",
+    byId: (id: string) => `/roles/${id}`,
+    archive: (id: string) => `/roles/${id}/archive`,
+    restore: (id: string) => `/roles/${id}/restore`,
   },
   dashboard: {
     root: "/dashboard",
@@ -44,6 +52,21 @@ export const API_ENDPOINTS = {
     modelById: (id: string) => `/vehicle-catalog/models/${id}`,
     variants: "/vehicle-catalog/variants",
     variantById: (id: string) => `/vehicle-catalog/variants/${id}`,
+  },
+  inspectionTemplates: {
+    root: "/inspection-templates",
+    settings: "/inspection-checklist-settings",
+    published: "/inspection-templates/published",
+    byId: (id: string) => `/inspection-templates/${id}`,
+    draft: (id: string) => `/inspection-templates/${id}/draft`,
+    publish: (id: string) => `/inspection-templates/${id}/publish`,
+    setDefault: (id: string) => `/inspection-templates/${id}/set-default`,
+    archive: (id: string) => `/inspection-templates/${id}/archive`,
+    restore: (id: string) => `/inspection-templates/${id}/restore`,
+  },
+  sellerLeadInspections: {
+    byLeadId: (id: string) => `/seller-leads/${id}/inspection`,
+    complete: (id: string) => `/seller-leads/${id}/inspection/complete`,
   },
   uploads: {
     vehiclePhoto: "/uploads/vehicle-photos",

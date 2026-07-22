@@ -21,6 +21,7 @@ import {
   ChartColumnIcon,
   ClipboardListIcon,
   HandCoinsIcon,
+  LockIcon,
   LayoutDashboardIcon,
   ReceiptTextIcon,
   ScanSearchIcon,
@@ -107,8 +108,39 @@ const data = {
       },
       {
         title: "Settings",
-        url: "/settings",
         icon: <SettingsIcon />,
+        items: [
+          {
+            title: "Vehicle Catalog",
+            url: "/settings/vehicle-catalog",
+            icon: <CarFrontIcon />,
+          },
+          {
+            title: "Roles & Access",
+            url: "/settings/roles",
+            icon: <UsersRoundIcon />,
+          },
+          {
+            title: "Expense Categories",
+            url: "/settings/expense-categories",
+            icon: <ReceiptTextIcon />,
+          },
+          {
+            title: "Inspection Checklists",
+            url: "/settings/inspection-checklists",
+            icon: <ClipboardListIcon />,
+          },
+          {
+            title: "Dealership Profile",
+            icon: <LockIcon />,
+            locked: true,
+          },
+          {
+            title: "Sales Preferences",
+            icon: <LockIcon />,
+            locked: true,
+          },
+        ],
       },
     ],
   },

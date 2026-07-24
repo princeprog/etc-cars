@@ -6,10 +6,14 @@ import { authQueryKeys } from "@/hooks/queries/auth/auth-query-keys"
 import { getUsers } from "@/services/auth.service"
 import type { ListUsersParams } from "@/types/auth"
 
-export function useUsersQuery(params: ListUsersParams) {
+export function useUsersQuery(
+  params: ListUsersParams,
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: authQueryKeys.users(params),
     queryFn: () => getUsers(params),
+    enabled: options.enabled ?? true,
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   })

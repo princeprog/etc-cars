@@ -83,6 +83,7 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { LeadFollowUpDialogForm } from "@/components/follow-ups/lead-follow-up-dialog-form";
+import { LeadAssigneeSelect } from "@/components/leads/lead-assignee-select";
 import { useCreateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-create-seller-lead-mutation";
 import { useUpdateSellerLeadMutation } from "@/hooks/mutations/seller-leads/use-update-seller-lead-mutation";
 import {
@@ -91,6 +92,8 @@ import {
   useCreateVehicleCatalogVariantMutation,
 } from "@/hooks/mutations/vehicle-catalog/use-vehicle-catalog-mutations";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useUsersQuery } from "@/hooks/queries/auth/use-users-query";
+import { usePsgcRegionsQuery } from "@/hooks/queries/locations/use-psgc-regions-query";
 import { useSellerLeadsQuery } from "@/hooks/queries/seller-leads/use-seller-leads-query";
 import {
   formatPhilippineMobileNumberInput,
@@ -177,6 +180,7 @@ type SellerLeadFormValues = {
 };
 
 type SellerLeadFormErrors = {
+  assigneeUserId?: string;
   contactNumber?: string;
 };
 
@@ -342,7 +346,7 @@ function getSellerLeadFormErrors(
 }
 
 function hasSellerLeadFormErrors(errors: SellerLeadFormErrors) {
-  return Boolean(errors.contactNumber);
+  return Boolean(errors.assigneeUserId || errors.contactNumber);
 }
 
 function getSellerLeadFilterKey(
@@ -360,6 +364,20 @@ function getInquirySourceOptions(currentValue: string) {
   }
 
   return [currentValue, ...SELLER_LEAD_INQUIRY_SOURCES];
+}
+
+function getRegionOptions(
+  regions: Array<{ name: string; regionName: string }>,
+  currentValue: string,
+) {
+  if (
+    !currentValue ||
+    regions.some((region) => region.regionName === currentValue)
+  ) {
+    return regions;
+  }
+
+  return [{ name: currentValue, regionName: currentValue }, ...regions];
 }
 
 function buildConvertVehicleHref(lead: SellerLead) {
@@ -628,6 +646,11 @@ function SellerLeadForm({
     values.vehicleModel,
   );
   const variantsQuery = useVehicleCatalogVariantsQuery(selectedModel?.id);
+  const regionsQuery = usePsgcRegionsQuery();
+  const regionOptions = getRegionOptions(
+    regionsQuery.data ?? [],
+    values.region,
+  );
   const createBrandMutation = useCreateVehicleCatalogBrandMutation();
   const createModelMutation = useCreateVehicleCatalogModelMutation();
   const createVariantMutation = useCreateVehicleCatalogVariantMutation();
@@ -971,13 +994,47 @@ function SellerLeadForm({
             </Select>
           </Field>
           <Field>
-            <FieldLabel htmlFor="region">Region</FieldLabel>
-            <Input
-              id="region"
+            <FieldTitle id="sellerRegionLabel">Region</FieldTitle>
+            <Select
               value={values.region}
-              onChange={(e) => updateField("region", e.target.value)}
-              placeholder="Metro Manila"
-            />
+              onValueChange={(value) => updateField("region", value)}
+              disabled={regionsQuery.isPending || Boolean(regionsQuery.error)}
+            >
+              <SelectTrigger
+                id="region"
+                aria-labelledby="sellerRegionLabel region"
+              >
+                <SelectValue
+                  placeholder={
+                    regionsQuery.isPending
+                      ? "Loading regions"
+                      : "Select region"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent portalContainer={catalogPortalContainer}>
+                {regionOptions.map((region) => (
+                  <SelectItem
+                    key={region.regionName}
+                    value={region.regionName}
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{region.regionName}</span>
+                      {region.name !== region.regionName ? (
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {region.name}
+                        </span>
+                      ) : null}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {regionsQuery.error ? (
+              <FieldDescription>
+                Unable to load PSGC regions. Please try again later.
+              </FieldDescription>
+            ) : null}
           </Field>
         </div>
         <Field>
@@ -1183,6 +1240,7 @@ export function SellerLeadsScreen() {
   const [createForm, setCreateForm] = React.useState<SellerLeadFormValues>(
     getEmptySellerLeadFormValues,
   );
+  const [createAssigneeUserId, setCreateAssigneeUserId] = React.useState("");
   const [createFormErrors, setCreateFormErrors] =
     React.useState<SellerLeadFormErrors>({});
 
@@ -1228,6 +1286,19 @@ export function SellerLeadsScreen() {
   const sellerLeadsQuery = useSellerLeadsQuery(filters);
 
   const currentUserId = authQuery.data?.user.id;
+  const isAdmin = authQuery.data?.user.isAdministrator === true;
+  const usersQuery = useUsersQuery(
+    { status: "active", pageSize: 100 },
+    { enabled: isAdmin && createOpen },
+  );
+  const eligibleAssigneeUsers = React.useMemo(
+    () =>
+      (usersQuery.data?.users ?? []).filter(
+        (user) =>
+          user.active && !user.mustChangePassword && !user.isAdministrator,
+      ),
+    [usersQuery.data?.users],
+  );
   const leads = sellerLeadsQuery.data?.sellerLeads ?? [];
   const total = sellerLeadsQuery.data?.total ?? 0;
   const totalPages = sellerLeadsQuery.data?.totalPages ?? 1;
@@ -1295,7 +1366,13 @@ export function SellerLeadsScreen() {
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = getSellerLeadFormErrors(createForm);
+    const nextErrors: SellerLeadFormErrors = {
+      ...getSellerLeadFormErrors(createForm),
+      assigneeUserId:
+        isAdmin && !createAssigneeUserId
+          ? "Select the staff member who should own this lead."
+          : undefined,
+    };
     setCreateFormErrors(nextErrors);
 
     if (hasSellerLeadFormErrors(nextErrors)) {
@@ -1303,7 +1380,10 @@ export function SellerLeadsScreen() {
     }
 
     await createMutation.mutateAsync(
-      parseSellerLeadPayload(createForm, currentUserId ?? null),
+      parseSellerLeadPayload(
+        createForm,
+        isAdmin ? createAssigneeUserId : null,
+      ),
       {
         onSuccess: () => {
           toast.success("Seller lead created", {
@@ -1311,6 +1391,7 @@ export function SellerLeadsScreen() {
           });
           setCreateOpen(false);
           setCreateForm(getEmptySellerLeadFormValues());
+          setCreateAssigneeUserId("");
           setCreateFormErrors({});
         },
       },
@@ -1624,6 +1705,7 @@ export function SellerLeadsScreen() {
             setCreateOpen(open);
 
             if (!open) {
+              setCreateAssigneeUserId("");
               setCreateFormErrors({});
             }
           }}
@@ -1638,8 +1720,8 @@ export function SellerLeadsScreen() {
             <SheetHeader className="border-b px-6 py-5 pr-14">
               <SheetTitle className="text-lg">Add Seller Lead</SheetTitle>
               <SheetDescription>
-                Capture a new acquisition inquiry and assign it to yourself by
-                default.
+                Capture a new acquisition inquiry and set the responsible staff
+                owner.
               </SheetDescription>
             </SheetHeader>
             <form
@@ -1658,15 +1740,31 @@ export function SellerLeadsScreen() {
                     errors={createFormErrors}
                     onErrorsChange={setCreateFormErrors}
                   />
+                  {isAdmin ? (
+                    <LeadAssigneeSelect
+                      users={eligibleAssigneeUsers}
+                      value={createAssigneeUserId}
+                      onValueChange={(value) => {
+                        setCreateAssigneeUserId(value);
+                        if (createFormErrors.assigneeUserId) {
+                          setCreateFormErrors({
+                            ...createFormErrors,
+                            assigneeUserId: undefined,
+                          });
+                        }
+                      }}
+                      isLoading={usersQuery.isPending || usersQuery.isFetching}
+                      error={usersQuery.error}
+                      fieldError={createFormErrors.assigneeUserId}
+                    />
+                  ) : null}
                 </div>
               </div>
               <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  This lead will be assigned to{" "}
-                  <span className="font-medium text-foreground">
-                    {currentUserId ? "you" : "the active user"}
-                  </span>
-                  .
+                  {isAdmin
+                    ? "Choose an active staff member before creating this lead."
+                    : "This lead will be assigned to you."}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button

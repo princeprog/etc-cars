@@ -93,10 +93,12 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { LeadFollowUpDialogForm } from "@/components/follow-ups/lead-follow-up-dialog-form";
+import { LeadAssigneeSelect } from "@/components/leads/lead-assignee-select";
 import { useCreateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-create-buyer-lead-mutation";
 import { useUpdateBuyerLeadMutation } from "@/hooks/mutations/buyer-leads/use-update-buyer-lead-mutation";
 import { useActivityHistoryQuery } from "@/hooks/queries/activity-history/use-activity-history-query";
 import { useAuthenticatedUserQuery } from "@/hooks/queries/auth/use-authenticated-user-query";
+import { useUsersQuery } from "@/hooks/queries/auth/use-users-query";
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query";
 import {
   formatPhilippineMobileNumberInput,
@@ -141,6 +143,7 @@ type BuyerLeadFormValues = {
 };
 
 type BuyerLeadFormErrors = {
+  assigneeUserId?: string;
   contactNumber?: string;
 };
 
@@ -218,7 +221,7 @@ function getBuyerLeadFormErrors(
 }
 
 function hasBuyerLeadFormErrors(errors: BuyerLeadFormErrors) {
-  return Boolean(errors.contactNumber);
+  return Boolean(errors.assigneeUserId || errors.contactNumber);
 }
 
 function getInquirySourceOptions(currentValue: string) {
@@ -691,6 +694,7 @@ export function BuyerLeadsScreen() {
   const [createForm, setCreateForm] = React.useState<BuyerLeadFormValues>(
     getEmptyBuyerLeadFormValues,
   );
+  const [createAssigneeUserId, setCreateAssigneeUserId] = React.useState("");
   const [createFormErrors, setCreateFormErrors] =
     React.useState<BuyerLeadFormErrors>({});
 
@@ -706,6 +710,19 @@ export function BuyerLeadsScreen() {
   const buyerLeadsQuery = useBuyerLeadsQuery(filters);
 
   const currentUserId = authQuery.data?.user.id;
+  const isAdmin = authQuery.data?.user.isAdministrator === true;
+  const usersQuery = useUsersQuery(
+    { status: "active", pageSize: 100 },
+    { enabled: isAdmin && createOpen },
+  );
+  const eligibleAssigneeUsers = React.useMemo(
+    () =>
+      (usersQuery.data?.users ?? []).filter(
+        (user) =>
+          user.active && !user.mustChangePassword && !user.isAdministrator,
+      ),
+    [usersQuery.data?.users],
+  );
   const leads = buyerLeadsQuery.data?.buyerLeads ?? [];
   const total = buyerLeadsQuery.data?.total ?? 0;
   const totalPages = buyerLeadsQuery.data?.totalPages ?? 1;
@@ -765,7 +782,13 @@ export function BuyerLeadsScreen() {
   async function handleCreateSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextErrors = getBuyerLeadFormErrors(createForm);
+    const nextErrors: BuyerLeadFormErrors = {
+      ...getBuyerLeadFormErrors(createForm),
+      assigneeUserId:
+        isAdmin && !createAssigneeUserId
+          ? "Select the staff member who should own this lead."
+          : undefined,
+    };
     setCreateFormErrors(nextErrors);
 
     if (hasBuyerLeadFormErrors(nextErrors)) {
@@ -773,7 +796,10 @@ export function BuyerLeadsScreen() {
     }
 
     await createMutation.mutateAsync(
-      parseBuyerLeadPayload(createForm, currentUserId ?? null),
+      parseBuyerLeadPayload(
+        createForm,
+        isAdmin ? createAssigneeUserId : null,
+      ),
       {
         onSuccess: () => {
           toast.success("Buyer lead created", {
@@ -781,6 +807,7 @@ export function BuyerLeadsScreen() {
           });
           setCreateOpen(false);
           setCreateForm(getEmptyBuyerLeadFormValues());
+          setCreateAssigneeUserId("");
           setCreateFormErrors({});
         },
       },
@@ -1069,6 +1096,7 @@ export function BuyerLeadsScreen() {
             setCreateOpen(open);
 
             if (!open) {
+              setCreateAssigneeUserId("");
               setCreateFormErrors({});
             }
           }}
@@ -1083,8 +1111,7 @@ export function BuyerLeadsScreen() {
             <SheetHeader className="border-b px-6 py-5 pr-14">
               <SheetTitle className="text-lg">Add Buyer Lead</SheetTitle>
               <SheetDescription>
-                Capture a new buyer inquiry and assign it to yourself by
-                default.
+                Capture a new buyer inquiry and set the responsible staff owner.
               </SheetDescription>
             </SheetHeader>
             <form
@@ -1103,12 +1130,31 @@ export function BuyerLeadsScreen() {
                     errors={createFormErrors}
                     onErrorsChange={setCreateFormErrors}
                   />
+                  {isAdmin ? (
+                    <LeadAssigneeSelect
+                      users={eligibleAssigneeUsers}
+                      value={createAssigneeUserId}
+                      onValueChange={(value) => {
+                        setCreateAssigneeUserId(value);
+                        if (createFormErrors.assigneeUserId) {
+                          setCreateFormErrors({
+                            ...createFormErrors,
+                            assigneeUserId: undefined,
+                          });
+                        }
+                      }}
+                      isLoading={usersQuery.isPending || usersQuery.isFetching}
+                      error={usersQuery.error}
+                      fieldError={createFormErrors.assigneeUserId}
+                    />
+                  ) : null}
                 </div>
               </div>
               <SheetFooter className="border-t bg-background px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-muted-foreground">
-                  This lead will be assigned to{" "}
-                  <span className="font-medium text-foreground">you</span>.
+                  {isAdmin
+                    ? "Choose an active staff member before creating this lead."
+                    : "This lead will be assigned to you."}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -1598,8 +1644,6 @@ function BuyerLeadActivityRow({
   event: ActivityHistoryEvent;
   isLast: boolean;
 }) {
-  const Icon = getBuyerLeadActivityIcon(event.actionType);
-
   return (
     <div className="grid grid-cols-[92px_24px_minmax(0,1fr)] gap-3 py-2 text-sm md:grid-cols-[150px_32px_minmax(0,1fr)_160px] md:gap-4">
       <p className="pt-1 text-xs text-muted-foreground md:text-sm">
@@ -1613,7 +1657,7 @@ function BuyerLeadActivityRow({
       </div>
       <div className="grid min-w-0 grid-cols-[32px_minmax(0,1fr)] gap-3 md:grid-cols-[36px_minmax(0,1fr)] md:gap-4">
         <div className="flex size-8 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300">
-          <Icon className="size-4" />
+          <BuyerLeadActivityIcon actionType={event.actionType} />
         </div>
         <div className="min-w-0">
           <p className="line-clamp-2 font-semibold text-foreground [overflow-wrap:anywhere]">
@@ -1631,10 +1675,16 @@ function BuyerLeadActivityRow({
   );
 }
 
-function getBuyerLeadActivityIcon(actionType: string) {
-  if (actionType.includes("follow")) return UserRoundIcon;
-  if (actionType.includes("status")) return FlagIcon;
-  return PencilIcon;
+function BuyerLeadActivityIcon({ actionType }: { actionType: string }) {
+  if (actionType.includes("follow")) {
+    return <UserRoundIcon className="size-4" />;
+  }
+
+  if (actionType.includes("status")) {
+    return <FlagIcon className="size-4" />;
+  }
+
+  return <PencilIcon className="size-4" />;
 }
 
 function formatActivityDescription(event: ActivityHistoryEvent) {

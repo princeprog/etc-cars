@@ -22,6 +22,13 @@ export interface BuyerLeadVehicleSummary {
   status: string
 }
 
+export interface LeadAssigneeSummary {
+  id: string
+  fullName: string
+  email: string
+  roleName: string
+}
+
 export interface BuyerLead {
   id: string
   buyerName: string
@@ -33,6 +40,7 @@ export interface BuyerLead {
   notes: string | null
   status: BuyerLeadStatus
   assigneeUserId: string | null
+  assignee: LeadAssigneeSummary | null
   latestActivityAt: string | null
   closingNote: string | null
   createdAt: string

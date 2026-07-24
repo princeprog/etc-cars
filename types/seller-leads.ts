@@ -42,6 +42,13 @@ export interface SellerLeadInspectionFindings {
   papers?: SellerLeadInspectionItem
 }
 
+export interface LeadAssigneeSummary {
+  id: string
+  fullName: string
+  email: string
+  roleName: string
+}
+
 export interface SellerLead {
   id: string
   sellerName: string
@@ -65,6 +72,7 @@ export interface SellerLead {
   approvedByUserId: string | null
   status: SellerLeadStatus
   assigneeUserId: string | null
+  assignee: LeadAssigneeSummary | null
   latestActivityAt: string | null
   closingNote: string | null
   pipeline: LeadPipelineState | null

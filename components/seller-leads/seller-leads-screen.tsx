@@ -441,6 +441,23 @@ function SellerLeadNextActionIcon({
   return <FileTextIcon />;
 }
 
+function SellerLeadAssigneeCell({ lead }: { lead: SellerLead }) {
+  if (!lead.assignee) {
+    return <span className="text-sm text-muted-foreground">Unassigned</span>;
+  }
+
+  return (
+    <div className="min-w-0 space-y-1">
+      <p className="truncate text-sm font-medium text-foreground">
+        {lead.assignee.fullName}
+      </p>
+      <p className="truncate text-xs text-muted-foreground">
+        {lead.assignee.roleName}
+      </p>
+    </div>
+  );
+}
+
 function getDefaultSellerFollowUpDueAt() {
   const dueAt = new Date();
   dueAt.setDate(dueAt.getDate() + 1);
@@ -571,6 +588,9 @@ function SellerLeadsTableSkeleton() {
               Status
             </TableHead>
             <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+              Assignee
+            </TableHead>
+            <TableHead className="px-4 text-xs font-semibold text-foreground/80">
               Updated
             </TableHead>
             <TableHead className="px-4 text-right text-xs font-semibold text-foreground/80">
@@ -601,6 +621,12 @@ function SellerLeadsTableSkeleton() {
               </TableCell>
               <TableCell className="px-4 py-3">
                 <Skeleton className="h-6 w-24 rounded-full" />
+              </TableCell>
+              <TableCell className="px-4 py-3">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
               </TableCell>
               <TableCell className="px-4 py-3">
                 <div className="space-y-2">
@@ -1485,7 +1511,7 @@ export function SellerLeadsScreen() {
                 />
               </div>
             ) : leads.length ? (
-              <Table className="min-w-[820px] border-collapse">
+              <Table className="min-w-[940px] border-collapse">
                 <TableHeader className="bg-muted/30">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
@@ -1502,6 +1528,9 @@ export function SellerLeadsScreen() {
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Status
+                    </TableHead>
+                    <TableHead className="px-4 text-xs font-semibold text-foreground/80">
+                      Assignee
                     </TableHead>
                     <TableHead className="px-4 text-xs font-semibold text-foreground/80">
                       Updated
@@ -1571,6 +1600,9 @@ export function SellerLeadsScreen() {
                           >
                             {lead.status}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <SellerLeadAssigneeCell lead={lead} />
                         </TableCell>
                         <TableCell className="px-4 py-3">
                           <div className="space-y-1">

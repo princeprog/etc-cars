@@ -14,7 +14,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
@@ -150,7 +165,7 @@ export function FinancingSettingsScreen() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="partners" className="gap-5">
-              <TabsList className="w-full justify-start overflow-x-auto">
+              <TabsList className="grid h-auto w-full grid-cols-1 sm:grid-cols-3">
                 <TabsTrigger value="partners">
                   Partners
                   <Badge variant="secondary">{partners.length}</Badge>
@@ -165,7 +180,10 @@ export function FinancingSettingsScreen() {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="partners">
+              <TabsContent
+                value="partners"
+                className="animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+              >
                 <PartnersTab
                   isLoading={isLoading}
                   partners={partners}
@@ -177,7 +195,10 @@ export function FinancingSettingsScreen() {
                 />
               </TabsContent>
 
-              <TabsContent value="representatives">
+              <TabsContent
+                value="representatives"
+                className="animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+              >
                 <RepresentativesTab
                   isLoading={isLoading}
                   partners={partners}
@@ -191,7 +212,10 @@ export function FinancingSettingsScreen() {
                 />
               </TabsContent>
 
-              <TabsContent value="templates">
+              <TabsContent
+                value="templates"
+                className="animate-in fade-in-0 slide-in-from-bottom-1 duration-300"
+              >
                 <TemplatesTab
                   isLoading={isLoading}
                   templates={templates}
@@ -226,52 +250,24 @@ function PartnersTab({
   selectedPartnerId: string
   isSaving: boolean
   errorMessage: string
-  onCreatePartner: (event: React.FormEvent<HTMLFormElement>) => void
+  onCreatePartner: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
   onSelectPartner: (partnerId: string) => void
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="animate-in fade-in-0 duration-300">
       <Card>
-        <CardHeader>
-          <CardTitle>Add Partner</CardTitle>
-          <CardDescription>
-            Create financing partners that can receive buyer applications.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ApiErrorAlert title="Unable to save partner" message={errorMessage} />
-          <form onSubmit={onCreatePartner} className="flex flex-col gap-4">
-            <FieldGroup className="grid gap-4 md:grid-cols-2">
-              <Field>
-                <FieldLabel>Name</FieldLabel>
-                <Input name="name" required />
-              </Field>
-              <Field>
-                <FieldLabel>Email</FieldLabel>
-                <Input name="email" type="email" />
-              </Field>
-              <Field>
-                <FieldLabel>Contact person</FieldLabel>
-                <Input name="contactPerson" />
-              </Field>
-              <Field>
-                <FieldLabel>Contact number</FieldLabel>
-                <Input name="contactNumber" />
-              </Field>
-            </FieldGroup>
-            <Button type="submit" className="w-fit" disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Partner"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Partners Table</CardTitle>
-          <CardDescription>
-            Select a partner row to prefill the representative and template tabs.
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <CardTitle>Partners Table</CardTitle>
+            <CardDescription>
+              Select a partner row to prefill the representative and template tabs.
+            </CardDescription>
+          </div>
+          <PartnerDialog
+            isSaving={isSaving}
+            errorMessage={errorMessage}
+            onCreatePartner={onCreatePartner}
+          />
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -280,6 +276,13 @@ function PartnersTab({
             <SettingsEmptyState
               title="No financing partners yet"
               description="Add a partner above before linking representatives or templates."
+              action={
+                <PartnerDialog
+                  isSaving={isSaving}
+                  errorMessage={errorMessage}
+                  onCreatePartner={onCreatePartner}
+                />
+              }
             />
           ) : (
             <Table>
@@ -298,7 +301,7 @@ function PartnersTab({
                   <TableRow
                     key={partner.id}
                     data-state={partner.id === selectedPartnerId ? "selected" : undefined}
-                    className="cursor-pointer"
+                    className="cursor-pointer transition-all duration-200 hover:translate-x-0.5"
                     onClick={() => onSelectPartner(partner.id)}
                   >
                     <TableCell className="font-medium">{partner.name}</TableCell>
@@ -339,77 +342,27 @@ function RepresentativesTab({
   isSaving: boolean
   errorMessage: string
   onPartnerChange: (partnerId: string) => void
-  onAddRepresentative: (event: React.FormEvent<HTMLFormElement>) => void
+  onAddRepresentative: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="animate-in fade-in-0 duration-300">
       <Card>
-        <CardHeader>
-          <CardTitle>Link Representative</CardTitle>
-          <CardDescription>
-            Attach an active system user to a financing partner.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ApiErrorAlert title="Unable to link representative" message={errorMessage} />
-          <form onSubmit={onAddRepresentative} className="flex flex-col gap-4">
-            <FieldGroup className="grid gap-4 md:grid-cols-2">
-              <Field>
-                <FieldLabel>Partner</FieldLabel>
-                <Select
-                  name="partnerId"
-                  value={selectedPartnerId}
-                  onValueChange={onPartnerChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select partner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {partners.map((partner) => (
-                        <SelectItem key={partner.id} value={partner.id}>
-                          {partner.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>User</FieldLabel>
-                <Select name="userId">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.fullName} - {user.roleName}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </FieldGroup>
-            <Button
-              type="submit"
-              className="w-fit"
-              disabled={isSaving || !selectedPartnerId}
-            >
-              {isSaving ? "Linking..." : "Link Representative"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Representatives Table</CardTitle>
-          <CardDescription>
-            Financing representatives grouped by their assigned partner.
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <CardTitle>Representatives Table</CardTitle>
+            <CardDescription>
+              Financing representatives grouped by their assigned partner.
+            </CardDescription>
+          </div>
+          <RepresentativeDialog
+            partners={partners}
+            users={users}
+            selectedPartnerId={selectedPartnerId}
+            isSaving={isSaving}
+            errorMessage={errorMessage}
+            onPartnerChange={onPartnerChange}
+            onAddRepresentative={onAddRepresentative}
+          />
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -418,6 +371,17 @@ function RepresentativesTab({
             <SettingsEmptyState
               title="No representatives linked"
               description="Choose a partner and active user above to create the first representative link."
+              action={
+                <RepresentativeDialog
+                  partners={partners}
+                  users={users}
+                  selectedPartnerId={selectedPartnerId}
+                  isSaving={isSaving}
+                  errorMessage={errorMessage}
+                  onPartnerChange={onPartnerChange}
+                  onAddRepresentative={onAddRepresentative}
+                />
+              }
             />
           ) : (
             <Table>
@@ -432,7 +396,10 @@ function RepresentativesTab({
               </TableHeader>
               <TableBody>
                 {representatives.map((representative) => (
-                  <TableRow key={representative.id}>
+                  <TableRow
+                    key={representative.id}
+                    className="transition-colors duration-200"
+                  >
                     <TableCell className="font-medium">
                       {representative.fullName}
                     </TableCell>
@@ -472,73 +439,26 @@ function TemplatesTab({
   isSaving: boolean
   errorMessage: string
   onPartnerChange: (partnerId: string) => void
-  onCreateTemplate: (event: React.FormEvent<HTMLFormElement>) => void
+  onCreateTemplate: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className="animate-in fade-in-0 duration-300">
       <Card>
-        <CardHeader>
-          <CardTitle>Add Requirement Template</CardTitle>
-          <CardDescription>
-            Define the buyer document checklist copied into new financing applications.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ApiErrorAlert title="Unable to save template" message={errorMessage} />
-          <form onSubmit={onCreateTemplate} className="flex flex-col gap-4">
-            <FieldGroup className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <Field>
-                <FieldLabel>Partner</FieldLabel>
-                <Select
-                  name="partnerId"
-                  value={selectedPartnerId}
-                  onValueChange={onPartnerChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select partner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {partners.map((partner) => (
-                        <SelectItem key={partner.id} value={partner.id}>
-                          {partner.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Template name</FieldLabel>
-                <Input name="name" required />
-              </Field>
-              <Field className="lg:col-span-2">
-                <FieldLabel>Requirements</FieldLabel>
-                <Textarea
-                  name="items"
-                  rows={8}
-                  placeholder={"Valid ID\nProof of billing\nCertificate of employment"}
-                  required
-                />
-              </Field>
-            </FieldGroup>
-            <Button
-              type="submit"
-              className="w-fit"
-              disabled={isSaving || !selectedPartnerId}
-            >
-              {isSaving ? "Saving..." : "Save Template"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Requirement Templates Table</CardTitle>
-          <CardDescription>
-            Active and inactive templates available per financing partner.
-          </CardDescription>
+        <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <CardTitle>Requirement Templates Table</CardTitle>
+            <CardDescription>
+              Active and inactive templates available per financing partner.
+            </CardDescription>
+          </div>
+          <TemplateDialog
+            partners={partners}
+            selectedPartnerId={selectedPartnerId}
+            isSaving={isSaving}
+            errorMessage={errorMessage}
+            onPartnerChange={onPartnerChange}
+            onCreateTemplate={onCreateTemplate}
+          />
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -547,6 +467,16 @@ function TemplatesTab({
             <SettingsEmptyState
               title="No requirement templates yet"
               description="Create a template above so applications can copy a stable checklist."
+              action={
+                <TemplateDialog
+                  partners={partners}
+                  selectedPartnerId={selectedPartnerId}
+                  isSaving={isSaving}
+                  errorMessage={errorMessage}
+                  onPartnerChange={onPartnerChange}
+                  onCreateTemplate={onCreateTemplate}
+                />
+              }
             />
           ) : (
             <Table>
@@ -561,7 +491,7 @@ function TemplatesTab({
               </TableHeader>
               <TableBody>
                 {templates.map((template) => (
-                  <TableRow key={template.id}>
+                  <TableRow key={template.id} className="transition-colors duration-200">
                     <TableCell className="font-medium">{template.name}</TableCell>
                     <TableCell>{partnerNameById.get(template.partnerId) ?? "—"}</TableCell>
                     <TableCell>{template.items.length}</TableCell>
@@ -594,6 +524,237 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   )
 }
 
+function PartnerDialog({
+  isSaving,
+  errorMessage,
+  onCreatePartner,
+}: {
+  isSaving: boolean
+  errorMessage: string
+  onCreatePartner: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    await onCreatePartner(event)
+    setOpen(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>Add Partner</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Add Financing Partner</DialogTitle>
+          <DialogDescription>
+            Create a financing partner that can be assigned to buyer loan applications.
+          </DialogDescription>
+        </DialogHeader>
+        <ApiErrorAlert title="Unable to save partner" message={errorMessage} />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <FieldGroup className="grid gap-4 md:grid-cols-2">
+            <Field>
+              <FieldLabel>Name</FieldLabel>
+              <Input name="name" required />
+            </Field>
+            <Field>
+              <FieldLabel>Email</FieldLabel>
+              <Input name="email" type="email" />
+            </Field>
+            <Field>
+              <FieldLabel>Contact person</FieldLabel>
+              <Input name="contactPerson" />
+            </Field>
+            <Field>
+              <FieldLabel>Contact number</FieldLabel>
+              <Input name="contactNumber" />
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? "Saving..." : "Save Partner"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function RepresentativeDialog({
+  partners,
+  users,
+  selectedPartnerId,
+  isSaving,
+  errorMessage,
+  onPartnerChange,
+  onAddRepresentative,
+}: {
+  partners: FinancingPartner[]
+  users: Array<{ id: string; fullName: string; roleName: string; email: string }>
+  selectedPartnerId: string
+  isSaving: boolean
+  errorMessage: string
+  onPartnerChange: (partnerId: string) => void
+  onAddRepresentative: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    await onAddRepresentative(event)
+    setOpen(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button disabled={partners.length === 0}>Link Representative</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Link Financing Representative</DialogTitle>
+          <DialogDescription>
+            Attach an active system user to the selected financing partner.
+          </DialogDescription>
+        </DialogHeader>
+        <ApiErrorAlert title="Unable to link representative" message={errorMessage} />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <FieldGroup className="grid gap-4 md:grid-cols-2">
+            <Field>
+              <FieldLabel>Partner</FieldLabel>
+              <Select
+                name="partnerId"
+                value={selectedPartnerId}
+                onValueChange={onPartnerChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select partner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {partners.map((partner) => (
+                      <SelectItem key={partner.id} value={partner.id}>
+                        {partner.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel>User</FieldLabel>
+              <Select name="userId">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.fullName} - {user.roleName}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button type="submit" disabled={isSaving || !selectedPartnerId}>
+              {isSaving ? "Linking..." : "Link Representative"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function TemplateDialog({
+  partners,
+  selectedPartnerId,
+  isSaving,
+  errorMessage,
+  onPartnerChange,
+  onCreateTemplate,
+}: {
+  partners: FinancingPartner[]
+  selectedPartnerId: string
+  isSaving: boolean
+  errorMessage: string
+  onPartnerChange: (partnerId: string) => void
+  onCreateTemplate: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+}) {
+  const [open, setOpen] = React.useState(false)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    await onCreateTemplate(event)
+    setOpen(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button disabled={partners.length === 0}>Create Template</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create Requirement Template</DialogTitle>
+          <DialogDescription>
+            Define the buyer document checklist copied into new financing applications.
+          </DialogDescription>
+        </DialogHeader>
+        <ApiErrorAlert title="Unable to save template" message={errorMessage} />
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <FieldGroup className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <Field>
+              <FieldLabel>Partner</FieldLabel>
+              <Select
+                name="partnerId"
+                value={selectedPartnerId}
+                onValueChange={onPartnerChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select partner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {partners.map((partner) => (
+                      <SelectItem key={partner.id} value={partner.id}>
+                        {partner.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel>Template name</FieldLabel>
+              <Input name="name" required />
+            </Field>
+            <Field className="lg:col-span-2">
+              <FieldLabel>Requirements</FieldLabel>
+              <Textarea
+                name="items"
+                rows={8}
+                placeholder={"Valid ID\nProof of billing\nCertificate of employment"}
+                required
+              />
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button type="submit" disabled={isSaving || !selectedPartnerId}>
+              {isSaving ? "Saving..." : "Save Template"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function SettingsTableSkeleton() {
   return (
     <div className="flex flex-col gap-3" aria-busy="true" aria-label="Loading settings table">
@@ -607,9 +768,11 @@ function SettingsTableSkeleton() {
 function SettingsEmptyState({
   title,
   description,
+  action,
 }: {
   title: string
   description: string
+  action?: React.ReactNode
 }) {
   return (
     <Empty>
@@ -617,6 +780,7 @@ function SettingsEmptyState({
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{description}</EmptyDescription>
       </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
     </Empty>
   )
 }

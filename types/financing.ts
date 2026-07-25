@@ -25,6 +25,19 @@ export interface FinancingPartner {
   email: string | null
   notes: string | null
   isActive: boolean
+  representatives: FinancingPartnerRepresentative[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FinancingPartnerRepresentative {
+  id: string
+  partnerId: string
+  userId: string
+  fullName: string
+  email: string
+  roleName: string | null
+  isActive: boolean
   createdAt: string
   updatedAt: string
 }

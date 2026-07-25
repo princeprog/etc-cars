@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-picker";
 import { DateTimePicker } from "@/components/ui/date-time-picker";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -108,19 +108,7 @@ type LeadOption = {
 };
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
-const DEFAULT_PAGE_SIZE = 20;
-
-function getFollowUpPageSizeOptions(total: number) {
-  if (total <= 0) {
-    return [DEFAULT_PAGE_SIZE];
-  }
-
-  const largestVisibleOption =
-    PAGE_SIZE_OPTIONS.find((option) => total <= option) ??
-    PAGE_SIZE_OPTIONS[PAGE_SIZE_OPTIONS.length - 1];
-
-  return PAGE_SIZE_OPTIONS.filter((option) => option <= largestVisibleOption);
-}
+const DEFAULT_PAGE_SIZE = 10;
 
 function getEmptyFollowUpFormValues(): FollowUpFormValues {
   return {
@@ -129,13 +117,6 @@ function getEmptyFollowUpFormValues(): FollowUpFormValues {
     dueAt: undefined,
     note: "",
   };
-}
-
-function getAssigneeLabel(assigneeUserId: string, currentUserId?: string) {
-  if (assigneeUserId === currentUserId) {
-    return "You";
-  }
-  return "Assigned";
 }
 
 function getFollowUpStatusBadgeClassName(status: FollowUpStatus) {
@@ -151,6 +132,34 @@ function getFollowUpStatusBadgeClassName(status: FollowUpStatus) {
     default:
       return "";
   }
+}
+
+function FollowUpAssigneeCell({
+  followUp,
+  currentUserId,
+}: {
+  followUp: FollowUp;
+  currentUserId?: string;
+}) {
+  if (!followUp.assignee) {
+    return <span className="text-sm text-muted-foreground">Unassigned</span>;
+  }
+
+  const isCurrentUser = followUp.assignee.id === currentUserId;
+  const assigneeName = isCurrentUser
+    ? `${followUp.assignee.fullName} (You)`
+    : followUp.assignee.fullName;
+
+  return (
+    <div className="min-w-0 space-y-1">
+      <p className="truncate text-sm font-medium text-foreground">
+        {assigneeName}
+      </p>
+      <p className="truncate text-xs text-muted-foreground">
+        {followUp.assignee.roleName}
+      </p>
+    </div>
+  );
 }
 
 function getLeadTypeBadgeClassName(type: LeadType) {
@@ -634,29 +643,10 @@ export function FollowUpsScreen() {
 
   const total = paginationData?.total ?? 0;
   const pageCount = paginationData?.totalPages ?? 1;
-  const pageSizeOptions = React.useMemo(
-    () => getFollowUpPageSizeOptions(total),
-    [total],
-  );
+  const pageSizeOptions = PAGE_SIZE_OPTIONS;
   const currentPage = Math.min(page, pageCount);
   const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const rangeEnd = Math.min(currentPage * pageSize, total);
-
-  React.useEffect(() => {
-    if (page > pageCount) {
-      setPage(pageCount);
-    }
-  }, [page, pageCount]);
-
-  React.useEffect(() => {
-    const largestPageSize =
-      pageSizeOptions[pageSizeOptions.length - 1] ?? DEFAULT_PAGE_SIZE;
-
-    if (pageSize > largestPageSize) {
-      setPageSize(largestPageSize);
-      setPage(1);
-    }
-  }, [pageSize, pageSizeOptions]);
 
   return (
     <AuthenticatedAppShell title="Follow-Ups">
@@ -915,10 +905,10 @@ export function FollowUpsScreen() {
                             </Badge>
                           </TableCell>
                           <TableCell className="px-4 py-3 align-top text-sm text-foreground">
-                            {getAssigneeLabel(
-                              followUp.assigneeUserId,
-                              currentUserId,
-                            )}
+                            <FollowUpAssigneeCell
+                              followUp={followUp}
+                              currentUserId={currentUserId}
+                            />
                           </TableCell>
                           <TableCell className="w-[360px] max-w-[360px] px-4 py-3 align-top">
                             <p className="whitespace-normal text-sm leading-5 text-foreground break-words [overflow-wrap:anywhere] [word-break:break-word]">

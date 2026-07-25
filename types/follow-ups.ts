@@ -20,12 +20,20 @@ export type LeadType = (typeof LEAD_TYPES)[number];
 export type FollowUpSortKey = (typeof FOLLOW_UP_SORT_KEYS)[number];
 export type FollowUpSort = FollowUpSortKey | `-${FollowUpSortKey}`;
 
+export interface FollowUpAssigneeSummary {
+  id: string;
+  fullName: string;
+  email: string;
+  roleName: string;
+}
+
 export interface FollowUp {
   id: string;
   leadType: LeadType;
   sellerLeadId: string | null;
   buyerLeadId: string | null;
   assigneeUserId: string;
+  assignee: FollowUpAssigneeSummary | null;
   dueAt: string;
   completedAt: string | null;
   cancelledAt: string | null;

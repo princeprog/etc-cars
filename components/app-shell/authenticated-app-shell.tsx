@@ -49,6 +49,7 @@ export function AuthenticatedAppShell({
                 email: user.email,
                 avatar: "/placeholder-user.jpg",
                 role: user.role,
+                permissions: user.permissions,
               }}
             />
             <SidebarInset>

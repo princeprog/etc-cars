@@ -1,11 +1,16 @@
 import type { AuthenticatedUser } from "@/types/auth"
 
-export function can(user: AuthenticatedUser | undefined, permission: string) {
+type PermissionCarrier =
+  | Pick<AuthenticatedUser, "permissions">
+  | { permissions?: AuthenticatedUser["permissions"] }
+  | undefined
+
+export function can(user: PermissionCarrier, permission: string) {
   return Boolean(user?.permissions?.[permission])
 }
 
 export function scopeFor(
-  user: AuthenticatedUser | undefined,
+  user: PermissionCarrier,
   permission: string,
 ) {
   return user?.permissions?.[permission] ?? null

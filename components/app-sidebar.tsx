@@ -21,6 +21,7 @@ import {
   ChartColumnIcon,
   ClipboardListIcon,
   HandCoinsIcon,
+  LandmarkIcon,
   LockIcon,
   LayoutDashboardIcon,
   ReceiptTextIcon,
@@ -29,6 +30,7 @@ import {
   ShoppingBagIcon,
   UsersRoundIcon,
 } from "lucide-react";
+import { can } from "@/lib/permissions";
 
 const data = {
   navGroups: [
@@ -74,6 +76,12 @@ const data = {
           title: "Sales",
           url: "/sales",
           icon: <HandCoinsIcon />,
+        },
+        {
+          title: "Financing",
+          url: "/financing",
+          icon: <LandmarkIcon />,
+          permission: "financing.view",
         },
         {
           title: "Bills & Expenses",
@@ -131,6 +139,15 @@ const data = {
             icon: <ClipboardListIcon />,
           },
           {
+            title: "Financing",
+            url: "/settings/financing",
+            icon: <LandmarkIcon />,
+            permissionAny: [
+              "financing.manage_partners",
+              "financing.manage_templates",
+            ],
+          },
+          {
             title: "Dealership Profile",
             icon: <LockIcon />,
             locked: true,
@@ -155,8 +172,17 @@ export function AppSidebar({
     email: string;
     avatar: string;
     role: "admin" | "staff";
+    permissions?: Record<string, "assigned" | "all">;
   };
 }) {
+  const navGroups = data.navGroups
+    .map((group) => ({
+      ...group,
+      items: filterNavItems(group.items, user),
+    }))
+    .filter((group) => group.items.length > 0);
+  const adminItems = filterNavItems(data.adminGroup.items, user);
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -192,13 +218,13 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {data.navGroups.map((group) => (
+        {navGroups.map((group) => (
           <NavMain key={group.label} label={group.label} items={group.items} />
         ))}
-        {user.role === "admin" ? (
+        {adminItems.length ? (
           <NavMain
             label={data.adminGroup.label}
-            items={data.adminGroup.items}
+            items={adminItems}
           />
         ) : null}
       </SidebarContent>
@@ -207,4 +233,37 @@ export function AppSidebar({
       </SidebarFooter>
     </Sidebar>
   );
+}
+
+type NavItem = {
+  title: string;
+  url?: string;
+  icon: React.ReactNode;
+  permission?: string;
+  permissionAny?: string[];
+  locked?: boolean;
+  items?: NavItem[];
+};
+
+function filterNavItems(
+  items: NavItem[],
+  user: { permissions?: Record<string, "assigned" | "all">; role: "admin" | "staff" },
+): NavItem[] {
+  return items
+    .filter((item) => {
+      if (item.permission && !can(user, item.permission)) {
+        return false;
+      }
+
+      if (item.permissionAny?.length && !item.permissionAny.some((permission) => can(user, permission))) {
+        return false;
+      }
+
+      return item.url || item.items?.length || item.locked;
+    })
+    .map((item) => ({
+      ...item,
+      items: item.items ? filterNavItems(item.items, user) : undefined,
+    }))
+    .filter((item) => item.url || item.items?.length || item.locked);
 }

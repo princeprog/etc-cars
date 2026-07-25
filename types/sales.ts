@@ -38,6 +38,14 @@ export interface Sale {
   profitAfterTrackedCosts: string | null;
   commissionMethod: string | null;
   commissionLocked: boolean;
+  paymentMode: "cash" | "financing";
+  financingApplicationId: string | null;
+  financing: {
+    applicationId: string;
+    applicationNumber: string | null;
+    partnerId: string | null;
+    partnerName: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,6 +70,14 @@ export interface SaleDraft {
   commissionOverrideAmount: string | null;
   commissionOverrideReason: string | null;
   buyerClosingNote: string | null;
+  paymentMode: "cash" | "financing";
+  financingApplicationId: string | null;
+  financing: {
+    applicationId: string;
+    applicationNumber: string | null;
+    partnerId: string | null;
+    partnerName: string | null;
+  } | null;
   createdAt: string;
   updatedAt: string;
   buyerLead: SaleBuyerLeadSummary;
@@ -96,6 +112,8 @@ export interface SaveSaleDraftPayload {
   commissionOverrideAmount?: string | null;
   commissionOverrideReason?: string | null;
   buyerClosingNote?: string | null;
+  paymentMode?: "cash" | "financing" | null;
+  financingApplicationId?: string | null;
 }
 
 export type UpdateSaleDraftPayload = Partial<SaveSaleDraftPayload>;

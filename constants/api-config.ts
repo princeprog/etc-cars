@@ -94,6 +94,37 @@ export const API_ENDPOINTS = {
     draftById: (id: string) => `/sales/drafts/${id}`,
     finalizeDraft: (id: string) => `/sales/drafts/${id}/finalize`,
   },
+  financing: {
+    partners: "/financing/partners",
+    partnerById: (id: string) => `/financing/partners/${id}`,
+    partnerRepresentatives: (id: string) =>
+      `/financing/partners/${id}/representatives`,
+    templates: "/financing/templates",
+    templateById: (id: string) => `/financing/templates/${id}`,
+    applications: "/financing/applications",
+    applicationById: (id: string) => `/financing/applications/${id}`,
+    uploadLink: (id: string) => `/financing/applications/${id}/upload-link`,
+    revokeUploadLink: (id: string) =>
+      `/financing/applications/${id}/upload-link/revoke`,
+    requirementDocuments: (id: string, requirementId: string) =>
+      `/financing/applications/${id}/requirements/${requirementId}/documents`,
+    reviewRequirement: (id: string, requirementId: string) =>
+      `/financing/applications/${id}/requirements/${requirementId}/review`,
+    decision: (id: string) => `/financing/applications/${id}/decision`,
+    loanRelease: (id: string) => `/financing/applications/${id}/loan-release`,
+    vehicleRelease: (id: string) =>
+      `/financing/applications/${id}/vehicle-release`,
+    cancel: (id: string) => `/financing/applications/${id}/cancel`,
+    documentDownload: (id: string, documentId: string) =>
+      `/financing/applications/${id}/documents/${documentId}/download`,
+    publicUpload: (token: string) => `/public/financing-uploads/${token}`,
+    publicVerify: (token: string) =>
+      `/public/financing-uploads/${token}/verify`,
+    publicRequirementDocuments: (token: string, requirementId: string) =>
+      `/public/financing-uploads/${token}/requirements/${requirementId}/documents`,
+    publicSubmit: (token: string) =>
+      `/public/financing-uploads/${token}/submit`,
+  },
   expenses: {
     root: "/expenses",
     byId: (id: string) => `/expenses/${id}`,

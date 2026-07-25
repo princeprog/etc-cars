@@ -5,6 +5,7 @@ import { CheckCircleIcon, FileUpIcon, SendIcon } from "lucide-react"
 import { toast } from "@/components/ui/sileo"
 
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldLabel } from "@/components/ui/field"
@@ -62,7 +63,7 @@ export function PublicFinancingUploadScreen({ token }: { token: string }) {
   }
 
   async function submit() {
-    if (!sessionToken) return
+    if (!sessionToken || !application || !canSubmitRequirements(application)) return
     setPending(true)
     setError(null)
     try {
@@ -131,14 +132,20 @@ export function PublicFinancingUploadScreen({ token }: { token: string }) {
               </CardContent>
             </Card>
 
+            {!canSubmitRequirements(application) ? (
+              <Alert>
+                <CheckCircleIcon />
+                <AlertTitle>Requirements already submitted</AlertTitle>
+                <AlertDescription>
+                  Your files are now under review. You can upload changes only
+                  if the financing representative requests a revision.
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
             <div className="space-y-3">
               {application.requirements.map((requirement) => {
-                const disabled =
-                  requirement.status === "accepted" ||
-                  application.status === "under_review" ||
-                  application.status === "approved" ||
-                  application.status === "loan_released" ||
-                  application.status === "vehicle_released"
+                const disabled = pending || !canUploadRequirement(application, requirement)
 
                 return (
                   <Card key={requirement.id}>
@@ -168,33 +175,56 @@ export function PublicFinancingUploadScreen({ token }: { token: string }) {
                           ))}
                         </ul>
                       ) : null}
-                      <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm aria-disabled:pointer-events-none aria-disabled:opacity-50">
-                        <FileUpIcon className="size-4" />
-                        Upload file
-                        <input
-                          type="file"
-                          className="sr-only"
-                          accept=".pdf,image/jpeg,image/png,image/webp"
-                          disabled={disabled || pending}
-                          onChange={(event) => {
-                            const file = event.target.files?.[0]
-                            if (file) void upload(requirement.id, file)
-                          }}
-                        />
-                      </label>
+                      {canUploadRequirement(application, requirement) ? (
+                        <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm">
+                          <FileUpIcon className="size-4" />
+                          Upload file
+                          <input
+                            type="file"
+                            className="sr-only"
+                            accept=".pdf,image/jpeg,image/png,image/webp"
+                            disabled={disabled}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0]
+                              if (file) void upload(requirement.id, file)
+                            }}
+                          />
+                        </label>
+                      ) : null}
                     </CardContent>
                   </Card>
                 )
               })}
             </div>
 
-            <Button className="w-full" onClick={submit} disabled={pending}>
-              <SendIcon />
-              Submit Requirements
-            </Button>
+            {canSubmitRequirements(application) ? (
+              <Button className="w-full" onClick={submit} disabled={pending}>
+                <SendIcon />
+                Submit Requirements
+              </Button>
+            ) : null}
           </>
         )}
       </div>
     </main>
   )
+}
+
+function canUploadRequirement(
+  application: PublicFinancingApplication,
+  requirement: PublicFinancingApplication["requirements"][number],
+) {
+  if (!["collecting_requirements", "needs_revision"].includes(application.status)) {
+    return false
+  }
+
+  if (requirement.status === "accepted") {
+    return false
+  }
+
+  return true
+}
+
+function canSubmitRequirements(application: PublicFinancingApplication) {
+  return ["collecting_requirements", "needs_revision"].includes(application.status)
 }

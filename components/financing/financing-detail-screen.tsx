@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import {
-  BanknoteIcon,
   CalendarClockIcon,
   CarIcon,
   CheckCircle2Icon,
@@ -233,9 +232,18 @@ export function FinancingDetailScreen({ id }: { id: string }) {
       ]}
     >
       <div className="flex flex-col gap-5 bg-muted/20 p-4 md:p-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-          {application.applicationNumber}
-        </h1>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+            {application.applicationNumber}
+          </h1>
+          <ReleaseActions
+            application={application}
+            isRecordingLoanRelease={mutations.recordLoanRelease.isPending}
+            isRecordingVehicleRelease={mutations.recordVehicleRelease.isPending}
+            onRecordLoanRelease={handleLoanRelease}
+            onRecordVehicleRelease={handleVehicleRelease}
+          />
+        </div>
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <main className="flex min-w-0 flex-col gap-5">
@@ -278,16 +286,6 @@ export function FinancingDetailScreen({ id }: { id: string }) {
               isPending={mutations.decideApplication.isPending}
               onApprove={() => decide("approved")}
               onReject={() => decide("rejected")}
-            />
-            <LoanReleaseCard
-              application={application}
-              isPending={mutations.recordLoanRelease.isPending}
-              onSubmit={handleLoanRelease}
-            />
-            <VehicleReleaseCard
-              application={application}
-              isPending={mutations.recordVehicleRelease.isPending}
-              onSubmit={handleVehicleRelease}
             />
             <ActivityHistoryCard activity={activity} />
           </aside>
@@ -753,102 +751,36 @@ function DecisionCard({
   )
 }
 
-function LoanReleaseCard({
+function ReleaseActions({
   application,
-  isPending,
-  onSubmit,
+  isRecordingLoanRelease,
+  isRecordingVehicleRelease,
+  onRecordLoanRelease,
+  onRecordVehicleRelease,
 }: {
   application: FinancingApplication
-  isPending: boolean
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+  isRecordingLoanRelease: boolean
+  isRecordingVehicleRelease: boolean
+  onRecordLoanRelease: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+  onRecordVehicleRelease: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
 }) {
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false)
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    await onSubmit(event)
-    setIsDialogOpen(false)
-  }
-
   return (
-    <DetailCard>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <BanknoteIcon className="text-primary" />
-          Loan Release
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SummaryItem
-            label="Released Loan Amount"
-            value={formatMoney(application.releasedLoanAmount)}
-          />
-          <SummaryItem
-            label="Release Date"
-            value={formatDateTime(application.loanReleasedAt)}
-          />
-          <SummaryItem
-            label="Reference Number"
-            value={application.loanReleaseReference || "—"}
-          />
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-fit"
-              disabled={isPending || Boolean(application.loanReleasedAt)}
-            >
-              <SendIcon />
-              Record Loan Release
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Record loan release</DialogTitle>
-              <DialogDescription>
-                Enter the loan release details from the financing partner. This
-                will move the application to loan released.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Released Loan Amount</FieldLabel>
-                  <Input name="releasedLoanAmount" placeholder="950000" required />
-                </Field>
-                <Field>
-                  <FieldLabel>Release Date</FieldLabel>
-                  <Input name="loanReleasedAt" type="datetime-local" required />
-                </Field>
-                <Field>
-                  <FieldLabel>Reference Number</FieldLabel>
-                  <Input name="loanReleaseReference" />
-                </Field>
-              </FieldGroup>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isPending}
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? "Recording..." : "Record Loan Release"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </DetailCard>
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <LoanReleaseAction
+        application={application}
+        isPending={isRecordingLoanRelease}
+        onSubmit={onRecordLoanRelease}
+      />
+      <VehicleReleaseAction
+        application={application}
+        isPending={isRecordingVehicleRelease}
+        onSubmit={onRecordVehicleRelease}
+      />
+    </div>
   )
 }
 
-function VehicleReleaseCard({
+function LoanReleaseAction({
   application,
   isPending,
   onSubmit,
@@ -865,69 +797,122 @@ function VehicleReleaseCard({
   }
 
   return (
-    <DetailCard>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <CarIcon className="text-muted-foreground" />
-          Vehicle Release
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <SummaryItem
-            label="Vehicle Release Date"
-            value={formatDateTime(application.vehicleReleasedAt)}
-          />
-          <SummaryItem label="Notes" value={application.vehicleReleaseNote || "—"} />
-        </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isPending || Boolean(application.loanReleasedAt)}
+        >
+          <SendIcon />
+          Record Loan Release
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Record loan release</DialogTitle>
+          <DialogDescription>
+            Enter the loan release details from the financing partner. This will
+            move the application to loan released.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <FieldGroup>
+            <Field>
+              <FieldLabel>Released Loan Amount</FieldLabel>
+              <Input name="releasedLoanAmount" placeholder="950000" required />
+            </Field>
+            <Field>
+              <FieldLabel>Release Date</FieldLabel>
+              <Input name="loanReleasedAt" type="datetime-local" required />
+            </Field>
+            <Field>
+              <FieldLabel>Reference Number</FieldLabel>
+              <Input name="loanReleaseReference" />
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              className="w-fit"
-              disabled={isPending || Boolean(application.vehicleReleasedAt)}
+              disabled={isPending}
+              onClick={() => setIsDialogOpen(false)}
             >
-              Record Vehicle Release
+              Cancel
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Record vehicle release</DialogTitle>
-              <DialogDescription>
-                Add the physical vehicle release date and any handoff notes for
-                this financing application.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-              <FieldGroup>
-                <Field>
-                  <FieldLabel>Vehicle Release Date</FieldLabel>
-                  <Input name="vehicleReleasedAt" type="datetime-local" />
-                </Field>
-                <Field>
-                  <FieldLabel>Notes</FieldLabel>
-                  <Textarea name="note" rows={3} />
-                </Field>
-              </FieldGroup>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isPending}
-                  onClick={() => setIsDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                  {isPending ? "Recording..." : "Record Vehicle Release"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </CardContent>
-    </DetailCard>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Recording..." : "Record Loan Release"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function VehicleReleaseAction({
+  application,
+  isPending,
+  onSubmit,
+}: {
+  application: FinancingApplication
+  isPending: boolean
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+}) {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false)
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    await onSubmit(event)
+    setIsDialogOpen(false)
+  }
+
+  return (
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isPending || Boolean(application.vehicleReleasedAt)}
+        >
+          <CarIcon />
+          Record Vehicle Release
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Record vehicle release</DialogTitle>
+          <DialogDescription>
+            Add the physical vehicle release date and any handoff notes for this
+            financing application.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <FieldGroup>
+            <Field>
+              <FieldLabel>Vehicle Release Date</FieldLabel>
+              <Input name="vehicleReleasedAt" type="datetime-local" />
+            </Field>
+            <Field>
+              <FieldLabel>Notes</FieldLabel>
+              <Textarea name="note" rows={3} />
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => setIsDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Recording..." : "Record Vehicle Release"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

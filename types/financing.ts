@@ -129,6 +129,20 @@ export interface FinancingTemplatesResponse {
   templates: FinancingRequirementTemplate[]
 }
 
+export interface FinancingRequirementSetting {
+  id: string
+  label: string
+  description: string | null
+  isRequired: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface FinancingRequirementsResponse {
+  requirements: FinancingRequirementSetting[]
+}
+
 export interface FinancingUploadLinkResponse {
   uploadLink: {
     token: string

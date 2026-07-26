@@ -142,10 +142,7 @@ const data = {
             title: "Financing",
             url: "/settings/financing",
             icon: <LandmarkIcon />,
-            permissionAny: [
-              "financing.manage_partners",
-              "financing.manage_templates",
-            ],
+            permissionAny: ["financing.manage_templates"],
           },
           {
             title: "Dealership Profile",

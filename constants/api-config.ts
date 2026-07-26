@@ -101,6 +101,8 @@ export const API_ENDPOINTS = {
       `/financing/partners/${id}/representatives`,
     templates: "/financing/templates",
     templateById: (id: string) => `/financing/templates/${id}`,
+    requirements: "/financing/requirements",
+    requirementById: (id: string) => `/financing/requirements/${id}`,
     applications: "/financing/applications",
     applicationById: (id: string) => `/financing/applications/${id}`,
     uploadLink: (id: string) => `/financing/applications/${id}/upload-link`,

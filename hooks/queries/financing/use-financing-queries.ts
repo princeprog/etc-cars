@@ -6,6 +6,7 @@ import {
   getFinancingApplication,
   getFinancingApplications,
   getFinancingPartners,
+  getFinancingRequirements,
   getFinancingTemplates,
   type FinancingApplicationFilters,
 } from "@/services/financing.service"
@@ -42,6 +43,14 @@ export function useFinancingTemplatesQuery(partnerId?: string) {
   return useQuery({
     queryKey: financingQueryKeys.templates(partnerId),
     queryFn: () => getFinancingTemplates(partnerId),
+    retry: false,
+  })
+}
+
+export function useFinancingRequirementsQuery() {
+  return useQuery({
+    queryKey: financingQueryKeys.requirements(),
+    queryFn: getFinancingRequirements,
     retry: false,
   })
 }

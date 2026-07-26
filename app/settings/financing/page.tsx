@@ -3,7 +3,7 @@ import { createPageMetadata } from "@/lib/metadata"
 
 export const metadata = createPageMetadata({
   title: "Financing Settings",
-  description: "Manage financing partners and requirement templates.",
+  description: "Manage buyer financing upload requirements.",
 })
 
 export default function FinancingSettingsPage() {

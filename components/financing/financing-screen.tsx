@@ -49,8 +49,6 @@ import { useFinancingMutations } from "@/hooks/mutations/financing/use-financing
 import { useBuyerLeadsQuery } from "@/hooks/queries/buyer-leads/use-buyer-leads-query"
 import {
   useFinancingApplicationsQuery,
-  useFinancingPartnersQuery,
-  useFinancingTemplatesQuery,
 } from "@/hooks/queries/financing/use-financing-queries"
 import { useUsersQuery } from "@/hooks/queries/auth/use-users-query"
 import { useVehiclesQuery } from "@/hooks/queries/vehicles/use-vehicles-query"
@@ -91,11 +89,16 @@ export function FinancingScreen() {
     search,
     status,
   })
-  const partnersQuery = useFinancingPartnersQuery()
-  const templatesQuery = useFinancingTemplatesQuery()
   const buyerLeadsQuery = useBuyerLeadsQuery({ page: 1, pageSize: 100 })
   const vehiclesQuery = useVehiclesQuery()
   const usersQuery = useUsersQuery({ page: 1, pageSize: 100, status: "active" })
+  const financingRepresentatives = React.useMemo(
+    () =>
+      (usersQuery.data?.users ?? []).filter(
+        (staff) => staff.roleName === "Financing Representative",
+      ),
+    [usersQuery.data?.users],
+  )
 
   const applications = applicationsQuery.data?.applications ?? []
   const total = applicationsQuery.data?.total ?? 0
@@ -108,10 +111,8 @@ export function FinancingScreen() {
       {
         buyerLeadId: String(form.get("buyerLeadId") ?? ""),
         vehicleId: String(form.get("vehicleId") ?? ""),
-        partnerId: String(form.get("partnerId") ?? ""),
         representativeUserId: String(form.get("representativeUserId") ?? ""),
         assignedStaffUserId: user?.id,
-        templateId: String(form.get("templateId") ?? "") || undefined,
         requestedAmount: String(form.get("requestedAmount") ?? "") || null,
         downPayment: String(form.get("downPayment") ?? "") || null,
         termMonths: Number(form.get("termMonths") || 0) || null,
@@ -135,7 +136,7 @@ export function FinancingScreen() {
 
   return (
     <AuthenticatedAppShell title="Financing">
-      <div className="space-y-5 p-4 md:p-6">
+      <div className="flex flex-col gap-5 p-4 md:p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-xl font-semibold tracking-tight">
@@ -285,10 +286,11 @@ export function FinancingScreen() {
             <DialogHeader>
               <DialogTitle>New Financing Application</DialogTitle>
               <DialogDescription>
-                Link one buyer lead, one vehicle, and a financing partner.
+                Link one buyer lead, one vehicle, and an assigned financing
+                representative.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleCreate} className="flex flex-col gap-4">
               <ApiErrorAlert
                 title="Unable to create financing application"
                 message={getApiErrorMessage(
@@ -329,45 +331,15 @@ export function FinancingScreen() {
                   </Select>
                 </Field>
                 <Field>
-                  <FieldLabel>Partner</FieldLabel>
-                  <Select name="partnerId" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select partner" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(partnersQuery.data?.partners ?? []).map((partner) => (
-                        <SelectItem key={partner.id} value={partner.id}>
-                          {partner.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
                   <FieldLabel>Representative</FieldLabel>
                   <Select name="representativeUserId" required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select representative" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(usersQuery.data?.users ?? []).map((staff) => (
+                      {financingRepresentatives.map((staff) => (
                         <SelectItem key={staff.id} value={staff.id}>
-                          {staff.fullName} - {staff.roleName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel>Template</FieldLabel>
-                  <Select name="templateId">
-                    <SelectTrigger>
-                      <SelectValue placeholder="Use partner default" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(templatesQuery.data?.templates ?? []).map((template) => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.name}
+                          {staff.fullName}
                         </SelectItem>
                       ))}
                     </SelectContent>

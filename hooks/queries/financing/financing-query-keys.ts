@@ -9,4 +9,5 @@ export const financingQueryKeys = {
   partners: () => [...financingQueryKeys.all, "partners"] as const,
   templates: (partnerId?: string) =>
     [...financingQueryKeys.all, "templates", partnerId] as const,
+  requirements: () => [...financingQueryKeys.all, "requirements"] as const,
 }

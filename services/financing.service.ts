@@ -5,6 +5,7 @@ import type {
   FinancingApplicationResponse,
   FinancingApplicationsResponse,
   FinancingPartnersResponse,
+  FinancingRequirementsResponse,
   FinancingTemplatesResponse,
   FinancingUploadLinkResponse,
   FinancingUploadSession,
@@ -95,10 +96,42 @@ export function createFinancingTemplate(payload: {
   })
 }
 
+export function getFinancingRequirements() {
+  return apiRequest<FinancingRequirementsResponse>(
+    API_ENDPOINTS.financing.requirements,
+  )
+}
+
+export function createFinancingRequirement(payload: {
+  label: string
+  description?: string | null
+}) {
+  return apiRequest(API_ENDPOINTS.financing.requirements, {
+    method: "POST",
+    body: payload,
+  })
+}
+
+export function updateFinancingRequirement(
+  id: string,
+  payload: { label?: string; description?: string | null },
+) {
+  return apiRequest(API_ENDPOINTS.financing.requirementById(id), {
+    method: "PATCH",
+    body: payload,
+  })
+}
+
+export function deleteFinancingRequirement(id: string) {
+  return apiRequest(API_ENDPOINTS.financing.requirementById(id), {
+    method: "DELETE",
+  })
+}
+
 export function createFinancingApplication(payload: {
   buyerLeadId: string
   vehicleId: string
-  partnerId: string
+  partnerId?: string
   representativeUserId: string
   assignedStaffUserId?: string | null
   templateId?: string | null

@@ -35,6 +35,13 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -73,6 +80,19 @@ type ActivityEvent = {
   createdAt?: string
 }
 
+type PreviewDocument = {
+  id: string
+  filename: string
+  mimeType: string
+  url: string
+}
+
+type ViewableDocument = {
+  id: string
+  originalFilename: string
+  mimeType: string
+}
+
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
   currency: "PHP",
@@ -84,6 +104,8 @@ export function FinancingDetailScreen({ id }: { id: string }) {
   const mutations = useFinancingMutations()
   const [generatedToken, setGeneratedToken] = React.useState<string | null>(null)
   const [openingDocumentId, setOpeningDocumentId] = React.useState<string | null>(null)
+  const [previewDocument, setPreviewDocument] =
+    React.useState<PreviewDocument | null>(null)
   const application = applicationQuery.data?.application
 
   async function generateLink() {
@@ -158,11 +180,16 @@ export function FinancingDetailScreen({ id }: { id: string }) {
     )
   }
 
-  async function openDocument(documentId: string) {
-    setOpeningDocumentId(documentId)
+  async function openDocument(document: ViewableDocument) {
+    setOpeningDocumentId(document.id)
     try {
-      const result = await getFinancingDocumentDownloadUrl(id, documentId)
-      window.open(result.downloadUrl, "_blank", "noopener,noreferrer")
+      const result = await getFinancingDocumentDownloadUrl(id, document.id)
+      setPreviewDocument({
+        id: document.id,
+        filename: document.originalFilename,
+        mimeType: document.mimeType,
+        url: result.downloadUrl,
+      })
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Unable to open uploaded file"))
     } finally {
@@ -263,6 +290,13 @@ export function FinancingDetailScreen({ id }: { id: string }) {
             <ActivityHistoryCard activity={activity} />
           </aside>
         </div>
+
+        <DocumentPreviewDialog
+          document={previewDocument}
+          onOpenChange={(open) => {
+            if (!open) setPreviewDocument(null)
+          }}
+        />
       </div>
     </AuthenticatedAppShell>
   )
@@ -330,7 +364,7 @@ function RequirementsChecklistCard({
   ) => Promise<void>
   onUpload: (requirementId: string, file: File) => void
   openingDocumentId: string | null
-  onOpenDocument: (documentId: string) => Promise<void>
+  onOpenDocument: (document: ViewableDocument) => Promise<void>
 }) {
   return (
     <DetailCard>
@@ -389,7 +423,7 @@ function RequirementRow({
   ) => Promise<void>
   onUpload: (requirementId: string, file: File) => void
   openingDocumentId: string | null
-  onOpenDocument: (documentId: string) => Promise<void>
+  onOpenDocument: (document: ViewableDocument) => Promise<void>
 }) {
   const currentDocuments = requirement.documents.filter((document) => document.isCurrent)
   const firstDocument = currentDocuments[0] ?? requirement.documents[0]
@@ -405,7 +439,7 @@ function RequirementRow({
           <button
             type="button"
             className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => onOpenDocument(firstDocument.id)}
+            onClick={() => onOpenDocument(firstDocument)}
             disabled={openingDocumentId === firstDocument.id}
           >
             <FileTextIcon className="size-4" />
@@ -454,7 +488,7 @@ function RequirementRow({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => firstDocument && onOpenDocument(firstDocument.id)}
+              onClick={() => firstDocument && onOpenDocument(firstDocument)}
               disabled={!firstDocument || openingDocumentId === firstDocument.id}
             >
               {firstDocument && openingDocumentId === firstDocument.id
@@ -507,7 +541,7 @@ function RequirementRow({
                 <DropdownMenuItem
                   onSelect={(event) => {
                     event.preventDefault()
-                    void onOpenDocument(firstDocument.id)
+                    void onOpenDocument(firstDocument)
                   }}
                 >
                   <FileTextIcon />
@@ -548,12 +582,13 @@ function DocumentVersionHistoryCard({
   documents: Array<{
     id: string
     filename: string
+    mimeType: string
     createdAt: string
     requirementLabel: string
     isCurrent: boolean
   }>
   openingDocumentId: string | null
-  onOpenDocument: (documentId: string) => Promise<void>
+  onOpenDocument: (document: ViewableDocument) => Promise<void>
 }) {
   return (
     <DetailCard>
@@ -580,7 +615,13 @@ function DocumentVersionHistoryCard({
                 <button
                   type="button"
                   className="text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  onClick={() => onOpenDocument(document.id)}
+                  onClick={() =>
+                    onOpenDocument({
+                      id: document.id,
+                      originalFilename: document.filename,
+                      mimeType: document.mimeType,
+                    })
+                  }
                   disabled={openingDocumentId === document.id}
                 >
                   <span className="font-medium text-foreground">
@@ -863,6 +904,52 @@ function ActivityHistoryCard({ activity }: { activity: ActivityEvent[] }) {
   )
 }
 
+function DocumentPreviewDialog({
+  document,
+  onOpenChange,
+}: {
+  document: PreviewDocument | null
+  onOpenChange: (open: boolean) => void
+}) {
+  const isImage = document?.mimeType.startsWith("image/")
+  const isPdf = document?.mimeType === "application/pdf"
+
+  return (
+    <Dialog open={Boolean(document)} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-5xl overflow-hidden p-0">
+        <DialogHeader className="border-b px-6 py-4">
+          <DialogTitle>{document?.filename ?? "Uploaded file"}</DialogTitle>
+          <DialogDescription>
+            Previewing the uploaded financing requirement file inside ETC Cars.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="h-[72vh] bg-muted/30 p-4">
+          {document && isImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={document.url}
+              alt={document.filename}
+              className="mx-auto h-full max-w-full rounded-lg object-contain"
+            />
+          ) : document && isPdf ? (
+            <iframe
+              src={document.url}
+              title={document.filename}
+              className="h-full w-full rounded-lg border bg-background"
+            />
+          ) : document ? (
+            <iframe
+              src={document.url}
+              title={document.filename}
+              className="h-full w-full rounded-lg border bg-background"
+            />
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 function DetailCard({ children }: { children: React.ReactNode }) {
   return (
     <Card className="rounded-xl border bg-background shadow-sm">
@@ -937,6 +1024,7 @@ function buildDocumentHistory(application: FinancingApplication) {
       requirement.documents.map((document) => ({
         id: document.id,
         filename: document.originalFilename,
+        mimeType: document.mimeType,
         createdAt: document.createdAt,
         requirementLabel: requirement.label,
         isCurrent: document.isCurrent,

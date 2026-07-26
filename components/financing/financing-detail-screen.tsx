@@ -55,6 +55,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useFinancingMutations } from "@/hooks/mutations/financing/use-financing-mutations"
 import { useFinancingApplicationQuery } from "@/hooks/queries/financing/use-financing-queries"
 import { cn } from "@/lib/utils"
+import { getFinancingDocumentDownloadUrl } from "@/services/financing.service"
 import { getApiErrorMessage } from "@/types/api"
 import type {
   FinancingApplication,
@@ -82,6 +83,7 @@ export function FinancingDetailScreen({ id }: { id: string }) {
   const applicationQuery = useFinancingApplicationQuery(id)
   const mutations = useFinancingMutations()
   const [generatedToken, setGeneratedToken] = React.useState<string | null>(null)
+  const [openingDocumentId, setOpeningDocumentId] = React.useState<string | null>(null)
   const application = applicationQuery.data?.application
 
   async function generateLink() {
@@ -156,6 +158,18 @@ export function FinancingDetailScreen({ id }: { id: string }) {
     )
   }
 
+  async function openDocument(documentId: string) {
+    setOpeningDocumentId(documentId)
+    try {
+      const result = await getFinancingDocumentDownloadUrl(id, documentId)
+      window.open(result.downloadUrl, "_blank", "noopener,noreferrer")
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to open uploaded file"))
+    } finally {
+      setOpeningDocumentId(null)
+    }
+  }
+
   if (applicationQuery.isPending) {
     return (
       <AuthenticatedAppShell title="Financing">
@@ -212,8 +226,14 @@ export function FinancingDetailScreen({ id }: { id: string }) {
                   file,
                 })
               }
+              openingDocumentId={openingDocumentId}
+              onOpenDocument={openDocument}
             />
-            <DocumentVersionHistoryCard documents={documentHistory} />
+            <DocumentVersionHistoryCard
+              documents={documentHistory}
+              openingDocumentId={openingDocumentId}
+              onOpenDocument={openDocument}
+            />
           </main>
 
           <aside className="flex min-w-0 flex-col gap-3">
@@ -298,6 +318,8 @@ function RequirementsChecklistCard({
   isUploading,
   onReview,
   onUpload,
+  openingDocumentId,
+  onOpenDocument,
 }: {
   requirements: FinancingRequirement[]
   reviewError: string
@@ -307,6 +329,8 @@ function RequirementsChecklistCard({
     status: "accepted" | "revision_requested",
   ) => Promise<void>
   onUpload: (requirementId: string, file: File) => void
+  openingDocumentId: string | null
+  onOpenDocument: (documentId: string) => Promise<void>
 }) {
   return (
     <DetailCard>
@@ -337,6 +361,8 @@ function RequirementsChecklistCard({
                   isUploading={isUploading}
                   onReview={onReview}
                   onUpload={onUpload}
+                  openingDocumentId={openingDocumentId}
+                  onOpenDocument={onOpenDocument}
                 />
               ))}
             </TableBody>
@@ -352,6 +378,8 @@ function RequirementRow({
   isUploading,
   onReview,
   onUpload,
+  openingDocumentId,
+  onOpenDocument,
 }: {
   requirement: FinancingRequirement
   isUploading: boolean
@@ -360,6 +388,8 @@ function RequirementRow({
     status: "accepted" | "revision_requested",
   ) => Promise<void>
   onUpload: (requirementId: string, file: File) => void
+  openingDocumentId: string | null
+  onOpenDocument: (documentId: string) => Promise<void>
 }) {
   const currentDocuments = requirement.documents.filter((document) => document.isCurrent)
   const firstDocument = currentDocuments[0] ?? requirement.documents[0]
@@ -372,15 +402,22 @@ function RequirementRow({
       </TableCell>
       <TableCell>
         {firstDocument ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <button
+            type="button"
+            className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            onClick={() => onOpenDocument(firstDocument.id)}
+            disabled={openingDocumentId === firstDocument.id}
+          >
             <FileTextIcon className="size-4" />
             <span className="font-medium text-foreground">
-              {firstDocument.originalFilename}
+              {openingDocumentId === firstDocument.id
+                ? "Opening..."
+                : firstDocument.originalFilename}
             </span>
             {currentDocuments.length > 1 ? (
               <span>+{currentDocuments.length - 1}</span>
             ) : null}
-          </div>
+          </button>
         ) : (
           <span className="text-sm italic text-muted-foreground">
             No file uploaded
@@ -413,8 +450,16 @@ function RequirementRow({
               </Button>
             </>
           ) : requirement.status === "accepted" ? (
-            <Button type="button" variant="outline" size="sm">
-              View
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => firstDocument && onOpenDocument(firstDocument.id)}
+              disabled={!firstDocument || openingDocumentId === firstDocument.id}
+            >
+              {firstDocument && openingDocumentId === firstDocument.id
+                ? "Opening..."
+                : "View"}
             </Button>
           ) : requirement.status === "revision_requested" ? (
             <Button
@@ -458,6 +503,17 @@ function RequirementRow({
                   />
                 </label>
               </DropdownMenuItem>
+              {firstDocument ? (
+                <DropdownMenuItem
+                  onSelect={(event) => {
+                    event.preventDefault()
+                    void onOpenDocument(firstDocument.id)
+                  }}
+                >
+                  <FileTextIcon />
+                  View uploaded file
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem
                 onSelect={(event) => {
                   event.preventDefault()
@@ -486,6 +542,8 @@ function RequirementRow({
 
 function DocumentVersionHistoryCard({
   documents,
+  openingDocumentId,
+  onOpenDocument,
 }: {
   documents: Array<{
     id: string
@@ -494,6 +552,8 @@ function DocumentVersionHistoryCard({
     requirementLabel: string
     isCurrent: boolean
   }>
+  openingDocumentId: string | null
+  onOpenDocument: (documentId: string) => Promise<void>
 }) {
   return (
     <DetailCard>
@@ -517,13 +577,20 @@ function DocumentVersionHistoryCard({
                     <span className="absolute top-5 bottom-[-14px] w-px bg-border" />
                   ) : null}
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  className="text-left text-sm text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => onOpenDocument(document.id)}
+                  disabled={openingDocumentId === document.id}
+                >
                   <span className="font-medium text-foreground">
-                    {document.filename}
+                    {openingDocumentId === document.id
+                      ? "Opening..."
+                      : document.filename}
                   </span>{" "}
                   uploaded for {document.requirementLabel}
                   {document.isCurrent ? "" : " (older version)"}
-                </p>
+                </button>
                 <p className="whitespace-nowrap text-sm text-muted-foreground">
                   {formatDateTime(document.createdAt)}
                 </p>

@@ -186,6 +186,15 @@ export function uploadFinancingRequirementDocument(
   )
 }
 
+export function getFinancingDocumentDownloadUrl(
+  applicationId: string,
+  documentId: string,
+) {
+  return apiRequest<{ downloadUrl: string }>(
+    API_ENDPOINTS.financing.documentDownload(applicationId, documentId),
+  )
+}
+
 export async function verifyPublicFinancingUpload(
   token: string,
   contactNumber: string,

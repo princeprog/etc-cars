@@ -17,47 +17,6 @@ export type FinancingRequirementStatus =
   | "accepted"
   | "revision_requested"
 
-export interface FinancingPartner {
-  id: string
-  name: string
-  contactPerson: string | null
-  contactNumber: string | null
-  email: string | null
-  notes: string | null
-  isActive: boolean
-  representatives: FinancingPartnerRepresentative[]
-  createdAt: string
-  updatedAt: string
-}
-
-export interface FinancingPartnerRepresentative {
-  id: string
-  partnerId: string
-  userId: string
-  fullName: string
-  email: string
-  roleName: string | null
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface FinancingRequirementTemplate {
-  id: string
-  partnerId: string
-  name: string
-  description: string | null
-  isDefault: boolean
-  isActive: boolean
-  items: Array<{
-    id: string
-    label: string
-    description: string | null
-    isRequired: boolean
-    sortOrder: number
-  }>
-}
-
 export interface FinancingDocumentVersion {
   id: string
   versionNumber: number
@@ -119,14 +78,6 @@ export interface FinancingApplicationsResponse extends PaginatedResponseMeta {
 
 export interface FinancingApplicationResponse {
   application: FinancingApplication
-}
-
-export interface FinancingPartnersResponse {
-  partners: FinancingPartner[]
-}
-
-export interface FinancingTemplatesResponse {
-  templates: FinancingRequirementTemplate[]
 }
 
 export interface FinancingRequirementSetting {

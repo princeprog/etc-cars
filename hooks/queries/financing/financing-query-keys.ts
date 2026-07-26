@@ -6,8 +6,5 @@ export const financingQueryKeys = {
     [...financingQueryKeys.all, "applications", filters] as const,
   application: (id: string) =>
     [...financingQueryKeys.all, "applications", id] as const,
-  partners: () => [...financingQueryKeys.all, "partners"] as const,
-  templates: (partnerId?: string) =>
-    [...financingQueryKeys.all, "templates", partnerId] as const,
   requirements: () => [...financingQueryKeys.all, "requirements"] as const,
 }

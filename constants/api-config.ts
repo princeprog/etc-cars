@@ -95,12 +95,6 @@ export const API_ENDPOINTS = {
     finalizeDraft: (id: string) => `/sales/drafts/${id}/finalize`,
   },
   financing: {
-    partners: "/financing/partners",
-    partnerById: (id: string) => `/financing/partners/${id}`,
-    partnerRepresentatives: (id: string) =>
-      `/financing/partners/${id}/representatives`,
-    templates: "/financing/templates",
-    templateById: (id: string) => `/financing/templates/${id}`,
     requirements: "/financing/requirements",
     requirementById: (id: string) => `/financing/requirements/${id}`,
     applications: "/financing/applications",

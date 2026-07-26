@@ -4,9 +4,7 @@ import { AppApiError, type ApiErrorResponse } from "@/types/api"
 import type {
   FinancingApplicationResponse,
   FinancingApplicationsResponse,
-  FinancingPartnersResponse,
   FinancingRequirementsResponse,
-  FinancingTemplatesResponse,
   FinancingUploadLinkResponse,
   FinancingUploadSession,
   PublicFinancingApplication,
@@ -17,7 +15,6 @@ export type FinancingApplicationFilters = {
   pageSize?: number
   search?: string
   status?: string
-  partnerId?: string
   representativeUserId?: string
   assignedStaffUserId?: string
 }
@@ -41,59 +38,6 @@ export function getFinancingApplication(id: string) {
   return apiRequest<FinancingApplicationResponse>(
     API_ENDPOINTS.financing.applicationById(id),
   )
-}
-
-export function getFinancingPartners() {
-  return apiRequest<FinancingPartnersResponse>(API_ENDPOINTS.financing.partners)
-}
-
-export function createFinancingPartner(payload: {
-  name: string
-  contactPerson?: string | null
-  contactNumber?: string | null
-  email?: string | null
-  notes?: string | null
-}) {
-  return apiRequest(API_ENDPOINTS.financing.partners, {
-    method: "POST",
-    body: payload,
-  })
-}
-
-export function addFinancingRepresentative(
-  partnerId: string,
-  payload: { userId: string; isActive?: boolean },
-) {
-  return apiRequest(API_ENDPOINTS.financing.partnerRepresentatives(partnerId), {
-    method: "POST",
-    body: payload,
-  })
-}
-
-export function getFinancingTemplates(partnerId?: string) {
-  return apiRequest<FinancingTemplatesResponse>(
-    partnerId
-      ? `${API_ENDPOINTS.financing.templates}?partnerId=${encodeURIComponent(partnerId)}`
-      : API_ENDPOINTS.financing.templates,
-  )
-}
-
-export function createFinancingTemplate(payload: {
-  partnerId: string
-  name: string
-  description?: string | null
-  isDefault?: boolean
-  items: Array<{
-    label: string
-    description?: string | null
-    isRequired?: boolean
-    sortOrder?: number
-  }>
-}) {
-  return apiRequest(API_ENDPOINTS.financing.templates, {
-    method: "POST",
-    body: payload,
-  })
 }
 
 export function getFinancingRequirements() {
@@ -131,10 +75,8 @@ export function deleteFinancingRequirement(id: string) {
 export function createFinancingApplication(payload: {
   buyerLeadId: string
   vehicleId: string
-  partnerId?: string
   representativeUserId: string
   assignedStaffUserId?: string | null
-  templateId?: string | null
   requestedAmount?: string | null
   downPayment?: string | null
   termMonths?: number | null

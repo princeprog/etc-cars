@@ -3,11 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import {
-  addFinancingRepresentative,
   createFinancingApplication,
-  createFinancingPartner,
   createFinancingRequirement,
-  createFinancingTemplate,
   deleteFinancingRequirement,
   decideFinancingApplication,
   generateFinancingUploadLink,
@@ -26,24 +23,6 @@ export function useFinancingMutations() {
     queryClient.invalidateQueries({ queryKey: financingQueryKeys.all })
 
   return {
-    createPartner: useMutation({
-      mutationFn: createFinancingPartner,
-      onSuccess: invalidate,
-    }),
-    addRepresentative: useMutation({
-      mutationFn: ({
-        partnerId,
-        payload,
-      }: {
-        partnerId: string
-        payload: { userId: string; isActive?: boolean }
-      }) => addFinancingRepresentative(partnerId, payload),
-      onSuccess: invalidate,
-    }),
-    createTemplate: useMutation({
-      mutationFn: createFinancingTemplate,
-      onSuccess: invalidate,
-    }),
     createRequirement: useMutation({
       mutationFn: createFinancingRequirement,
       onSuccess: invalidate,

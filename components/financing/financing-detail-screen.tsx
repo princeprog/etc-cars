@@ -2,11 +2,9 @@
 
 import * as React from "react"
 import {
-  CalendarClockIcon,
   CarIcon,
   CheckCircle2Icon,
   CheckIcon,
-  CircleIcon,
   ClipboardListIcon,
   Clock3Icon,
   CopyIcon,
@@ -72,14 +70,6 @@ import type {
   FinancingRequirementStatus,
 } from "@/types/financing"
 import { formatStatus } from "./financing-screen"
-
-type ActivityEvent = {
-  id?: string
-  summary?: string
-  actionType?: string
-  actorDisplayName?: string | null
-  createdAt?: string
-}
 
 type PreviewDocument = {
   id: string
@@ -220,7 +210,6 @@ export function FinancingDetailScreen({ id }: { id: string }) {
   }
 
   const documentHistory = buildDocumentHistory(application)
-  const activity = normalizeActivity(application.activity)
   const canDecide = canDecideApplication(application)
 
   return (
@@ -287,7 +276,6 @@ export function FinancingDetailScreen({ id }: { id: string }) {
               onApprove={() => decide("approved")}
               onReject={() => decide("rejected")}
             />
-            <ActivityHistoryCard activity={activity} />
           </aside>
         </div>
 
@@ -916,43 +904,6 @@ function VehicleReleaseAction({
   )
 }
 
-function ActivityHistoryCard({ activity }: { activity: ActivityEvent[] }) {
-  return (
-    <DetailCard>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <CalendarClockIcon className="text-primary" />
-          Activity History
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {activity.length ? (
-          <div className="flex flex-col gap-3">
-            {activity.slice(0, 5).map((event, index) => (
-              <div
-                key={event.id ?? `${event.summary}-${index}`}
-                className="grid grid-cols-[14px_minmax(0,1fr)_auto] gap-3"
-              >
-                <CircleIcon className="mt-1 fill-primary text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  {event.summary ?? event.actionType ?? "Activity recorded"}
-                </p>
-                <p className="whitespace-nowrap text-sm text-muted-foreground">
-                  {formatDateTime(event.createdAt)}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No activity history yet.
-          </p>
-        )}
-      </CardContent>
-    </DetailCard>
-  )
-}
-
 function DocumentPreviewDialog({
   document,
   onOpenChange,
@@ -1083,26 +1034,6 @@ function buildDocumentHistory(application: FinancingApplication) {
       (first, second) =>
         new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
     )
-}
-
-function normalizeActivity(activity: unknown): ActivityEvent[] {
-  if (!Array.isArray(activity)) {
-    return []
-  }
-
-  return activity
-    .filter((event): event is Record<string, unknown> => Boolean(event))
-    .map((event) => ({
-      id: typeof event.id === "string" ? event.id : undefined,
-      summary: typeof event.summary === "string" ? event.summary : undefined,
-      actionType:
-        typeof event.actionType === "string" ? event.actionType : undefined,
-      actorDisplayName:
-        typeof event.actorDisplayName === "string"
-          ? event.actorDisplayName
-          : null,
-      createdAt: typeof event.createdAt === "string" ? event.createdAt : undefined,
-    }))
 }
 
 function canDecideApplication(application: FinancingApplication) {

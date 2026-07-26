@@ -166,7 +166,7 @@ export function FinancingScreen() {
                 <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  placeholder="Search buyer, vehicle, partner..."
+                  placeholder="Search buyer, vehicle, application..."
                   value={search}
                   onChange={(event) => {
                     setSearch(event.target.value)
@@ -208,8 +208,6 @@ export function FinancingScreen() {
                       <TableHead>Application</TableHead>
                       <TableHead>Buyer</TableHead>
                       <TableHead>Vehicle</TableHead>
-                      <TableHead>Partner</TableHead>
-                      <TableHead>Representative</TableHead>
                       <TableHead>Requirements</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -396,8 +394,6 @@ function FinancingApplicationRow({
       </TableCell>
       <TableCell>{application.buyer.name}</TableCell>
       <TableCell>{application.vehicle.stockNumber}</TableCell>
-      <TableCell>{application.partner.name}</TableCell>
-      <TableCell>{application.representative.name}</TableCell>
       <TableCell>
         {progress.accepted}/{progress.total} accepted
       </TableCell>

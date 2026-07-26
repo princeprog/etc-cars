@@ -1,13 +1,24 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import {
-  ArrowLeftIcon,
+  BanknoteIcon,
+  CalendarClockIcon,
+  CarIcon,
+  CheckCircle2Icon,
   CheckIcon,
+  CircleIcon,
+  ClipboardListIcon,
+  Clock3Icon,
+  CopyIcon,
+  FileTextIcon,
   FileUpIcon,
+  GavelIcon,
   LinkIcon,
+  MoreVerticalIcon,
+  RefreshCwIcon,
   SendIcon,
+  XCircleIcon,
   XIcon,
 } from "lucide-react"
 import { toast } from "@/components/ui/sileo"
@@ -15,18 +26,59 @@ import { toast } from "@/components/ui/sileo"
 import { AuthenticatedAppShell } from "@/components/app-shell/authenticated-app-shell"
 import { ApiErrorAlert } from "@/components/operations/api-error-alert"
 import { ModuleLoadingState } from "@/components/operations/module-loading-state"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Field, FieldLabel } from "@/components/ui/field"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { useFinancingMutations } from "@/hooks/mutations/financing/use-financing-mutations"
 import { useFinancingApplicationQuery } from "@/hooks/queries/financing/use-financing-queries"
+import { cn } from "@/lib/utils"
 import { getApiErrorMessage } from "@/types/api"
-import { CopyUploadLinkButton, formatStatus } from "./financing-screen"
+import type {
+  FinancingApplication,
+  FinancingApplicationStatus,
+  FinancingRequirement,
+  FinancingRequirementStatus,
+} from "@/types/financing"
+import { formatStatus } from "./financing-screen"
+
+type ActivityEvent = {
+  id?: string
+  summary?: string
+  actionType?: string
+  actorDisplayName?: string | null
+  createdAt?: string
+}
+
+const pesoFormatter = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+  maximumFractionDigits: 0,
+})
 
 export function FinancingDetailScreen({ id }: { id: string }) {
-  const router = useRouter()
   const applicationQuery = useFinancingApplicationQuery(id)
   const mutations = useFinancingMutations()
   const [generatedToken, setGeneratedToken] = React.useState<string | null>(null)
@@ -35,6 +87,14 @@ export function FinancingDetailScreen({ id }: { id: string }) {
   async function generateLink() {
     const result = await mutations.generateUploadLink.mutateAsync(id)
     setGeneratedToken(result.uploadLink.token)
+    toast.success("Secure upload link generated")
+  }
+
+  async function copyGeneratedLink() {
+    if (!generatedToken) return
+    const url = `${window.location.origin}/financing/upload/${generatedToken}`
+    await navigator.clipboard.writeText(url)
+    toast.success("Secure upload link copied")
   }
 
   async function reviewRequirement(
@@ -117,6 +177,10 @@ export function FinancingDetailScreen({ id }: { id: string }) {
     )
   }
 
+  const documentHistory = buildDocumentHistory(application)
+  const activity = normalizeActivity(application.activity)
+  const canDecide = canDecideApplication(application)
+
   return (
     <AuthenticatedAppShell
       title={application.applicationNumber}
@@ -125,206 +189,58 @@ export function FinancingDetailScreen({ id }: { id: string }) {
         { label: application.applicationNumber },
       ]}
     >
-      <div className="space-y-5 p-4 md:p-6">
-        <Button variant="ghost" onClick={() => router.push("/financing")}>
-          <ArrowLeftIcon />
-          Back
-        </Button>
+      <div className="flex flex-col gap-5 bg-muted/20 p-4 md:p-6">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+          {application.applicationNumber}
+        </h1>
 
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-5">
-            <Card>
-              <CardHeader>
-                <CardTitle>Application Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <Summary label="Status" value={formatStatus(application.status)} />
-                <Summary label="Buyer" value={application.buyer.name} />
-                <Summary label="Vehicle" value={application.vehicle.label} />
-                <Summary label="Partner" value={application.partner.name} />
-                <Summary
-                  label="Representative"
-                  value={application.representative.name}
-                />
-                <Summary
-                  label="Assigned staff"
-                  value={application.assignedStaff.name}
-                />
-              </CardContent>
-            </Card>
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <main className="flex min-w-0 flex-col gap-5">
+            <ApplicationSummaryCard application={application} />
+            <RequirementsChecklistCard
+              requirements={application.requirements}
+              reviewError={getApiErrorMessage(
+                mutations.reviewRequirement.error || mutations.uploadDocument.error,
+                "",
+              )}
+              isUploading={mutations.uploadDocument.isPending}
+              onReview={reviewRequirement}
+              onUpload={(requirementId, file) =>
+                mutations.uploadDocument.mutate({
+                  applicationId: id,
+                  requirementId,
+                  file,
+                })
+              }
+            />
+            <DocumentVersionHistoryCard documents={documentHistory} />
+          </main>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Requirements</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <ApiErrorAlert
-                  title="Unable to update requirement"
-                  message={getApiErrorMessage(
-                    mutations.reviewRequirement.error ||
-                      mutations.uploadDocument.error,
-                    "",
-                  )}
-                />
-                {application.requirements.map((requirement) => (
-                  <div
-                    key={requirement.id}
-                    className="rounded-md border p-4"
-                  >
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <p className="font-medium">{requirement.label}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatStatus(requirement.status)}
-                        </p>
-                        {requirement.revisionReason ? (
-                          <p className="mt-2 text-sm text-amber-700">
-                            {requirement.revisionReason}
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            reviewRequirement(requirement.id, "accepted")
-                          }
-                        >
-                          <CheckIcon />
-                          Accept
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            reviewRequirement(
-                              requirement.id,
-                              "revision_requested",
-                            )
-                          }
-                        >
-                          <XIcon />
-                          Revision
-                        </Button>
-                        <label className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm">
-                          <FileUpIcon className="size-4" />
-                          Upload
-                          <input
-                            type="file"
-                            className="sr-only"
-                            accept=".pdf,image/jpeg,image/png,image/webp"
-                            onChange={(event) => {
-                              const file = event.target.files?.[0]
-                              if (file) {
-                                mutations.uploadDocument.mutate({
-                                  applicationId: id,
-                                  requirementId: requirement.id,
-                                  file,
-                                })
-                              }
-                            }}
-                          />
-                        </label>
-                      </div>
-                    </div>
-                    {requirement.documents.length ? (
-                      <ul className="mt-3 space-y-1 text-sm text-muted-foreground">
-                        {requirement.documents.map((document) => (
-                          <li key={document.id}>
-                            {document.originalFilename}{" "}
-                            {document.isCurrent ? "(current)" : ""}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-
-          <aside className="space-y-5">
-            <Card>
-              <CardHeader>
-                <CardTitle>Buyer Upload Link</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button onClick={generateLink} className="w-full">
-                  <LinkIcon />
-                  Generate Link
-                </Button>
-                {generatedToken ? <CopyUploadLinkButton token={generatedToken} /> : null}
-                {application.activeUploadLink ? (
-                  <p className="text-xs text-muted-foreground">
-                    Active link expires {application.activeUploadLink.expires_at}
-                  </p>
-                ) : null}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Decision</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                <Button onClick={() => decide("approved")} variant="outline">
-                  <CheckIcon />
-                  Approve
-                </Button>
-                <Button onClick={() => decide("rejected")} variant="outline">
-                  <XIcon />
-                  Reject
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Loan Release</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleLoanRelease} className="space-y-3">
-                  <Field>
-                    <FieldLabel>Released amount</FieldLabel>
-                    <Input name="releasedLoanAmount" required />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Released at</FieldLabel>
-                    <Input name="loanReleasedAt" type="datetime-local" required />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Reference</FieldLabel>
-                    <Input name="loanReleaseReference" />
-                  </Field>
-                  <Button type="submit" className="w-full">
-                    <SendIcon />
-                    Record Loan
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Vehicle Release</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleVehicleRelease} className="space-y-3">
-                  <Field>
-                    <FieldLabel>Released at</FieldLabel>
-                    <Input name="vehicleReleasedAt" type="datetime-local" />
-                  </Field>
-                  <Field>
-                    <FieldLabel>Note</FieldLabel>
-                    <Textarea name="note" rows={3} />
-                  </Field>
-                  <Button type="submit" className="w-full">
-                    Record Vehicle Release
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
+          <aside className="flex min-w-0 flex-col gap-3">
+            <BuyerUploadLinkCard
+              activeExpiresAt={application.activeUploadLink?.expires_at ?? null}
+              generatedToken={generatedToken}
+              isGenerating={mutations.generateUploadLink.isPending}
+              onGenerate={generateLink}
+              onCopy={copyGeneratedLink}
+            />
+            <DecisionCard
+              canDecide={canDecide}
+              isPending={mutations.decideApplication.isPending}
+              onApprove={() => decide("approved")}
+              onReject={() => decide("rejected")}
+            />
+            <LoanReleaseCard
+              application={application}
+              isPending={mutations.recordLoanRelease.isPending}
+              onSubmit={handleLoanRelease}
+            />
+            <VehicleReleaseCard
+              application={application}
+              isPending={mutations.recordVehicleRelease.isPending}
+              onSubmit={handleVehicleRelease}
+            />
+            <ActivityHistoryCard activity={activity} />
           </aside>
         </div>
       </div>
@@ -332,13 +248,694 @@ export function FinancingDetailScreen({ id }: { id: string }) {
   )
 }
 
-function Summary({ label, value }: { label: string; value: React.ReactNode }) {
+function ApplicationSummaryCard({
+  application,
+}: {
+  application: FinancingApplication
+}) {
   return (
-    <div>
-      <p className="text-xs font-medium uppercase text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-medium">{value}</p>
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <FileTextIcon className="text-muted-foreground" />
+          Application Summary
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          <SummaryItem
+            label="Status"
+            value={<StatusBadge status={application.status} />}
+          />
+          <SummaryItem label="Buyer" value={application.buyer.name} />
+          <SummaryItem
+            label="Contact Number"
+            value={application.buyer.contactNumber || "—"}
+          />
+          <SummaryItem label="Vehicle" value={application.vehicle.label} />
+          <SummaryItem label="Stock Number" value={application.vehicle.stockNumber} />
+          <SummaryItem label="Financing Partner" value={application.partner.name} />
+          <SummaryItem label="Representative" value={application.representative.name} />
+          <SummaryItem label="Assigned Staff" value={application.assignedStaff.name} />
+          <SummaryItem
+            label="Requested Amount"
+            value={formatMoney(application.requestedAmount)}
+          />
+          <SummaryItem label="Down Payment" value={formatMoney(application.downPayment)} />
+          <SummaryItem
+            label="Term"
+            value={application.termMonths ? `${application.termMonths} months` : "—"}
+          />
+        </div>
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function RequirementsChecklistCard({
+  requirements,
+  reviewError,
+  isUploading,
+  onReview,
+  onUpload,
+}: {
+  requirements: FinancingRequirement[]
+  reviewError: string
+  isUploading: boolean
+  onReview: (
+    requirementId: string,
+    status: "accepted" | "revision_requested",
+  ) => Promise<void>
+  onUpload: (requirementId: string, file: File) => void
+}) {
+  return (
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <ClipboardListIcon className="text-muted-foreground" />
+          Requirements Checklist
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <ApiErrorAlert title="Unable to update requirement" message={reviewError} />
+        <div className="overflow-hidden rounded-lg border bg-background">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/30">
+                <TableHead>Requirement</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Uploaded Files</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requirements.map((requirement) => (
+                <RequirementRow
+                  key={requirement.id}
+                  requirement={requirement}
+                  isUploading={isUploading}
+                  onReview={onReview}
+                  onUpload={onUpload}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function RequirementRow({
+  requirement,
+  isUploading,
+  onReview,
+  onUpload,
+}: {
+  requirement: FinancingRequirement
+  isUploading: boolean
+  onReview: (
+    requirementId: string,
+    status: "accepted" | "revision_requested",
+  ) => Promise<void>
+  onUpload: (requirementId: string, file: File) => void
+}) {
+  const currentDocuments = requirement.documents.filter((document) => document.isCurrent)
+  const firstDocument = currentDocuments[0] ?? requirement.documents[0]
+
+  return (
+    <TableRow className="h-14">
+      <TableCell className="font-medium">{requirement.label}</TableCell>
+      <TableCell>
+        <RequirementStatusBadge status={requirement.status} />
+      </TableCell>
+      <TableCell>
+        {firstDocument ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <FileTextIcon className="size-4" />
+            <span className="font-medium text-foreground">
+              {firstDocument.originalFilename}
+            </span>
+            {currentDocuments.length > 1 ? (
+              <span>+{currentDocuments.length - 1}</span>
+            ) : null}
+          </div>
+        ) : (
+          <span className="text-sm italic text-muted-foreground">
+            No file uploaded
+          </span>
+        )}
+      </TableCell>
+      <TableCell>
+        <div className="flex flex-wrap items-center gap-2">
+          {requirement.status === "submitted" ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onReview(requirement.id, "accepted")}
+                className="border-green-500 text-green-700 hover:bg-green-50"
+              >
+                <CheckIcon />
+                Accept
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onReview(requirement.id, "revision_requested")}
+                className="border-orange-400 text-orange-700 hover:bg-orange-50"
+              >
+                <RefreshCwIcon />
+                Request Revision
+              </Button>
+            </>
+          ) : requirement.status === "accepted" ? (
+            <Button type="button" variant="outline" size="sm">
+              View
+            </Button>
+          ) : requirement.status === "revision_requested" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-orange-400 text-orange-700"
+              disabled
+            >
+              Needs replacement
+            </Button>
+          ) : (
+            <Button type="button" variant="secondary" size="sm" disabled>
+              Waiting
+            </Button>
+          )}
+        </div>
+      </TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="Requirement actions">
+              <MoreVerticalIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuItem asChild>
+                <label className="flex cursor-pointer items-center gap-2">
+                  <FileUpIcon />
+                  Upload staff file
+                  <input
+                    type="file"
+                    className="sr-only"
+                    accept=".pdf,image/jpeg,image/png,image/webp"
+                    disabled={isUploading}
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      if (file) onUpload(requirement.id, file)
+                    }}
+                  />
+                </label>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault()
+                  void onReview(requirement.id, "accepted")
+                }}
+              >
+                <CheckIcon />
+                Mark accepted
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault()
+                  void onReview(requirement.id, "revision_requested")
+                }}
+              >
+                <XIcon />
+                Request revision
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function DocumentVersionHistoryCard({
+  documents,
+}: {
+  documents: Array<{
+    id: string
+    filename: string
+    createdAt: string
+    requirementLabel: string
+    isCurrent: boolean
+  }>
+}) {
+  return (
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Clock3Icon className="text-muted-foreground" />
+          Document Version History
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {documents.length ? (
+          <div className="flex flex-col">
+            {documents.slice(0, 6).map((document, index) => (
+              <div
+                key={document.id}
+                className="grid grid-cols-[24px_minmax(0,1fr)_auto] gap-3 border-b py-3 last:border-b-0"
+              >
+                <div className="relative flex justify-center">
+                  <span className="mt-1 size-3 rounded-full border-2 border-primary bg-background" />
+                  {index < documents.length - 1 ? (
+                    <span className="absolute top-5 bottom-[-14px] w-px bg-border" />
+                  ) : null}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {document.filename}
+                  </span>{" "}
+                  uploaded for {document.requirementLabel}
+                  {document.isCurrent ? "" : " (older version)"}
+                </p>
+                <p className="whitespace-nowrap text-sm text-muted-foreground">
+                  {formatDateTime(document.createdAt)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No document uploads yet.
+          </p>
+        )}
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function BuyerUploadLinkCard({
+  activeExpiresAt,
+  generatedToken,
+  isGenerating,
+  onGenerate,
+  onCopy,
+}: {
+  activeExpiresAt: string | null
+  generatedToken: string | null
+  isGenerating: boolean
+  onGenerate: () => Promise<void>
+  onCopy: () => Promise<void>
+}) {
+  return (
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <LinkIcon className="text-primary" />
+          Buyer Upload Link
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-2">
+          <Button onClick={onGenerate} disabled={isGenerating}>
+            <LinkIcon />
+            {isGenerating ? "Generating..." : "Generate Link"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCopy}
+            disabled={!generatedToken}
+          >
+            <CopyIcon />
+            Copy Link
+          </Button>
+        </div>
+        {activeExpiresAt ? (
+          <p className="text-center text-sm text-muted-foreground">
+            Active link expires{" "}
+            <span className="font-semibold text-primary">
+              {formatDate(activeExpiresAt)}
+            </span>
+          </p>
+        ) : null}
+        <p className="text-sm text-muted-foreground">
+          Send this secure link to the buyer through Messenger.
+        </p>
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function DecisionCard({
+  canDecide,
+  isPending,
+  onApprove,
+  onReject,
+}: {
+  canDecide: boolean
+  isPending: boolean
+  onApprove: () => Promise<void>
+  onReject: () => Promise<void>
+}) {
+  return (
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <GavelIcon className="text-muted-foreground" />
+          Decision
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!canDecide || isPending}
+            onClick={onApprove}
+          >
+            <CheckCircle2Icon />
+            Approve Application
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!canDecide || isPending}
+            onClick={onReject}
+          >
+            <XCircleIcon />
+            Reject Application
+          </Button>
+        </div>
+        {!canDecide ? (
+          <p className="text-sm text-muted-foreground">
+            Complete all requirements to enable decision actions.
+          </p>
+        ) : null}
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function LoanReleaseCard({
+  application,
+  isPending,
+  onSubmit,
+}: {
+  application: FinancingApplication
+  isPending: boolean
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+}) {
+  return (
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <BanknoteIcon className="text-primary" />
+          Loan Release
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SummaryItem
+              label="Released Loan Amount"
+              value={formatMoney(application.releasedLoanAmount)}
+            />
+            <SummaryItem
+              label="Release Date"
+              value={formatDateTime(application.loanReleasedAt)}
+            />
+            <SummaryItem
+              label="Reference Number"
+              value={application.loanReleaseReference || "—"}
+            />
+          </div>
+          {!application.loanReleasedAt ? (
+            <FieldGroup className="grid gap-3">
+              <Field>
+                <FieldLabel>Released Loan Amount</FieldLabel>
+                <Input name="releasedLoanAmount" placeholder="950000" required />
+              </Field>
+              <Field>
+                <FieldLabel>Release Date</FieldLabel>
+                <Input name="loanReleasedAt" type="datetime-local" required />
+              </Field>
+              <Field>
+                <FieldLabel>Reference Number</FieldLabel>
+                <Input name="loanReleaseReference" />
+              </Field>
+            </FieldGroup>
+          ) : null}
+          <Button
+            type="submit"
+            variant="outline"
+            className="w-fit"
+            disabled={isPending || Boolean(application.loanReleasedAt)}
+          >
+            <SendIcon />
+            Record Loan Release
+          </Button>
+        </form>
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function VehicleReleaseCard({
+  application,
+  isPending,
+  onSubmit,
+}: {
+  application: FinancingApplication
+  isPending: boolean
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
+}) {
+  return (
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CarIcon className="text-muted-foreground" />
+          Vehicle Release
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SummaryItem
+              label="Vehicle Release Date"
+              value={formatDateTime(application.vehicleReleasedAt)}
+            />
+            <SummaryItem label="Notes" value={application.vehicleReleaseNote || "—"} />
+          </div>
+          {!application.vehicleReleasedAt ? (
+            <FieldGroup className="grid gap-3">
+              <Field>
+                <FieldLabel>Vehicle Release Date</FieldLabel>
+                <Input name="vehicleReleasedAt" type="datetime-local" />
+              </Field>
+              <Field>
+                <FieldLabel>Notes</FieldLabel>
+                <Textarea name="note" rows={3} />
+              </Field>
+            </FieldGroup>
+          ) : null}
+          <Button
+            type="submit"
+            variant="outline"
+            className="w-fit"
+            disabled={isPending || Boolean(application.vehicleReleasedAt)}
+          >
+            Record Vehicle Release
+          </Button>
+        </form>
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function ActivityHistoryCard({ activity }: { activity: ActivityEvent[] }) {
+  return (
+    <DetailCard>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <CalendarClockIcon className="text-primary" />
+          Activity History
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {activity.length ? (
+          <div className="flex flex-col gap-3">
+            {activity.slice(0, 5).map((event, index) => (
+              <div
+                key={event.id ?? `${event.summary}-${index}`}
+                className="grid grid-cols-[14px_minmax(0,1fr)_auto] gap-3"
+              >
+                <CircleIcon className="mt-1 fill-primary text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  {event.summary ?? event.actionType ?? "Activity recorded"}
+                </p>
+                <p className="whitespace-nowrap text-sm text-muted-foreground">
+                  {formatDateTime(event.createdAt)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No activity history yet.
+          </p>
+        )}
+      </CardContent>
+    </DetailCard>
+  )
+}
+
+function DetailCard({ children }: { children: React.ReactNode }) {
+  return (
+    <Card className="rounded-xl border bg-background shadow-sm">
+      {children}
+    </Card>
+  )
+}
+
+function SummaryItem({
+  label,
+  value,
+}: {
+  label: string
+  value: React.ReactNode
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <div className="mt-2 text-sm font-semibold text-foreground">{value}</div>
     </div>
   )
+}
+
+function StatusBadge({ status }: { status: FinancingApplicationStatus }) {
+  return (
+    <Badge
+      variant="secondary"
+      className={cn(
+        "w-fit",
+        status === "collecting_requirements" &&
+          "bg-orange-100 text-orange-700 hover:bg-orange-100",
+        status === "under_review" &&
+          "bg-blue-100 text-blue-700 hover:bg-blue-100",
+        status === "approved" &&
+          "bg-green-100 text-green-700 hover:bg-green-100",
+        status === "needs_revision" &&
+          "bg-orange-100 text-orange-700 hover:bg-orange-100",
+        ["rejected", "cancelled"].includes(status) &&
+          "bg-destructive/10 text-destructive hover:bg-destructive/10",
+      )}
+    >
+      {formatStatus(status)}
+    </Badge>
+  )
+}
+
+function RequirementStatusBadge({
+  status,
+}: {
+  status: FinancingRequirementStatus
+}) {
+  return (
+    <Badge
+      variant="secondary"
+      className={cn(
+        "w-fit",
+        status === "accepted" && "bg-green-100 text-green-700 hover:bg-green-100",
+        status === "submitted" && "bg-blue-100 text-blue-700 hover:bg-blue-100",
+        status === "pending" && "bg-muted text-muted-foreground hover:bg-muted",
+        status === "revision_requested" &&
+          "bg-orange-100 text-orange-700 hover:bg-orange-100",
+      )}
+    >
+      {formatStatus(status)}
+    </Badge>
+  )
+}
+
+function buildDocumentHistory(application: FinancingApplication) {
+  return application.requirements
+    .flatMap((requirement) =>
+      requirement.documents.map((document) => ({
+        id: document.id,
+        filename: document.originalFilename,
+        createdAt: document.createdAt,
+        requirementLabel: requirement.label,
+        isCurrent: document.isCurrent,
+      })),
+    )
+    .sort(
+      (first, second) =>
+        new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
+    )
+}
+
+function normalizeActivity(activity: unknown): ActivityEvent[] {
+  if (!Array.isArray(activity)) {
+    return []
+  }
+
+  return activity
+    .filter((event): event is Record<string, unknown> => Boolean(event))
+    .map((event) => ({
+      id: typeof event.id === "string" ? event.id : undefined,
+      summary: typeof event.summary === "string" ? event.summary : undefined,
+      actionType:
+        typeof event.actionType === "string" ? event.actionType : undefined,
+      actorDisplayName:
+        typeof event.actorDisplayName === "string"
+          ? event.actorDisplayName
+          : null,
+      createdAt: typeof event.createdAt === "string" ? event.createdAt : undefined,
+    }))
+}
+
+function canDecideApplication(application: FinancingApplication) {
+  return (
+    application.status === "under_review" &&
+    application.requirementProgress.total > 0 &&
+    application.requirementProgress.accepted === application.requirementProgress.total
+  )
+}
+
+function formatMoney(value: string | null) {
+  if (!value) return "—"
+  const amount = Number(value)
+  if (Number.isNaN(amount)) return value
+  return pesoFormatter.format(amount)
+}
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "—"
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date)
+}
+
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return "—"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "—"
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)
 }

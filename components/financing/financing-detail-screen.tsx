@@ -38,8 +38,10 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -760,6 +762,13 @@ function LoanReleaseCard({
   isPending: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
 }) {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false)
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    await onSubmit(event)
+    setIsDialogOpen(false)
+  }
+
   return (
     <DetailCard>
       <CardHeader>
@@ -768,48 +777,72 @@ function LoanReleaseCard({
           Loan Release
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SummaryItem
-              label="Released Loan Amount"
-              value={formatMoney(application.releasedLoanAmount)}
-            />
-            <SummaryItem
-              label="Release Date"
-              value={formatDateTime(application.loanReleasedAt)}
-            />
-            <SummaryItem
-              label="Reference Number"
-              value={application.loanReleaseReference || "—"}
-            />
-          </div>
-          {!application.loanReleasedAt ? (
-            <FieldGroup className="grid gap-3">
-              <Field>
-                <FieldLabel>Released Loan Amount</FieldLabel>
-                <Input name="releasedLoanAmount" placeholder="950000" required />
-              </Field>
-              <Field>
-                <FieldLabel>Release Date</FieldLabel>
-                <Input name="loanReleasedAt" type="datetime-local" required />
-              </Field>
-              <Field>
-                <FieldLabel>Reference Number</FieldLabel>
-                <Input name="loanReleaseReference" />
-              </Field>
-            </FieldGroup>
-          ) : null}
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-fit"
-            disabled={isPending || Boolean(application.loanReleasedAt)}
-          >
-            <SendIcon />
-            Record Loan Release
-          </Button>
-        </form>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SummaryItem
+            label="Released Loan Amount"
+            value={formatMoney(application.releasedLoanAmount)}
+          />
+          <SummaryItem
+            label="Release Date"
+            value={formatDateTime(application.loanReleasedAt)}
+          />
+          <SummaryItem
+            label="Reference Number"
+            value={application.loanReleaseReference || "—"}
+          />
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-fit"
+              disabled={isPending || Boolean(application.loanReleasedAt)}
+            >
+              <SendIcon />
+              Record Loan Release
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Record loan release</DialogTitle>
+              <DialogDescription>
+                Enter the loan release details from the financing partner. This
+                will move the application to loan released.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <FieldGroup>
+                <Field>
+                  <FieldLabel>Released Loan Amount</FieldLabel>
+                  <Input name="releasedLoanAmount" placeholder="950000" required />
+                </Field>
+                <Field>
+                  <FieldLabel>Release Date</FieldLabel>
+                  <Input name="loanReleasedAt" type="datetime-local" required />
+                </Field>
+                <Field>
+                  <FieldLabel>Reference Number</FieldLabel>
+                  <Input name="loanReleaseReference" />
+                </Field>
+              </FieldGroup>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Recording..." : "Record Loan Release"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </DetailCard>
   )
@@ -824,6 +857,13 @@ function VehicleReleaseCard({
   isPending: boolean
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => Promise<void>
 }) {
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false)
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    await onSubmit(event)
+    setIsDialogOpen(false)
+  }
+
   return (
     <DetailCard>
       <CardHeader>
@@ -832,36 +872,60 @@ function VehicleReleaseCard({
           Vehicle Release
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="flex flex-col gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SummaryItem
-              label="Vehicle Release Date"
-              value={formatDateTime(application.vehicleReleasedAt)}
-            />
-            <SummaryItem label="Notes" value={application.vehicleReleaseNote || "—"} />
-          </div>
-          {!application.vehicleReleasedAt ? (
-            <FieldGroup className="grid gap-3">
-              <Field>
-                <FieldLabel>Vehicle Release Date</FieldLabel>
-                <Input name="vehicleReleasedAt" type="datetime-local" />
-              </Field>
-              <Field>
-                <FieldLabel>Notes</FieldLabel>
-                <Textarea name="note" rows={3} />
-              </Field>
-            </FieldGroup>
-          ) : null}
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-fit"
-            disabled={isPending || Boolean(application.vehicleReleasedAt)}
-          >
-            Record Vehicle Release
-          </Button>
-        </form>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SummaryItem
+            label="Vehicle Release Date"
+            value={formatDateTime(application.vehicleReleasedAt)}
+          />
+          <SummaryItem label="Notes" value={application.vehicleReleaseNote || "—"} />
+        </div>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-fit"
+              disabled={isPending || Boolean(application.vehicleReleasedAt)}
+            >
+              Record Vehicle Release
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Record vehicle release</DialogTitle>
+              <DialogDescription>
+                Add the physical vehicle release date and any handoff notes for
+                this financing application.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+              <FieldGroup>
+                <Field>
+                  <FieldLabel>Vehicle Release Date</FieldLabel>
+                  <Input name="vehicleReleasedAt" type="datetime-local" />
+                </Field>
+                <Field>
+                  <FieldLabel>Notes</FieldLabel>
+                  <Textarea name="note" rows={3} />
+                </Field>
+              </FieldGroup>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => setIsDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? "Recording..." : "Record Vehicle Release"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </DetailCard>
   )

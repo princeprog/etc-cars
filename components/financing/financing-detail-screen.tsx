@@ -480,7 +480,7 @@ function RequirementRow({
                 className="border-orange-400 text-orange-700 hover:bg-orange-50"
               >
                 <RefreshCwIcon />
-                Request Revision
+                Revise
               </Button>
             </>
           ) : requirement.status === "accepted" ? (
@@ -503,7 +503,7 @@ function RequirementRow({
               className="border-orange-400 text-orange-700"
               disabled
             >
-              Needs replacement
+              Replace
             </Button>
           ) : (
             <Button type="button" variant="secondary" size="sm" disabled>
@@ -524,7 +524,7 @@ function RequirementRow({
               <DropdownMenuItem asChild>
                 <label className="flex cursor-pointer items-center gap-2">
                   <FileUpIcon />
-                  Upload staff file
+                  Upload
                   <input
                     type="file"
                     className="sr-only"
@@ -545,7 +545,7 @@ function RequirementRow({
                   }}
                 >
                   <FileTextIcon />
-                  View uploaded file
+                  View
                 </DropdownMenuItem>
               ) : null}
               <DropdownMenuItem
@@ -555,7 +555,7 @@ function RequirementRow({
                 }}
               >
                 <CheckIcon />
-                Mark accepted
+                Accept
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={(event) => {
@@ -564,7 +564,7 @@ function RequirementRow({
                 }}
               >
                 <XIcon />
-                Request revision
+                Revise
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
